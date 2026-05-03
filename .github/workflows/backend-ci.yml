@@ -27,3 +27,6 @@ jobs:
 
       - name: Run tests
         run: pytest apps/backend/tests/
+        env:
+          SUPABASE_URL: http://localhost
+          SUPABASE_KEY: dummy-key-for-testing

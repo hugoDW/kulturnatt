@@ -1,14 +1,16 @@
 import uuid
+from typing import Literal
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from pydantic import BaseModel
-from services import setup_profile, on_profile_update, perform_match
+from auth import get_current_user
+from services import setup_profile, on_profile_update, perform_swipe
 from db import get_all_users, update_profile
 
 app = FastAPI()
 
+
 class ProfileSetupRequest(BaseModel):
-    user_id: uuid.UUID
     username: str
     age: int
     gender: str
@@ -24,26 +26,30 @@ class ProfileSetupRequest(BaseModel):
     movie_genre: list[str]
     art: bool
     literature: list[str]
-    
+
+
 @app.post("/profile/setup")
-def profile_setup(request: ProfileSetupRequest):
+def profile_setup(
+    request: ProfileSetupRequest,
+    user_id: uuid.UUID = Depends(get_current_user),
+):
     setup_profile(
-        user_id = request.user_id,
-        username = request.username,
-        age = request.age,
-        gender = request.gender,
-        preferred_gender = request.preferred_gender,
-        age_range = request.age_range,
-        events = request.events,
-        songs = request.songs,
-        movies = request.movies,
-        shows = request.shows,
-        artists = request.artists,
-        directors = request.directors,
-        music_genre = request.music_genre,
-        movie_genre = request.movie_genre,
-        art = request.art,
-        literature = request.literature,
+        user_id=user_id,
+        username=request.username,
+        age=request.age,
+        gender=request.gender,
+        preferred_gender=request.preferred_gender,
+        age_range=request.age_range,
+        events=request.events,
+        songs=request.songs,
+        movies=request.movies,
+        shows=request.shows,
+        artists=request.artists,
+        directors=request.directors,
+        music_genre=request.music_genre,
+        movie_genre=request.movie_genre,
+        art=request.art,
+        literature=request.literature,
     )
     return {"status": "ok"}
 
@@ -66,13 +72,11 @@ class UpdateProfileRequest(BaseModel):
     literature: list[str]
 
 
-class MatchRequest(BaseModel):
-    user_a_id: uuid.UUID
-    user_b_id: uuid.UUID
-
-
-@app.put("/profile/update/{user_id}")
-def profile_update(user_id: uuid.UUID, request: UpdateProfileRequest):
+@app.put("/profile/update")
+def profile_update(
+    request: UpdateProfileRequest,
+    user_id: uuid.UUID = Depends(get_current_user),
+):
     all_users = get_all_users()
     user = next(user for user in all_users if user.user_id == user_id)
     user.username = request.username
@@ -95,18 +99,25 @@ def profile_update(user_id: uuid.UUID, request: UpdateProfileRequest):
     return {"status": "ok"}
 
 
-@app.post("/match")
-def match(request: MatchRequest):
+
+class SwipeRequest(BaseModel):
+    target_user_id: uuid.UUID
+    action: Literal["like", "reject"]
+
+
+@app.post("/swipe")
+def swipe(
+    request: SwipeRequest,
+    user_id: uuid.UUID = Depends(get_current_user),
+):
     all_users = get_all_users()
-    user_a = next(user for user in all_users if user.user_id == request.user_a_id)
-    user_b = next(user for user in all_users if user.user_id == request.user_b_id)
-    result = perform_match(user_a, user_b)
-    return result if result else {"status": "no match"}
+    current_user = next(user for user in all_users if user.user_id == user_id)
+    target_user = next(user for user in all_users if user.user_id == request.target_user_id)
+    return perform_swipe(current_user, target_user, request.action)
 
 
-@app.get("/users/{user_id}/swipes")
-def get_swipes(user_id: uuid.UUID):
+@app.get("/profile/swipes")
+def get_swipes(user_id: uuid.UUID = Depends(get_current_user)):
     all_users = get_all_users()
     user = next(user for user in all_users if user.user_id == user_id)
     return {"user_ranked_list": user.user_ranked_list}
-

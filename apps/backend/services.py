@@ -1,5 +1,5 @@
 import uuid
-from db import get_all_users, save_ranked_list, create_profile, save_match
+from db import get_all_users, save_ranked_list, create_profile, save_match, save_like, save_reject
 from swipeAlgo import get_scored_users
 from matchAlgo import create_match, is_mutual_like
 from user import User
@@ -78,6 +78,22 @@ def setup_profile(
     )
     create_profile(user)
     on_profile_update(user.user_id)
+
+
+def perform_swipe(current_user: User, target_user: User, action: str) -> dict:
+    if action == "like":
+        new_liked = current_user.liked_users + [target_user.user_id]
+        save_like(current_user.user_id, new_liked)
+        current_user.liked_users = new_liked
+        if current_user.user_id in target_user.liked_users:
+            result = perform_match(current_user, target_user)
+            if result:
+                return {"status": "match", "shared": result["shared"]}
+        return {"status": "liked"}
+    else:
+        new_rejected = current_user.rejected_users + [target_user.user_id]
+        save_reject(current_user.user_id, new_rejected)
+        return {"status": "rejected"}
 
 
 def build_all_ranked_lists():
