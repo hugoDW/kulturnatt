@@ -3,3 +3,4 @@ python-dotenv>=1.2.2
 supabase>=2.0.0
 pycountry>=24.6.1
 pytest>=8.0.0
+ruff>=0.4.0
