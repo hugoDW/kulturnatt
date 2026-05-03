@@ -103,3 +103,15 @@ def save_match(
         "liked_users": [str(user) for user in b_liked],
         "matched_users": [str(user) for user in b_matched],
     }).eq("id_profile", str(user_b_id)).execute()
+
+
+def save_like(user_id: uuid.UUID, liked_users: list):
+    supabase.table("profile").update({
+        "liked_users": [str(user) for user in liked_users],
+    }).eq("id_profile", str(user_id)).execute()
+
+
+def save_reject(user_id: uuid.UUID, rejected_users: list):
+    supabase.table("profile").update({
+        "rejected_users": [str(user) for user in rejected_users],
+    }).eq("id_profile", str(user_id)).execute()
