@@ -21,6 +21,9 @@ class User:
         directors: list[str],
         music_genre: list[str],
         movie_genre: list[str],
+        shows: list[str],
+        art: bool,
+        literature: list[str],
     ):
         self.user_id = user_id
         self.username = username
@@ -40,3 +43,6 @@ class User:
         self.directors = directors
         self.music_genre = music_genre
         self.movie_genre = movie_genre
+        self.shows = shows
+        self.art = art
+        self.literature = literature
