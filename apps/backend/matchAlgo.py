@@ -17,6 +17,10 @@ def is_mutual_like(user_a: User, user_b: User) -> bool:
 def create_match(user_a: User, user_b: User) -> dict | None:
     if not is_mutual_like(user_a, user_b):
         return None
+    user_a.liked_users.remove(user_b.user_id)
+    user_b.liked_users.remove(user_a.user_id)
+    user_a.matched_users.append(user_b.user_id)
+    user_b.matched_users.append(user_a.user_id)
     return {
         "users": (user_a, user_b),
         "shared": get_shared_interests(user_a, user_b),

@@ -1,7 +1,7 @@
 import uuid
 from db import get_all_users, save_ranked_list, update_profile, create_profile, save_match
 from swipeAlgo import get_scored_users
-from matchAlgo import create_match
+from matchAlgo import create_match, is_mutual_like
 from user import User
 
 
@@ -12,8 +12,7 @@ def _compute_and_save(user, all_users):
 
 
 def perform_match(user_a: User, user_b: User) -> dict | None:
-    result = create_match(user_a, user_b)
-    if result is None:
+    if not is_mutual_like(user_a, user_b):
         return None
     new_a_liked = [user for user in user_a.liked_users if user != user_b.user_id]
     new_b_liked = [user for user in user_b.liked_users if user != user_a.user_id]
@@ -21,11 +20,7 @@ def perform_match(user_a: User, user_b: User) -> dict | None:
     new_b_matched = user_b.matched_users + [user_a.user_id]
     save_match(user_a.user_id, new_a_liked, new_a_matched,
                user_b.user_id, new_b_liked, new_b_matched)
-    user_a.liked_users = new_a_liked
-    user_b.liked_users = new_b_liked
-    user_a.matched_users = new_a_matched
-    user_b.matched_users = new_b_matched
-    return result
+    return create_match(user_a, user_b)
 
 
 def on_profile_update(updated_user_id: uuid.UUID):
