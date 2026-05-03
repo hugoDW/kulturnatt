@@ -5,7 +5,7 @@ import uuid
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 from user import User
-from swipeAlgo import filter_users, scoring_users, get_scored_users
+from swipeAlgo import filter_users, scoring_users
 from matchAlgo import is_mutual_like, create_match, get_shared_interests
 
 

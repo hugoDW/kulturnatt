@@ -1,4 +1,6 @@
-import re, requests, os
+import re
+import requests
+import os
 from datetime import datetime
 from dotenv import load_dotenv
 

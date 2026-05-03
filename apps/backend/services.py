@@ -1,5 +1,5 @@
 import uuid
-from db import get_all_users, save_ranked_list, update_profile, create_profile, save_match
+from db import get_all_users, save_ranked_list, create_profile, save_match
 from swipeAlgo import get_scored_users
 from matchAlgo import create_match, is_mutual_like
 from user import User

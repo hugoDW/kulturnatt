@@ -133,7 +133,7 @@ def get_country_name(country_code):
         if country:
             return country.name
 
-    except:
+    except Exception:
         pass
 
     return country_code
