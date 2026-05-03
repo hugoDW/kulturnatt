@@ -16,20 +16,23 @@ def row_to_user(row: dict) -> User:
         username=row["username"],
         age=row["age"],
         gender=row["gender"],
-        preferred_gender=row["preferred_gender"],
-        user_ranked_list=row["user_ranked_list"],
-        blocked_users=[uuid.UUID(u) for u in row["blocked_users"]],
-        rejected_users=[uuid.UUID(u) for u in row["rejected_users"]],
-        liked_users=[uuid.UUID(u) for u in row["liked_users"]],
-        matched_users=[uuid.UUID(u) for u in row["matched_users"]],
-        age_range=tuple(row["age_range"]),
-        events=row["events"],
-        songs=row["songs"],
-        movies=row["movies"],
-        artists=row["artists"],
-        directors=row["directors"],
-        music_genre=row["music_genre"],
-        movie_genre=row["movie_genre"],
+        preferred_gender=row["preferred_gender"] or [],
+        user_ranked_list=row["user_ranked_list"] or [],
+        blocked_users=[uuid.UUID(user) for user in (row["blocked_users"] or [])],
+        rejected_users=[uuid.UUID(user) for user in (row["rejected_users"] or [])],
+        liked_users=[uuid.UUID(user) for user in (row["liked_users"] or [])],
+        matched_users=[uuid.UUID(user) for user in (row["matched_users"] or [])],
+        age_range=tuple(row["age_range"] or [0, 99]),
+        events=row["events"] or [],
+        songs=row["songs"] or [],
+        movies=row["movies"] or [],
+        artists=row["artists"] or [],
+        directors=row["directors"] or [],
+        music_genre=row["music_genre"] or [],
+        movie_genre=row["movie_genre"] or [],
+        shows=row["shows"] or [],
+        art=row["art"] or False,
+        literature=row["literature"] or [],
     )
 
 
@@ -56,15 +59,47 @@ def update_profile(user: User):
         "directors": user.directors,
         "music_genre": user.music_genre,
         "movie_genre": user.movie_genre,
+        "shows": user.shows,
+        "art": user.art,
+        "literature": user.literature,
     }).eq("id_profile", str(user.user_id)).execute()
 
 
-def save_match(user_a: User, user_b: User):
+def create_profile(user: User):
+    supabase.table("profile").insert({
+        "id_profile": str(user.user_id),
+        "username": user.username,
+        "age": user.age,
+        "gender": user.gender,
+        "preferred_gender": user.preferred_gender,
+        "user_ranked_list": [],
+        "blocked_users": [],
+        "rejected_users": [],
+        "liked_users": [],
+        "matched_users": [],
+        "age_range": list(user.age_range),
+        "events": user.events,
+        "songs": user.songs,
+        "movies": user.movies,
+        "artists": user.artists,
+        "directors": user.directors,
+        "music_genre": user.music_genre,
+        "movie_genre": user.movie_genre,
+        "shows": user.shows,
+        "art": user.art,
+        "literature": user.literature,
+    }).execute()
+
+
+def save_match(
+    user_a_id: uuid.UUID, a_liked: list, a_matched: list,
+    user_b_id: uuid.UUID, b_liked: list, b_matched: list,
+):
     supabase.table("profile").update({
-        "liked_users": [str(u) for u in user_a.liked_users],
-        "matched_users": [str(u) for u in user_a.matched_users],
-    }).eq("id_profile", str(user_a.user_id)).execute()
+        "liked_users": [str(user) for user in a_liked],
+        "matched_users": [str(user) for user in a_matched],
+    }).eq("id_profile", str(user_a_id)).execute()
     supabase.table("profile").update({
-        "liked_users": [str(u) for u in user_b.liked_users],
-        "matched_users": [str(u) for u in user_b.matched_users],
-    }).eq("id_profile", str(user_b.user_id)).execute()
+        "liked_users": [str(user) for user in b_liked],
+        "matched_users": [str(user) for user in b_matched],
+    }).eq("id_profile", str(user_b_id)).execute()

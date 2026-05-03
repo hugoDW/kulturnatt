@@ -21,7 +21,6 @@ def create_match(user_a: User, user_b: User) -> dict | None:
     user_b.liked_users.remove(user_a.user_id)
     user_a.matched_users.append(user_b.user_id)
     user_b.matched_users.append(user_a.user_id)
-
     return {
         "users": (user_a, user_b),
         "shared": get_shared_interests(user_a, user_b),

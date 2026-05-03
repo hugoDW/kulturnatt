@@ -1,5 +1,39 @@
 # Utvecklingsplan
 
+## Nuläge & nästa steg
+
+### Klart
+- `user.py` — `show`, `art`, `literature` tillagda
+- `db.py` — `row_to_user` och `update_profile` uppdaterade
+- `swipeAlgo.py` — scoring för `show`, `art`, `literature`
+- `matchAlgo.py` — `get_shared_interests` uppdaterad
+- `services.py` — `setup_profile` uppdaterad
+- `main.py` — `ProfileSetupRequest` och `/profile/setup` klara
+
+### Fortsätt här — `main.py`
+Tre endpoints saknas fortfarande:
+
+```
+PUT  /profile/update   → on_profile_update(user_id)
+POST /match            → perform_match(user_a, user_b)
+GET  /users/{id}/swipes → hämtar user_ranked_list från DB
+```
+
+För `/profile/update` behövs en `UpdateProfileRequest` med samma fält som `ProfileSetupRequest` (minus `user_id` — den skickas i URL:en istället).
+
+För `/match` behövs en `MatchRequest` med `user_a_id` och `user_b_id`, sedan hämtar du båda användarna från DB och anropar `perform_match`.
+
+### Supabase — lägg till kolumner
+Kolumnerna `show` (text[]), `art` (bool), `literature` (text[]) behöver läggas till i `profile`-tabellen i Supabase, annars kraschar DB-anropen.
+
+### Kvar från ursprunglig review (lägre prioritet)
+- `db.py` — null-hantering i `row_to_user` (punkt 3 nedan)
+- `services.py` / `db.py` — INSERT för nya profiler (punkt 3 nedan)
+- `matchAlgo.py` — race condition i `create_match` (punkt 4 nedan)
+- `tmdb.py` — flytta kod på import-nivå (rad 81–92) till `if __name__ == "__main__":`
+
+---
+
 ## 1. FastAPI — koppla ihop backend och mobilapp
 
 Just nu är Python-backenden och mobilappen helt frånkopplade. Det finns ingen server som mobilappen kan prata med. FastAPI löser detta genom att exponera backend-logiken som HTTP-endpoints.
