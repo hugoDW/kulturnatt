@@ -41,6 +41,14 @@ def get_all_users() -> list[User]:
     return [row_to_user(row) for row in response.data]
 
 
+# hämtar en specifik användare via id, returnerar None om hen inte finns
+def get_user(user_id: uuid.UUID) -> User | None:
+    response = supabase.table("profile").select("*").eq("id_profile", str(user_id)).execute()
+    if not response.data:
+        return None
+    return row_to_user(response.data[0])
+
+
 def save_ranked_list(user_id: uuid.UUID, ranked_list: list[dict]):
     supabase.table("profile").update({"user_ranked_list": ranked_list}).eq("id_profile", str(user_id)).execute()
 

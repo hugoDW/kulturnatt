@@ -32,13 +32,13 @@ def scoring_users(current_user: User, user_pool: list[User]) -> list[tuple[User,
         shared_directors = len(set(current_user.directors).intersection(set(user.directors)))
         shared_music_genre = len(set(current_user.music_genre).intersection(set(user.music_genre)))
         shared_movie_genre = len(set(current_user.movie_genre).intersection(set(user.movie_genre)))
-        
+
         # uträkning för score
         event_score = shared_events * EVENT_MULTIPLIER
         song_movie_score = (shared_songs + shared_movies) * SONG_MOVIE_MULTIPLIER
         artist_director_score = (shared_artists + shared_directors) * ARTIST_DIRECTOR_MULTIPLIER
         genre_score = (shared_music_genre + shared_movie_genre) * GENRE_MULTIPLIER
-        
+
         user_score = event_score + song_movie_score + artist_director_score + genre_score
         ranked_user_pool.append((user, user_score))
     return sorted(ranked_user_pool, key=lambda x: x[1], reverse=True)
@@ -51,4 +51,3 @@ def get_scored_users(current_user: User, all_users: list[User]) -> list[tuple[Us
 def get_scored_rejected_users(current_user: User, all_users: list[User]) -> list[tuple[User, int]]:
     rejected_pool = [user for user in all_users if user.user_id in current_user.rejected_users]
     return scoring_users(current_user, rejected_pool)
-

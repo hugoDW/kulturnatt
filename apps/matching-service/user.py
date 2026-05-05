@@ -1,5 +1,6 @@
 import uuid
 
+
 class User:
     def __init__(
         self,
@@ -46,3 +47,30 @@ class User:
         self.shows = shows
         self.art = art
         self.literature = literature
+
+
+# bygger en User från JSON som kommer från profile-service
+def user_from_dict(data: dict) -> User:
+    return User(
+        user_id=uuid.UUID(data["user_id"]),
+        username=data["username"],
+        age=data["age"],
+        gender=data["gender"],
+        preferred_gender=data["preferred_gender"],
+        user_ranked_list=data["user_ranked_list"],
+        blocked_users=[uuid.UUID(other) for other in data["blocked_users"]],
+        rejected_users=[uuid.UUID(other) for other in data["rejected_users"]],
+        liked_users=[uuid.UUID(other) for other in data["liked_users"]],
+        matched_users=[uuid.UUID(other) for other in data["matched_users"]],
+        age_range=tuple(data["age_range"]),
+        events=data["events"],
+        songs=data["songs"],
+        movies=data["movies"],
+        artists=data["artists"],
+        directors=data["directors"],
+        music_genre=data["music_genre"],
+        movie_genre=data["movie_genre"],
+        shows=data["shows"],
+        art=data["art"],
+        literature=data["literature"],
+    )
