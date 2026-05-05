@@ -32,15 +32,7 @@ export default function StartScreen({
           >
             <Text style={[styles.title, { opacity: 0 }]}>tsm</Text>
           </LinearGradient>
-        </MaskedView>
 
-        <MaskedView
-          maskElement={
-            <Text style={styles.subtitle}>
-              Together Socialize Match
-            </Text>
-          }
-        >
           <LinearGradient
             colors={["#0d0d11", "#446fd3"]}
             start={{ x: 0, y: 0 }}
