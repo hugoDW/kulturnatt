@@ -1,13 +1,19 @@
 import React from "react";
-import { TouchableOpacity, Text, StyleSheet } from "react-native";
+import { StyleSheet, Text, TouchableOpacity } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Props = {
   onPress?: () => void;
 };
 
 export default function BackButton({ onPress }: Props) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <TouchableOpacity style={styles.button} onPress={onPress}>
+    <TouchableOpacity
+      style={[styles.button, { top: insets.top }]}
+      onPress={onPress}
+    >
       <Text style={styles.text}>‹</Text>
     </TouchableOpacity>
   );
@@ -16,9 +22,8 @@ export default function BackButton({ onPress }: Props) {
 const styles = StyleSheet.create({
   button: {
     position: "absolute",
-    top: 10,
-    left: 16,
-    zIndex: 10,
+    left: 15,
+    zIndex: 1,
   },
 
   text: {

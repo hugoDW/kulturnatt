@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 import { useNavigation } from "@react-navigation/native";
@@ -73,7 +74,10 @@ export default function CreateAccountScreen() {
       Alert.alert("Account created", "You are now registered.");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Something went wrong while signing up.";
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while signing up.";
+
       Alert.alert("Registration failed", message);
     } finally {
       setLoading(false);
@@ -81,81 +85,88 @@ export default function CreateAccountScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      style={styles.keyboardView}
-    >
-      <LinearGradient
-        colors={["#ECF2FF", "#ECF2FF", "#ECF2FF"]}
-        style={styles.container}
+    
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        style={styles.keyboardView}
       >
-        <BackButton onPress={() => navigation.goBack()} />
+        <LinearGradient
+          colors={["#ECF2FF", "#ECF2FF", "#ECF2FF"]}
+          style={styles.container}
+        >
+          <BackButton onPress={() => navigation.goBack()} />
 
-        <View style={styles.logoSection}>
-          <Text style={styles.title}>tsm</Text>
-        </View>
+          <View style={styles.logoSection}>
+            <Text style={styles.title}>tsm</Text>
+          </View>
 
-        <View style={styles.inputSection}>
-          <Text>Email</Text>
-          <TextInput
-            autoCapitalize="none"
-            autoComplete="email"
-            autoCorrect={false}
-            editable={!loading}
-            inputMode="email"
-            keyboardType="email-address"
-            onChangeText={setEmail}
-            placeholder="Example: svensvensson@tsm.se"
-            style={styles.input}
-            textContentType="emailAddress"
-            value={email}
-          />
+          <View style={styles.inputSection}>
+            <Text>Email</Text>
+            <TextInput
+              autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
+              editable={!loading}
+              inputMode="email"
+              keyboardType="email-address"
+              onChangeText={setEmail}
+              placeholder="Example: svensvensson@tsm.se"
+              style={styles.input}
+              textContentType="emailAddress"
+              value={email}
+            />
 
-          <Text>Password</Text>
-          <TextInput
-            autoCapitalize="none"
-            autoComplete="password-new"
-            editable={!loading}
-            onChangeText={setPassword}
-            placeholder="Example: password123"
-            secureTextEntry
-            style={styles.input}
-            textContentType="newPassword"
-            value={password}
-          />
+            <Text>Password</Text>
+            <TextInput
+              autoCapitalize="none"
+              autoComplete="password-new"
+              editable={!loading}
+              onChangeText={setPassword}
+              placeholder="Example: password123"
+              secureTextEntry
+              style={styles.input}
+              textContentType="newPassword"
+              value={password}
+            />
 
-          <Text>Confirm password</Text>
-          <TextInput
-            autoCapitalize="none"
-            autoComplete="password-new"
-            editable={!loading}
-            onChangeText={setConfirmPassword}
-            onSubmitEditing={handleCreateAccount}
-            placeholder="Confirm password"
-            secureTextEntry
-            style={styles.input}
-            textContentType="newPassword"
-            value={confirmPassword}
-          />
+            <Text>Confirm password</Text>
+            <TextInput
+              autoCapitalize="none"
+              autoComplete="password-new"
+              editable={!loading}
+              onChangeText={setConfirmPassword}
+              onSubmitEditing={handleCreateAccount}
+              placeholder="Confirm password"
+              secureTextEntry
+              style={styles.input}
+              textContentType="newPassword"
+              value={confirmPassword}
+            />
 
-          <TouchableOpacity
-            disabled={loading}
-            onPress={handleCreateAccount}
-            style={[styles.registerButton, loading && styles.registerButtonDisabled]}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.registerButtonText}>Register</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-      </LinearGradient>
-    </KeyboardAvoidingView>
+            <TouchableOpacity
+              disabled={loading}
+              onPress={handleCreateAccount}
+              style={[
+                styles.registerButton,
+                loading && styles.registerButtonDisabled,
+              ]}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.registerButtonText}>Register</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+        </LinearGradient>
+      </KeyboardAvoidingView>
+    
   );
 }
 
 const styles = StyleSheet.create({
+ 
+
   keyboardView: {
     flex: 1,
   },
@@ -190,7 +201,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 50,
     paddingHorizontal: 12,
-    alignItems: "center",
 
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
