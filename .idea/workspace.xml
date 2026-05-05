@@ -5,10 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="68fa4cb9-82a6-4eec-b0cd-a2872104f011" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/apps/mobile/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/mobile/App.tsx" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/mobile/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/mobile/package-lock.json" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/apps/mobile/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/apps/mobile/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/apps/mobile/screens/startScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/apps/mobile/screens/startScreen.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -26,10 +24,10 @@
     </option>
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="ProjectColorInfo"><![CDATA[{
-  "customColor": "",
-  "associatedIndex": 8
-}]]></component>
+  <component name="ProjectColorInfo">{
+  &quot;customColor&quot;: &quot;&quot;,
+  &quot;associatedIndex&quot;: 8
+}</component>
   <component name="ProjectId" id="3D1dLUtAIHIt2ysXMBtE8Ou7tVe" />
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
@@ -45,7 +43,7 @@
     "RunOnceActivity.readMode.enableVisualFormatting": "true",
     "cf.first.check.clang-format": "false",
     "cidr.known.project.marker": "true",
-    "git-widget-placeholder": "elins",
+    "git-widget-placeholder": "ELINoi",
     "kotlin-language-version-configured": "true"
   }
 }]]></component>
