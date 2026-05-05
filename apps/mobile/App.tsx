@@ -1,29 +1,36 @@
-import React, { useEffect, useRef, useState } from "react";
-import { Alert, StyleSheet } from "react-native";
-import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
+import React, { useEffect, useRef } from "react";
+import { Alert } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import * as Linking from "expo-linking";
 
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+
 import StartScreen from "./screens/start";
 import CreateAccountScreen from "./screens/create-account";
+import LoginScreen from "./screens/login";
 import { supabase } from "./lib/supabase";
-/*import LoginScreen from "./screens/loginScreen"; */
 
-const CREATE_ACCOUNT_BACKGROUND = "#E7EDF6";
+export type RootStackParamList = {
+  Start: undefined;
+  Login: undefined;
+  CreateAccount: undefined;
+};
+
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function App() {
-  const [screen, setScreen] = useState<"start" | "createAccount">("start");
   const authCallbackUrl = Linking.useURL();
   const handledAuthCallbackUrl = useRef<string | null>(null);
+
   const [fontsLoaded] = useFonts({
     Inter: require("./assets/fonts/Inter.ttf"),
   });
 
   useEffect(() => {
     async function handleAuthCallback(url: string) {
-      if (handledAuthCallbackUrl.current === url) {
-        return;
-      }
+      if (handledAuthCallbackUrl.current === url) return;
 
       handledAuthCallbackUrl.current = url;
 
@@ -56,25 +63,17 @@ export default function App() {
     }
   }, [authCallbackUrl]);
 
-  if (!fontsLoaded) {
-    return null;
-  }
+  if (!fontsLoaded) return null;
 
   return (
     <SafeAreaProvider>
-      <SafeAreaView
-        edges={["left", "right"]}
-        style={[
-          styles.safeArea,
-          screen === "createAccount" && styles.createAccountSafeArea,
-        ]}
-      >
-        {screen === "createAccount" ? (
-          <CreateAccountScreen onBackPress={() => setScreen("start")} />
-        ) : (
-          <StartScreen onCreateAccountPress={() => setScreen("createAccount")} />
-        )}
-      </SafeAreaView>
+      <NavigationContainer>
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Start" component={StartScreen} />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
     </SafeAreaProvider>
   );
 }
@@ -98,19 +97,7 @@ function getUrlParams(url: string) {
 
 function appendUrlParams(params: URLSearchParams, value: string) {
   const nextParams = new URLSearchParams(value);
-
   nextParams.forEach((paramValue, key) => {
     params.set(key, paramValue);
   });
 }
-
-const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#ead6f4",
-  },
-
-  createAccountSafeArea: {
-    backgroundColor: CREATE_ACCOUNT_BACKGROUND,
-  },
-});
