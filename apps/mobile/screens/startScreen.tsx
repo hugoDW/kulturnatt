@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
 
   title: {
     fontFamily: "Inter",
-    fontSize: 90,
+    fontSize: 110,
     fontWeight: "900",
     letterSpacing: 6,
   },
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
     width: 200,
     height: 1,
-    backgroundColor: "#8FAEF7",
+    backgroundColor: "#416bcc",
   },
 
   buttonSection: {
