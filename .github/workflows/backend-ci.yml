@@ -20,13 +20,14 @@ jobs:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: pip install -r apps/backend/requirements.txt
+        run: |
+          pip install -r apps/matching-service/requirements.txt
+          pip install pytest ruff
 
       - name: Lint
-        run: ruff check apps/backend/
+        run: |
+          ruff check apps/profile-service/
+          ruff check apps/matching-service/
 
       - name: Run tests
-        run: pytest apps/backend/tests/
-        env:
-          SUPABASE_URL: http://localhost
-          SUPABASE_KEY: dummy-key-for-testing
+        run: pytest apps/matching-service/tests/
