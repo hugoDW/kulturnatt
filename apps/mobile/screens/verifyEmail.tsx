@@ -1,8 +1,16 @@
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
+import BackButton from "../components/backButton";
+
 
 type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -13,7 +21,12 @@ export default function VerifyEmailScreen() {
   const navigation = useNavigation<NavigationProp>();
 
   return (
+
+    
     <View>
+      <BackButton onPress={() => navigation.goBack()} />
+
+      
       <Text>Your email has been verified</Text>
 
       <TouchableOpacity onPress={() => navigation.replace("Welcome")}>
@@ -51,7 +64,6 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   
-
   button: {
     marginTop: 30,
     paddingVertical: 12,

@@ -15,6 +15,7 @@ import CreateAccountScreen from "./screens/createAccount";
 import LoginScreen from "./screens/login";
 import VerifyEmailScreen from "./screens/verifyEmail";
 import WelcomeScreen from "./screens/welcome";
+import EditProfileScreen from "./screens/editProfile";
 import { supabase } from "./lib/supabase";
 
 export type RootStackParamList = {
@@ -37,8 +38,8 @@ export default function App() {
   const [fontsLoaded] = useFonts({
     Inter: require("./assets/fonts/Inter.ttf"),
   });
-
-  useEffect(() => {
+  
+  useEffect(() => { 
     async function handleAuthCallback(url: string) {
       if (handledAuthCallbackUrl.current === url) return;
 

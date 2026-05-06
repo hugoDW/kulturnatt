@@ -50,12 +50,12 @@ export default function CreateAccountScreen() {
 
     setLoading(true);
 
-    try {
+    try { 
       const { data, error } = await supabase.auth.signUp({
         email: normalizedEmail,
         password,
         options: {
-          emailRedirectTo: Linking.createURL("auth/callback", {
+          emailRedirectTo: Linking.createURL("auth/callback", { 
             scheme: AUTH_REDIRECT_SCHEME,
           }),
         },

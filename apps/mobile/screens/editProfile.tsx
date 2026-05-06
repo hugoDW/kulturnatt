@@ -1,37 +1,40 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
+
 import BackButton from "../components/backButton";
 
 type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
-  "Welcome"
+  "EditProfile"
 >;
 
-export default function WelcomeScreen() {
+export default function EditProfileScreen() {
   const navigation = useNavigation<NavigationProp>();
+
+  function handleSaveProfile() {
+    
+    navigation.navigate("Welcome");
+  }
 
   return (
     <View style={styles.container}>
       <BackButton onPress={() => navigation.goBack()} />
+
       <View style={styles.logoSection}>
         <Text style={styles.logo}>tsm</Text>
       </View>
 
-      <View style={styles.contentSection}>
-        <Text style={styles.title}>WELCOME</Text>
-        <Text style={styles.subtitle}>Account was successfully created</Text>
-      </View>
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate("EditProfile")}
-      >
-        <Text style={styles.buttonText}>Continue to create profile</Text>
-      </TouchableOpacity>
-    </View> 
+    </View>
   );
 }
 
@@ -54,41 +57,59 @@ const styles = StyleSheet.create({
   },
 
   contentSection: {
-    marginTop: 75,
-    alignItems: "center",
+    width: "100%",
+    paddingHorizontal: 50,
+    marginTop: 60,
   },
 
   title: {
     fontFamily: "Inter",
-    fontSize: 42,
+    fontSize: 32,
     fontWeight: "900",
-    color: "#000050",
+    marginBottom: 40,
+    textAlign: "center",
   },
 
-  subtitle: {
-    marginTop: 6,
-    fontFamily: "Inter",
-    fontSize: 16,
-    fontStyle: "italic",
-    color: "#000000",
+  input: {
+    width: "100%",
+    backgroundColor: "#F7F2F8",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    marginBottom: 30,
+
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 7,
+  },
+
+  bioInput: {
+    minHeight: 100,
+    textAlignVertical: "top",
   },
 
   button: {
-    position: "absolute",
-    bottom: 330,
-    width: "78%",
+    marginTop: 20,
     minHeight: 48,
     borderRadius: 8,
-    backgroundColor: "#2B2B2B",
+    backgroundColor: "#202124",
     alignItems: "center",
     justifyContent: "center",
+
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 7,
   },
 
   buttonText: {
-    fontFamily: "Inter",
     color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "700",
-    fontStyle: "italic",
+    fontFamily: "Inter",
+    fontSize: 14,
+    fontWeight: "800",
   },
 });
