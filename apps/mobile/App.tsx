@@ -4,21 +4,31 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import * as Linking from "expo-linking";
 
-import { NavigationContainer } from "@react-navigation/native";
+import {
+  NavigationContainer,
+  createNavigationContainerRef,
+} from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import StartScreen from "./screens/start";
-import CreateAccountScreen from "./screens/create-account";
+import CreateAccountScreen from "./screens/createAccount";
 import LoginScreen from "./screens/login";
+import VerifyEmailScreen from "./screens/verifyEmail";
+import WelcomeScreen from "./screens/welcome";
 import { supabase } from "./lib/supabase";
 
 export type RootStackParamList = {
   Start: undefined;
   Login: undefined;
   CreateAccount: undefined;
+  VerifyEmail: undefined;
+  Welcome: undefined;
+  EditProfile: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
+
+const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 export default function App() {
   const authCallbackUrl = Linking.useURL();
@@ -46,15 +56,34 @@ export default function App() {
       }
 
       if (code) {
-        await supabase.auth.exchangeCodeForSession(code);
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+
+        if (error) {
+          Alert.alert("Email link failed", error.message);
+          return;
+        }
+
+        if (navigationRef.isReady()) {
+          navigationRef.navigate("VerifyEmail");
+        }
+
         return;
       }
 
       if (accessToken && refreshToken) {
-        await supabase.auth.setSession({
+        const { error } = await supabase.auth.setSession({
           access_token: accessToken,
           refresh_token: refreshToken,
         });
+
+        if (error) {
+          Alert.alert("Email link failed", error.message);
+          return;
+        }
+
+        if (navigationRef.isReady()) {
+          navigationRef.navigate("VerifyEmail");
+        }
       }
     }
 
@@ -67,11 +96,14 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
+      <NavigationContainer ref={navigationRef}>
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="Start" component={StartScreen} />
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
+          <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+          <Stack.Screen name="Welcome" component={WelcomeScreen} />
+          <Stack.Screen name="EditProfile" component={EditProfileScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
