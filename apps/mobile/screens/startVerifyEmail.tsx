@@ -54,21 +54,23 @@ export default function VerifyEmailScreen({ onSendCode }: Props) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <View style={styles.content}>
-        //TSM - Centrerad
+        {/* TSM - Centrerad */}
         <Text style={styles.title}>tsm</Text>
 
-        //Verify your email
+        {/* Verify your email */}
         <Text style={styles.subtitle}>Verify your email</Text>
 
-        //Enter verification code
+        {/* Enter verification code */}
         <Text style={styles.description}>Enter verification code</Text>
 
-        //4-siffrig kod-rutor
+        {/* 4-siffrig kod-rutor */}
         <View style={styles.codeContainer}>
           {code.map((digit, index) => (
             <TextInput
               key={index}
-              ref={(ref) => { inputRefs.current[index] = ref; }}
+              ref={(ref) => {
+                inputRefs.current[index] = ref;
+              }}
               style={styles.codeInput}
               value={digit}
               onChangeText={(text) => handleCodeChange(text, index)}
@@ -97,7 +99,7 @@ export default function VerifyEmailScreen({ onSendCode }: Props) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#ECF2FF",
   },
 
   content: {
