@@ -2,8 +2,8 @@ import React from "react";
 import { StyleSheet } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
-
-import StartScreen from "./screens/startScreen";
+import VerifyEmailScreen from "./screens/startVerifyEmail";
+/*import StartScreen from "./screens/startScreen";*/
 /*import LoginScreen from "./screens/loginScreen"; */
 
 export default function App() {
@@ -18,7 +18,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea}>
-        <StartScreen />
+        <VerifyEmailScreen />
       </SafeAreaView>
     </SafeAreaProvider>
   );
