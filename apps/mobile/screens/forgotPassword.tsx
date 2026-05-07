@@ -20,7 +20,7 @@ import { supabase } from "../lib/supabase";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Login">;
 
-export default function ForgotPassword() {
+export default function ForgotPasswordScreen() {
   const navigation = useNavigation<NavigationProp>();
 
   const [email, setEmail] = useState("");

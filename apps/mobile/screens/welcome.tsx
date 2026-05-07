@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter",
     fontSize: 44,
     fontWeight: "900",
-    color: "#000050",
+    color: "#000000",
   },
 
   contentSection: {
