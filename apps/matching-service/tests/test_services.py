@@ -1,6 +1,7 @@
 import sys
 import os
 import uuid
+from datetime import date
 from unittest.mock import patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
@@ -9,11 +10,16 @@ from user import User
 from services import perform_swipe
 
 
+def dob_for_age(years: int) -> date:
+    # Jan 1 så att födelsedagen alltid hunnit passera oavsett när testet körs
+    return date(date.today().year - years, 1, 1)
+
+
 def make_user(**overrides) -> User:
     defaults = dict(
         user_id=uuid.uuid4(),
         username="testuser",
-        age=25,
+        dob=dob_for_age(25),
         gender="man",
         preferred_gender=["kvinna"],
         user_ranked_list=[],

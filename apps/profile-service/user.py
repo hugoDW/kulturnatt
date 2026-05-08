@@ -1,4 +1,5 @@
 import uuid
+from datetime import date
 
 
 class User:
@@ -6,7 +7,7 @@ class User:
         self,
         user_id: uuid.UUID,
         username: str,
-        age: int,
+        dob: date,
         gender: str,
         preferred_gender: list[str],
         user_ranked_list: list[dict],
@@ -28,7 +29,7 @@ class User:
     ):
         self.user_id = user_id
         self.username = username
-        self.age = age
+        self.dob = dob
         self.gender = gender
         self.preferred_gender = preferred_gender
         self.user_ranked_list = user_ranked_list
@@ -48,13 +49,20 @@ class User:
         self.art = art
         self.literature = literature
 
+    @property
+    def age(self) -> int:
+        today = date.today()
+        return today.year - self.dob.year - (
+            (today.month, today.day) < (self.dob.month, self.dob.day)
+        )
+
 
 # bygger om en User till en dict så vi kan skicka den som JSON till matching-service
 def user_to_dict(user: User) -> dict:
     return {
         "user_id": str(user.user_id),
         "username": user.username,
-        "age": user.age,
+        "dob": user.dob.isoformat(),
         "gender": user.gender,
         "preferred_gender": user.preferred_gender,
         "user_ranked_list": user.user_ranked_list,
@@ -81,7 +89,7 @@ def user_from_dict(data: dict) -> User:
     return User(
         user_id=uuid.UUID(data["user_id"]),
         username=data["username"],
-        age=data["age"],
+        dob=date.fromisoformat(data["dob"]),
         gender=data["gender"],
         preferred_gender=data["preferred_gender"],
         user_ranked_list=data["user_ranked_list"],
