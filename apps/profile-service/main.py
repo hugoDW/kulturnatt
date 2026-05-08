@@ -1,5 +1,6 @@
 import os
 import uuid
+from datetime import date
 
 import requests
 from dotenv import load_dotenv
@@ -43,7 +44,7 @@ def trigger_recompute(user_id: uuid.UUID):
 
 class ProfileSetupRequest(BaseModel):
     username: str
-    age: int
+    dob: date
     gender: str
     preferred_gender: list[str]
     age_range: list[int]
@@ -68,7 +69,7 @@ def profile_setup(
     user = User(
         user_id=user_id,
         username=request.username,
-        age=request.age,
+        dob=request.dob,
         gender=request.gender,
         preferred_gender=request.preferred_gender,
         user_ranked_list=[],
@@ -96,7 +97,7 @@ def profile_setup(
 
 class UpdateProfileRequest(BaseModel):
     username: str
-    age: int
+    dob: date
     gender: str
     preferred_gender: list[str]
     age_range: list[int]
@@ -122,7 +123,7 @@ def profile_update(
     if user is None:
         raise HTTPException(status_code=404, detail="Profile not found")
     user.username = request.username
-    user.age = request.age
+    user.dob = request.dob
     user.gender = request.gender
     user.preferred_gender = request.preferred_gender
     user.age_range = tuple(request.age_range)

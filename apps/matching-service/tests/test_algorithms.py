@@ -1,6 +1,7 @@
 import sys
 import os
 import uuid
+from datetime import date
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
@@ -9,11 +10,16 @@ from swipeAlgo import filter_users, scoring_users
 from matchAlgo import is_mutual_like, create_match, get_shared_interests
 
 
+def dob_for_age(years: int) -> date:
+    # Jan 1 så att födelsedagen alltid hunnit passera oavsett när testet körs
+    return date(date.today().year - years, 1, 1)
+
+
 def make_user(**overrides) -> User:
     defaults = dict(
         user_id=uuid.uuid4(),
         username="testuser",
-        age=25,
+        dob=dob_for_age(25),
         gender="man",
         preferred_gender=["kvinna"],
         user_ranked_list=[],
@@ -48,24 +54,24 @@ def test_filtrerar_bort_sig_själv():
 
 def test_filtrerar_bort_fel_kön():
     # om användare B inte är intresserad av användare A:s kön ska B filtreras bort
-    user_a = make_user(gender="man", preferred_gender=["kvinna"], age=25, age_range=[20, 30])
-    user_b = make_user(gender="kvinna", preferred_gender=["kvinna"], age=25, age_range=[20, 30])
+    user_a = make_user(gender="man", preferred_gender=["kvinna"], dob=dob_for_age(25), age_range=[20, 30])
+    user_b = make_user(gender="kvinna", preferred_gender=["kvinna"], dob=dob_for_age(25), age_range=[20, 30])
     result = filter_users(user_a, [user_a, user_b])
     assert user_b not in result
 
 
 def test_filtrerar_bort_utanför_åldersintervall():
     # användare utanför önskat åldersintervall ska inte visas
-    user_a = make_user(gender="man", preferred_gender=["kvinna"], age=25, age_range=[20, 30])
-    user_b = make_user(gender="kvinna", preferred_gender=["man"], age=50, age_range=[20, 30])
+    user_a = make_user(gender="man", preferred_gender=["kvinna"], dob=dob_for_age(25), age_range=[20, 30])
+    user_b = make_user(gender="kvinna", preferred_gender=["man"], dob=dob_for_age(50), age_range=[20, 30])
     result = filter_users(user_a, [user_a, user_b])
     assert user_b not in result
 
 
 def test_filtrerar_bort_blockerade():
     # blockerade användare ska aldrig visas
-    user_a = make_user(gender="man", preferred_gender=["kvinna"], age=25, age_range=[20, 30])
-    user_b = make_user(gender="kvinna", preferred_gender=["man"], age=25, age_range=[20, 30])
+    user_a = make_user(gender="man", preferred_gender=["kvinna"], dob=dob_for_age(25), age_range=[20, 30])
+    user_b = make_user(gender="kvinna", preferred_gender=["man"], dob=dob_for_age(25), age_range=[20, 30])
     user_a.blocked_users.append(user_b.user_id)
     result = filter_users(user_a, [user_a, user_b])
     assert user_b not in result
@@ -73,8 +79,8 @@ def test_filtrerar_bort_blockerade():
 
 def test_filtrerar_bort_redan_avvisade():
     # användare som redan swipats bort ska inte visas igen
-    user_a = make_user(gender="man", preferred_gender=["kvinna"], age=25, age_range=[20, 30])
-    user_b = make_user(gender="kvinna", preferred_gender=["man"], age=25, age_range=[20, 30])
+    user_a = make_user(gender="man", preferred_gender=["kvinna"], dob=dob_for_age(25), age_range=[20, 30])
+    user_b = make_user(gender="kvinna", preferred_gender=["man"], dob=dob_for_age(25), age_range=[20, 30])
     user_a.rejected_users.append(user_b.user_id)
     result = filter_users(user_a, [user_a, user_b])
     assert user_b not in result
@@ -82,8 +88,8 @@ def test_filtrerar_bort_redan_avvisade():
 
 def test_godkänd_användare_passerar_filter():
     # en matchande användare ska komma igenom alla filter
-    user_a = make_user(gender="man", preferred_gender=["kvinna"], age=25, age_range=[20, 30])
-    user_b = make_user(gender="kvinna", preferred_gender=["man"], age=25, age_range=[20, 30])
+    user_a = make_user(gender="man", preferred_gender=["kvinna"], dob=dob_for_age(25), age_range=[20, 30])
+    user_b = make_user(gender="kvinna", preferred_gender=["man"], dob=dob_for_age(25), age_range=[20, 30])
     result = filter_users(user_a, [user_a, user_b])
     assert user_b in result
 
