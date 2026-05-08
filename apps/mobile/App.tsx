@@ -16,12 +16,11 @@ import CreateAccountScreen from "./screens/createAccount";
 import LoginScreen from "./screens/login";
 import VerifyEmailScreen from "./screens/verifyEmail";
 import WelcomeScreen from "./screens/welcome";
-import NameProfileScreen from "./screens/nameProfile";
-import EditProfileScreen from "./screens/editProfile";
 import ForgotPasswordScreen from "./screens/forgotPassword";
 import ResetPasswordScreen from "./screens/resetPassword";
 
 import { supabase } from "./lib/supabase";
+import EventPageScreen from "./screens/eventPage";
 
 export type RootStackParamList = {
   Start: undefined;
@@ -29,10 +28,9 @@ export type RootStackParamList = {
   CreateAccount: undefined;
   VerifyEmail: undefined;
   Welcome: undefined;
-  NameProfile: undefined;
-  EditProfile: undefined;
   ForgotPassword: undefined;
   ResetPassword: undefined;
+  EventPage: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -179,10 +177,9 @@ export default function App() {
           <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
           <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
           <Stack.Screen name="Welcome" component={WelcomeScreen} />
-          <Stack.Screen name="NameProfile" component={NameProfileScreen} />
-          <Stack.Screen name="EditProfile" component={EditProfileScreen} />
           <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+          <Stack.Screen name="EventPage" component={EventPageScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
