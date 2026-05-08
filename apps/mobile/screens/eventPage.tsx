@@ -7,10 +7,10 @@ import BackButton from "../components/backButton";
 
 type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
-  "Welcome"
+  "EventPage"
 >;
 
-export default function WelcomeScreen() {
+export default function EventPageScreen() {
   const navigation = useNavigation<NavigationProp>();
 
   return (
@@ -27,16 +27,8 @@ export default function WelcomeScreen() {
       </View>
 
       <View style={styles.contentSection}>
-        <Text style={styles.title}>WELCOME</Text>
-        <Text style={styles.subtitle}>Account was successfully created</Text>
+        <Text style={styles.title}>Events</Text>
       </View>
-
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => navigation.navigate("x")}
-      >
-        <Text style={styles.buttonText}>Continue to create profile</Text>
-      </TouchableOpacity>
     </View> 
   );
 }

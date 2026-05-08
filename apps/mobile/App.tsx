@@ -1,30 +1,27 @@
-import React, { useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { Alert } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import * as Linking from "expo-linking";
-
 
 import {
   NavigationContainer,
   createNavigationContainerRef,
 } from "@react-navigation/native";
 
-
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-
 
 import StartScreen from "./screens/start";
 import CreateAccountScreen from "./screens/createAccount";
 import LoginScreen from "./screens/login";
 import VerifyEmailScreen from "./screens/verifyEmail";
 import WelcomeScreen from "./screens/welcome";
+import NameProfileScreen from "./screens/nameProfile";
 import EditProfileScreen from "./screens/editProfile";
-
+import ForgotPasswordScreen from "./screens/forgotPassword";
+import ResetPasswordScreen from "./screens/resetPassword";
 
 import { supabase } from "./lib/supabase";
-import ForgotPasswordScreen from "./screens/forgotPassword";
-
 
 export type RootStackParamList = {
   Start: undefined;
@@ -32,73 +29,73 @@ export type RootStackParamList = {
   CreateAccount: undefined;
   VerifyEmail: undefined;
   Welcome: undefined;
+  NameProfile: undefined;
   EditProfile: undefined;
+  ForgotPassword: undefined;
+  ResetPassword: undefined;
 };
-
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-
-const navigationRef =
-  createNavigationContainerRef<RootStackParamList>();
-
+const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 export default function App() {
-  const authCallbackUrl = Linking.useURL();
-
-
-  const handledAuthCallbackUrl =
-    useRef<string | null>(null);
-
+  const handledAuthCallbackUrl = useRef<string | null>(null);
+  const pendingRoute = useRef<"ResetPassword" | "VerifyEmail" | null>(null);
 
   const [fontsLoaded] = useFonts({
     Inter: require("./assets/fonts/Inter.ttf"),
   });
 
+  const resetToRoute = useCallback((routeName: "ResetPassword" | "VerifyEmail") => {
+    if (navigationRef.isReady()) {
+      navigationRef.reset({
+        index: 0,
+        routes: [{ name: routeName }],
+      });
 
-  useEffect(() => {
-    async function handleAuthCallback(url: string) {
+      return;
+    }
+
+    pendingRoute.current = routeName;
+  }, []);
+
+  const handleAuthCallback = useCallback(
+    async (url: string) => {
       if (handledAuthCallbackUrl.current === url) {
         return;
       }
 
-
       handledAuthCallbackUrl.current = url;
 
-
       const params = getUrlParams(url);
-      /* rad 57-68 test för auth callback email verify */
+
+      const isResetPasswordUrl =
+        url.includes("auth/reset-password") ||
+        params.get("type") === "recovery";
+
       const test = params.get("test");
 
-
-      if (test === "true") {
-        if (navigationRef.isReady()) {
-          navigationRef.reset({
-          index: 0,
-          routes: [{ name: "VerifyEmail" }],
-          });
-        }
-
+      if (test === "reset-password") {
+        resetToRoute("ResetPassword");
 
         return;
       }
 
+      if (test === "verify-email") {
+        resetToRoute("VerifyEmail");
+
+        return;
+      }
 
       const authError =
-        params.get("error_description") ??
-        params.get("error");
-
+        params.get("error_description") ?? params.get("error");
 
       const code = params.get("code");
 
+      const accessToken = params.get("access_token");
 
-      const accessToken =
-        params.get("access_token");
-
-
-      const refreshToken =
-        params.get("refresh_token");
-
+      const refreshToken = params.get("refresh_token");
 
       if (authError) {
         Alert.alert(
@@ -106,159 +103,116 @@ export default function App() {
           authError.replace(/\+/g, " ")
         );
 
-
         return;
       }
-
 
       if (code) {
         const { error } =
-          await supabase.auth.exchangeCodeForSession(
-            code
-          );
-
+          await supabase.auth.exchangeCodeForSession(code);
 
         if (error) {
-          Alert.alert(
-            "Email link failed",
-            error.message
-          );
-
-
+          Alert.alert("Email link failed", error.message);
           return;
         }
 
-
-        if (navigationRef.isReady()) {
-          navigationRef.reset({
-            index: 0,
-            routes: [
-              {
-                name: "VerifyEmail",
-              },
-            ],
-          });
-        }
-
+        resetToRoute(isResetPasswordUrl ? "ResetPassword" : "VerifyEmail");
 
         return;
       }
 
-
       if (accessToken && refreshToken) {
-        const { error } =
-          await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken,
-          });
-
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
 
         if (error) {
-          Alert.alert(
-            "Email link failed",
-            error.message
-          );
-
-
+          Alert.alert("Email link failed", error.message);
           return;
         }
 
-
-        if (navigationRef.isReady()) {
-          navigationRef.reset({
-            index: 0,
-            routes: [
-              {
-                name: "VerifyEmail",
-              },
-            ],
-          });
-        }
+        resetToRoute(isResetPasswordUrl ? "ResetPassword" : "VerifyEmail");
       }
-    }
+    },
+    [resetToRoute]
+  );
 
+  useEffect(() => {
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleAuthCallback(url);
+      }
+    });
 
-    if (authCallbackUrl) {
-      handleAuthCallback(authCallbackUrl);
-    }
-  }, [authCallbackUrl]);
+    const subscription = Linking.addEventListener("url", ({ url }) => {
+      handleAuthCallback(url);
+    });
 
+    return () => {
+      subscription.remove();
+    };
+  }, [handleAuthCallback]);
 
   if (!fontsLoaded) {
     return null;
   }
 
-
   return (
     <SafeAreaProvider>
-      <NavigationContainer ref={navigationRef}>
+      <NavigationContainer
+        ref={navigationRef}
+        onReady={() => {
+          if (pendingRoute.current) {
+            resetToRoute(pendingRoute.current);
+            pendingRoute.current = null;
+          }
+        }}
+      >
         <Stack.Navigator
           initialRouteName="Start"
           screenOptions={{
             headerShown: false,
           }}
         >
-          <Stack.Screen name="Start" component={StartScreen}/>
-          <Stack.Screen name="Login" component={LoginScreen}/>
-          <Stack.Screen name="CreateAccount" component={CreateAccountScreen}/>
-          <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen}/>
-          <Stack.Screen name="Welcome" component={WelcomeScreen}/>
-          <Stack.Screen name="EditProfile" component={EditProfileScreen}/>
+          <Stack.Screen name="Start" component={StartScreen} />
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
+          <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+          <Stack.Screen name="Welcome" component={WelcomeScreen} />
+          <Stack.Screen name="NameProfile" component={NameProfileScreen} />
+          <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+          <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
   );
 }
 
-
 function getUrlParams(url: string) {
   const params = new URLSearchParams();
 
-
   const queryStart = url.indexOf("?");
-
 
   const hashStart = url.indexOf("#");
 
-
   if (queryStart !== -1) {
-    const queryEnd =
-      hashStart > queryStart
-        ? hashStart
-        : undefined;
+    const queryEnd = hashStart > queryStart ? hashStart : undefined;
 
-
-    appendUrlParams(
-      params,
-      url.slice(queryStart + 1, queryEnd)
-    );
+    appendUrlParams(params, url.slice(queryStart + 1, queryEnd));
   }
-
 
   if (hashStart !== -1) {
-    appendUrlParams(
-      params,
-      url.slice(hashStart + 1)
-    );
+    appendUrlParams(params, url.slice(hashStart + 1));
   }
-
 
   return params;
 }
 
+function appendUrlParams(params: URLSearchParams, value: string) {
+  const nextParams = new URLSearchParams(value);
 
-function appendUrlParams(
-  params: URLSearchParams,
-  value: string
-) {
-  const nextParams =
-    new URLSearchParams(value);
-
-
-  nextParams.forEach(
-    (paramValue, key) => {
-      params.set(key, paramValue);
-    }
-  );
+  nextParams.forEach((paramValue, key) => {
+    params.set(key, paramValue);
+  });
 }
-

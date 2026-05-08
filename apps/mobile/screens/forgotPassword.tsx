@@ -18,55 +18,53 @@ import type { RootStackParamList } from "../App";
 import BackButton from "../components/backButton";
 import { supabase } from "../lib/supabase";
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Login">;
+type NavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "ForgotPassword"
+>;
+
+const RESET_PASSWORD_REDIRECT_URL = "tsm://auth/reset-password";
 
 export default function ForgotPasswordScreen() {
   const navigation = useNavigation<NavigationProp>();
 
   const [email, setEmail] = useState("");
-  
   const [loading, setLoading] = useState(false);
 
-  async function handleLogin() {
+  async function handleResetPassword() {
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (!normalizedEmail || !password) {
-      Alert.alert("Missing fields", "Enter email and password.");
+    if (!normalizedEmail) {
+      Alert.alert("Missing email", "Enter the email for your account.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail,
-        password,
-      });
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        normalizedEmail,
+        {
+          redirectTo: RESET_PASSWORD_REDIRECT_URL,
+        }
+      );
 
       if (error) {
-        Alert.alert("Login failed", error.message);
+        Alert.alert("Reset failed", error.message);
         return;
       }
 
-      const token = data.session?.access_token;
-      const user = data.user;
-
-      if (!token || !user) {
-        Alert.alert("Login failed", "No account found.");
-        return;
-      }
-
-      console.log("Logged in user:", user.id);
-      console.log("Access token:", token);
-
-      Alert.alert("Success", "You are logged in.");
-
-      
-    
+      Alert.alert(
+        "Check your email",
+        "Open the link in the email to choose a new password."
+      );
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Something went wrong while logging in.";
-      Alert.alert("Login failed", message);
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while sending the reset email.";
+
+      Alert.alert("Reset failed", message);
     } finally {
       setLoading(false);
     }
@@ -97,39 +95,22 @@ export default function ForgotPasswordScreen() {
             inputMode="email"
             keyboardType="email-address"
             onChangeText={setEmail}
+            onSubmitEditing={handleResetPassword}
             placeholder="Example: svensvensson@tsm.se"
             style={styles.input}
             textContentType="emailAddress"
             value={email}
           />
-          
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            autoCapitalize="none"
-            autoComplete="password"
-            editable={!loading}
-            onChangeText={setPassword}
-            onSubmitEditing={handleLogin}
-            placeholder="Example: password123"
-            secureTextEntry
-            style={styles.input}
-            textContentType="password"
-            value={password}
-          />
-
-          <TouchableOpacity disabled={loading}>
-            <Text style={styles.forgotText}>Forgotten your password?</Text>
-          </TouchableOpacity>
 
           <TouchableOpacity
             disabled={loading}
-            onPress={handleLogin}
-            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+            onPress={handleResetPassword}
+            style={[styles.resetButton, loading && styles.resetButtonDisabled]}
           >
             {loading ? (
-              <ActivityIndicator color="#000000" />
+              <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.loginButtonText}>Log in</Text>
+              <Text style={styles.resetButtonText}>Send reset email</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -190,17 +171,7 @@ const styles = StyleSheet.create({
     elevation: 7,
   },
 
-  forgotText: {
-    fontFamily: "Inter",
-    fontSize: 13,
-    fontStyle: "italic",
-    fontWeight: "700",
-    color: "#111",
-    marginTop: -20,
-    marginBottom: 34,
-  },
-
-  loginButton: {
+  resetButton: {
     alignItems: "center",
     backgroundColor: "#2c2c2c",
     borderRadius: 8,
@@ -213,11 +184,11 @@ const styles = StyleSheet.create({
     elevation: 7,
   },
 
-  loginButtonDisabled: {
+  resetButtonDisabled: {
     opacity: 0.65,
   },
 
-  loginButtonText: {
+  resetButtonText: {
     color: "#FFF",
     fontFamily: "Inter",
     fontSize: 14,

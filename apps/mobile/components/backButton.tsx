@@ -11,10 +11,11 @@ export default function BackButton({ onPress }: Props) {
 
   return (
     <TouchableOpacity
-      style={[styles.button, { top: insets.top }]}
+      hitSlop={{ top: 16, right: 16, bottom: 16, left: 16 }}
       onPress={onPress}
+      style={[styles.button, { top: insets.top }]}
     >
-      <Text style={styles.text}>‹</Text>
+      <Text style={styles.text}>{"<"}</Text>
     </TouchableOpacity>
   );
 }
@@ -23,11 +24,14 @@ const styles = StyleSheet.create({
   button: {
     position: "absolute",
     left: 15,
-    zIndex: 1,
+    zIndex: 10,
+    elevation: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
 
   text: {
-    fontSize: 42,
+    fontSize: 36,
     color: "#000",
     fontWeight: "600",
   },

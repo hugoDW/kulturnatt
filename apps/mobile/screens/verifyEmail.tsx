@@ -1,5 +1,6 @@
 import React from "react";
 
+
 import {
   StyleSheet,
   Text,
@@ -7,32 +8,41 @@ import {
   View,
 } from "react-native";
 
+
 import { useNavigation } from "@react-navigation/native";
+
 
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
 
+
 import BackButton from "../components/backButton";
+
 
 type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   "VerifyEmail"
 >;
 
+
 export default function VerifyEmailScreen() {
   const navigation = useNavigation<NavigationProp>();
+
 
   return (
     <View style={styles.container}>
       <BackButton onPress={() => navigation.goBack()} />
 
+
       <View style={styles.logoSection}>
         <Text style={styles.title}>tsm</Text>
       </View>
 
+
       <Text style={styles.message}>
         Your email has been verified
       </Text>
+
 
       <TouchableOpacity
         style={styles.button}
@@ -46,6 +56,7 @@ export default function VerifyEmailScreen() {
   );
 }
 
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -53,10 +64,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+
   logoSection: {
     marginTop: 70,
     alignItems: "center",
   },
+
 
   title: {
     fontFamily: "Inter",
@@ -66,6 +79,7 @@ const styles = StyleSheet.create({
     color: "#000",
   },
 
+
   message: {
     marginTop: 120,
     fontFamily: "Inter",
@@ -73,6 +87,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#111",
   },
+
 
   button: {
     marginTop: 60,
@@ -82,8 +97,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: "#202124",
 
+
     alignItems: "center",
     justifyContent: "center",
+
 
     shadowColor: "#000",
     shadowOffset: {
@@ -91,11 +108,14 @@ const styles = StyleSheet.create({
       height: 6,
     },
 
+
     shadowOpacity: 0.25,
     shadowRadius: 6,
 
+
     elevation: 7,
   },
+
 
   buttonText: {
     color: "#FFFFFF",
@@ -104,3 +124,4 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 });
+

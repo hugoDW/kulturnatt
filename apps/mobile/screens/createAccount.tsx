@@ -12,64 +12,74 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
-import * as Linking from "expo-linking";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
 
+
 import BackButton from "../components/backButton";
 import { supabase } from "../lib/supabase";
+
 
 type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   "CreateAccount"
 >;
 
-const AUTH_REDIRECT_SCHEME = "tsm";
+
+const EMAIL_VERIFY_REDIRECT_URL = "tsm://auth/callback";
+
 
 export default function CreateAccountScreen() {
   const navigation = useNavigation<NavigationProp>();
+
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+
   async function handleCreateAccount() {
     const normalizedEmail = email.trim().toLowerCase();
+
 
     if (!normalizedEmail || !password || !confirmPassword) {
       Alert.alert("Missing fields", "Enter email, password, and confirm password.");
       return;
     }
 
+
     if (password !== confirmPassword) {
       Alert.alert("Password mismatch", "Password and confirm password must match.");
       return;
     }
 
+
     setLoading(true);
 
-    try { 
+
+    try {
       const { data, error } = await supabase.auth.signUp({
         email: normalizedEmail,
         password,
         options: {
-          emailRedirectTo: Linking.createURL("auth/callback", { 
-            scheme: AUTH_REDIRECT_SCHEME,
-          }),
+          emailRedirectTo: EMAIL_VERIFY_REDIRECT_URL,
         },
       });
+
 
       if (error) {
         Alert.alert("Registration failed", error.message);
         return;
       }
 
+
       if (!data.session) {
         Alert.alert("Check your email", "Confirm your account to finish signing up.");
         return;
       }
+
 
       Alert.alert("Account created", "You are now registered.");
     } catch (error) {
@@ -78,14 +88,16 @@ export default function CreateAccountScreen() {
           ? error.message
           : "Something went wrong while signing up.";
 
+
       Alert.alert("Registration failed", message);
     } finally {
       setLoading(false);
     }
   }
 
+
   return (
-    
+   
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.keyboardView}
@@ -96,9 +108,11 @@ export default function CreateAccountScreen() {
         >
           <BackButton onPress={() => navigation.goBack()} />
 
+
           <View style={styles.logoSection}>
             <Text style={styles.title}>tsm</Text>
           </View>
+
 
           <View style={styles.inputSection}>
             <Text>Email</Text>
@@ -116,6 +130,7 @@ export default function CreateAccountScreen() {
               value={email}
             />
 
+
             <Text>Password</Text>
             <TextInput
               autoCapitalize="none"
@@ -128,6 +143,7 @@ export default function CreateAccountScreen() {
               textContentType="newPassword"
               value={password}
             />
+
 
             <Text>Confirm password</Text>
             <TextInput
@@ -142,6 +158,7 @@ export default function CreateAccountScreen() {
               textContentType="newPassword"
               value={confirmPassword}
             />
+
 
             <TouchableOpacity
               disabled={loading}
@@ -160,26 +177,31 @@ export default function CreateAccountScreen() {
           </View>
         </LinearGradient>
       </KeyboardAvoidingView>
-    
+   
   );
 }
+
 
 const styles = StyleSheet.create({
  
 
+
   keyboardView: {
     flex: 1,
   },
+
 
   container: {
     flex: 1,
     alignItems: "center",
   },
 
+
   logoSection: {
     marginTop: 50,
     alignItems: "center",
   },
+
 
   title: {
     fontFamily: "Inter",
@@ -188,11 +210,13 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
 
+
   inputSection: {
     width: "100%",
     paddingHorizontal: 50,
     marginTop: 40,
   },
+
 
   input: {
     width: "100%",
@@ -202,12 +226,14 @@ const styles = StyleSheet.create({
     marginBottom: 50,
     paddingHorizontal: 12,
 
+
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
     elevation: 7,
   },
+
 
   registerButton: {
     alignItems: "center",
@@ -223,9 +249,11 @@ const styles = StyleSheet.create({
     elevation: 7,
   },
 
+
   registerButtonDisabled: {
     opacity: 0.65,
   },
+
 
   registerButtonText: {
     color: "#FFFFFF",
@@ -234,3 +262,4 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 });
+
