@@ -12,6 +12,11 @@ from services import perform_swipe, recompute_for_user
 app = FastAPI()
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 class SwipeRequest(BaseModel):
     target_user_id: uuid.UUID
     action: Literal["like", "reject"]
