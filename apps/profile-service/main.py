@@ -29,6 +29,11 @@ MATCHING_SERVICE_URL = os.environ.get("MATCHING_SERVICE_URL", "http://matching-s
 app = FastAPI()
 
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}
+
+
 # triggar matching-service att räkna om ranked list när en profil ändras eller skapas
 def trigger_recompute(user_id: uuid.UUID):
     try:
