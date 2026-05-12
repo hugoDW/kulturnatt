@@ -23,9 +23,9 @@ Service-till-service-kommunikation går över Fly's privata 6PN-nätverk via `.i
 ## Starta backend
 
 ```bash
-flyctl machine start --all -a kulturnatt-profile
-flyctl machine start --all -a kulturnatt-matching
-flyctl machine start --all -a kulturnatt-gateway
+flyctl machine start $(flyctl machines list -a kulturnatt-profile -q) -a kulturnatt-profile
+flyctl machine start $(flyctl machines list -a kulturnatt-matching -q) -a kulturnatt-matching
+flyctl machine start $(flyctl machines list -a kulturnatt-gateway -q) -a kulturnatt-gateway
 ```
 
 Tar ca 5 sekunder per app. När alla är `started` är `https://kulturnatt-gateway.fly.dev` tillgänglig igen.
@@ -33,9 +33,9 @@ Tar ca 5 sekunder per app. När alla är `started` är `https://kulturnatt-gatew
 ## Stoppa backend
 
 ```bash
-flyctl machine stop --all -a kulturnatt-profile
-flyctl machine stop --all -a kulturnatt-matching
-flyctl machine stop --all -a kulturnatt-gateway
+flyctl machine stop $(flyctl machines list -a kulturnatt-profile -q) -a kulturnatt-profile
+flyctl machine stop $(flyctl machines list -a kulturnatt-matching -q) -a kulturnatt-matching
+flyctl machine stop $(flyctl machines list -a kulturnatt-gateway -q) -a kulturnatt-gateway
 ```
 
 Stoppade maskiner kostar ingenting. All config och image ligger kvar — bara starta igen när du behöver.
