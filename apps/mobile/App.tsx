@@ -4,6 +4,11 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import * as Linking from "expo-linking";
 
+import CreateProfileFirst from "./screens/create-profile-first"
+import ProfileCreationInfo from "./screens/profile-creation-01-info"
+import InterestSelection from "./screens/profile-creation-02-interest-selection";
+import GenreSelection from "./screens/profile-creation-M01-genre-selection";
+import ArtistSelection from "./screens/profile-creation-M02-artist-selection";
 import StartScreen from "./screens/start";
 import CreateAccountScreen from "./screens/create-account";
 import { supabase } from "./lib/supabase";
@@ -62,6 +67,11 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
+      <SafeAreaView style={styles.safeArea}>
+        <ArtistSelection/>
+      </SafeAreaView>
+    </SafeAreaProvider>
+    /*<SafeAreaProvider>
       <SafeAreaView
         edges={["left", "right"]}
         style={[
@@ -75,7 +85,7 @@ export default function App() {
           <StartScreen onCreateAccountPress={() => setScreen("createAccount")} />
         )}
       </SafeAreaView>
-    </SafeAreaProvider>
+    </SafeAreaProvider>*/
   );
 }
 
