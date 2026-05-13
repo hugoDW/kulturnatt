@@ -1,6 +1,5 @@
 import os
 import uuid
-from datetime import date
 
 import requests
 from dotenv import load_dotenv
@@ -20,6 +19,20 @@ from db import (
 )
 from internal_auth import INTERNAL_SECRET, require_internal_secret
 from user import User, user_to_dict
+from external_api import (
+    ExternalApiError,
+    get_kulturbiljett_event,
+    get_tmdb_movie,
+    get_tmdb_person,
+    get_tmdb_tv,
+    list_kulturbiljett_events,
+    list_ticketmaster_events,
+    search_album,
+    search_artist,
+    search_music,
+    search_song,
+    search_tmdb,
+)
 
 load_dotenv()
 
@@ -44,7 +57,7 @@ def trigger_recompute(user_id: uuid.UUID):
 
 class ProfileSetupRequest(BaseModel):
     username: str
-    dob: date
+    age: int
     gender: str
     preferred_gender: list[str]
     age_range: list[int]
@@ -69,7 +82,7 @@ def profile_setup(
     user = User(
         user_id=user_id,
         username=request.username,
-        dob=request.dob,
+        age=request.age,
         gender=request.gender,
         preferred_gender=request.preferred_gender,
         user_ranked_list=[],
@@ -97,7 +110,7 @@ def profile_setup(
 
 class UpdateProfileRequest(BaseModel):
     username: str
-    dob: date
+    age: int
     gender: str
     preferred_gender: list[str]
     age_range: list[int]
@@ -123,7 +136,7 @@ def profile_update(
     if user is None:
         raise HTTPException(status_code=404, detail="Profile not found")
     user.username = request.username
-    user.dob = request.dob
+    user.age = request.age
     user.gender = request.gender
     user.preferred_gender = request.preferred_gender
     user.age_range = tuple(request.age_range)
@@ -150,6 +163,107 @@ def get_swipes(user_id: uuid.UUID = Depends(get_current_user)):
     if user is None:
         raise HTTPException(status_code=404, detail="Profile not found")
     return {"user_ranked_list": user.user_ranked_list}
+
+
+def raise_external_api_error(error: ExternalApiError):
+    raise HTTPException(status_code=error.status_code, detail=str(error))
+
+
+def validate_external_limit(limit: int):
+    if limit < 1 or limit > 20:
+        raise HTTPException(status_code=400, detail="limit must be between 1 and 20")
+
+
+@app.get("/external/events", dependencies=[Depends(get_current_user)])
+def external_events(query: str | None = None, city: str | None = None):
+    try:
+        return {"events": list_kulturbiljett_events(query, city)}
+    except ExternalApiError as error:
+        raise_external_api_error(error)
+
+
+@app.get("/external/events/{event_id}", dependencies=[Depends(get_current_user)])
+def external_event(event_id: str):
+    try:
+        return get_kulturbiljett_event(event_id)
+    except ExternalApiError as error:
+        raise_external_api_error(error)
+
+
+@app.get("/external/ticketmaster/events", dependencies=[Depends(get_current_user)])
+def external_ticketmaster_events(query: str | None = None, city: str | None = None):
+    try:
+        return {"events": list_ticketmaster_events(query, city)}
+    except ExternalApiError as error:
+        raise_external_api_error(error)
+
+
+@app.get("/external/music/search", dependencies=[Depends(get_current_user)])
+def external_music_search(query: str, category: str = "artist", limit: int = 5):
+    validate_external_limit(limit)
+    try:
+        return {"results": search_music(query, category, limit)}
+    except ExternalApiError as error:
+        raise_external_api_error(error)
+
+
+@app.get("/external/music/artists/search", dependencies=[Depends(get_current_user)])
+def external_artist_search(query: str, limit: int = 5):
+    validate_external_limit(limit)
+    try:
+        return {"results": search_artist(query, limit)}
+    except ExternalApiError as error:
+        raise_external_api_error(error)
+
+
+@app.get("/external/music/songs/search", dependencies=[Depends(get_current_user)])
+def external_song_search(query: str, limit: int = 5):
+    validate_external_limit(limit)
+    try:
+        return {"results": search_song(query, limit)}
+    except ExternalApiError as error:
+        raise_external_api_error(error)
+
+
+@app.get("/external/music/albums/search", dependencies=[Depends(get_current_user)])
+def external_album_search(query: str, limit: int = 5):
+    validate_external_limit(limit)
+    try:
+        return {"results": search_album(query, limit)}
+    except ExternalApiError as error:
+        raise_external_api_error(error)
+
+
+@app.get("/external/tmdb/search", dependencies=[Depends(get_current_user)])
+def external_tmdb_search(query: str, category: str = "movie"):
+    try:
+        return {"results": search_tmdb(query, category)}
+    except ExternalApiError as error:
+        raise_external_api_error(error)
+
+
+@app.get("/external/tmdb/movies/{movie_id}", dependencies=[Depends(get_current_user)])
+def external_tmdb_movie(movie_id: int):
+    try:
+        return get_tmdb_movie(movie_id)
+    except ExternalApiError as error:
+        raise_external_api_error(error)
+
+
+@app.get("/external/tmdb/tv/{show_id}", dependencies=[Depends(get_current_user)])
+def external_tmdb_tv(show_id: int):
+    try:
+        return get_tmdb_tv(show_id)
+    except ExternalApiError as error:
+        raise_external_api_error(error)
+
+
+@app.get("/external/tmdb/people/{person_id}", dependencies=[Depends(get_current_user)])
+def external_tmdb_person(person_id: int):
+    try:
+        return get_tmdb_person(person_id)
+    except ExternalApiError as error:
+        raise_external_api_error(error)
 
 
 # === interna routes som bara matching-service ska kunna nå ===
