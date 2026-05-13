@@ -1,0 +1,9 @@
+app = "kulturnatt-matching"
+primary_region = "arn"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
