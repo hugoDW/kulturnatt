@@ -8,22 +8,15 @@ import {
   View,
 } from "react-native";
 
-
 import { useNavigation } from "@react-navigation/native";
-
-
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
-
-
 import BackButton from "../components/backButton";
-
 
 type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   "VerifyEmail"
 >;
-
 
 export default function VerifyEmailScreen() {
   const navigation = useNavigation<NavigationProp>();

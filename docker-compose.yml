@@ -3,13 +3,21 @@
 services:
   # profile-service: hanterar all användardata och databasen
   profile-service:
-    build: ./apps/profile-service
+    build:
+      context: .
+      dockerfile: ./apps/profile-service/Dockerfile
     environment:
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       SUPABASE_URL: ${SUPABASE_URL}
       SUPABASE_KEY: ${SUPABASE_KEY}
       INTERNAL_SECRET: ${INTERNAL_SECRET}
       MATCHING_SERVICE_URL: http://matching-service:8002
+      KULTURBILJETT_API_KEY: ${KULTURBILJETT_API_KEY}
+      MUSICBRAINZ_API_KEY: ${MUSICBRAINZ_API_KEY}
+      SPOTIFY_CLIENT_ID: ${SPOTIFY_CLIENT_ID}
+      SPOTIFY_CLIENT_SECRET: ${SPOTIFY_CLIENT_SECRET}
+      TMDB_API_KEY: ${TMDB_API_KEY}
+      TICKETMASTER_API_KEY: ${TICKETMASTER_API_KEY}
     expose:
       - "8001"
 

@@ -33,7 +33,7 @@ export default function WelcomeScreen() {
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate("x")}
+        onPress={() => navigation.navigate("EventPage")}
       >
         <Text style={styles.buttonText}>Continue to create profile</Text>
       </TouchableOpacity>

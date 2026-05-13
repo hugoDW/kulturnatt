@@ -1,0 +1,1 @@
+#Gör att apps/API räknas som ett python-paket och därmed kan importeras utanför mappen
