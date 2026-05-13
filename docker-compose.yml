@@ -25,9 +25,10 @@ services:
 
   # gateway: enda containern som syns utåt, routar trafik till rätt service
   gateway:
-    image: nginx:1.27-alpine
-    volumes:
-      - ./apps/gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+    build: ./apps/gateway
+    environment:
+      PROFILE_UPSTREAM: profile-service:8001
+      MATCHING_UPSTREAM: matching-service:8002
     ports:
       - "80:80"
     depends_on:

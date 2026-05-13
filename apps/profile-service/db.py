@@ -1,5 +1,6 @@
 import uuid
 import os
+from datetime import date
 from dotenv import load_dotenv
 from supabase import create_client, Client
 from user import User
@@ -14,7 +15,7 @@ def row_to_user(row: dict) -> User:
     return User(
         user_id=uuid.UUID(row["id_profile"]),
         username=row["username"],
-        age=row["age"],
+        dob=date.fromisoformat(row["dob"]),
         gender=row["gender"],
         preferred_gender=row["preferred_gender"] or [],
         user_ranked_list=row["user_ranked_list"] or [],
@@ -56,7 +57,7 @@ def save_ranked_list(user_id: uuid.UUID, ranked_list: list[dict]):
 def update_profile(user: User):
     supabase.table("profile").update({
         "username": user.username,
-        "age": user.age,
+        "dob": user.dob.isoformat(),
         "gender": user.gender,
         "preferred_gender": user.preferred_gender,
         "age_range": list(user.age_range),
@@ -77,7 +78,7 @@ def create_profile(user: User):
     supabase.table("profile").insert({
         "id_profile": str(user.user_id),
         "username": user.username,
-        "age": user.age,
+        "dob": user.dob.isoformat(),
         "gender": user.gender,
         "preferred_gender": user.preferred_gender,
         "user_ranked_list": [],
