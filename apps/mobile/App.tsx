@@ -9,6 +9,7 @@ import ProfileCreationInfo from "./screens/profile-creation-01-info"
 import InterestSelection from "./screens/profile-creation-02-interest-selection";
 import GenreSelection from "./screens/profile-creation-M01-genre-selection";
 import ArtistSelection from "./screens/profile-creation-M02-artist-selection";
+import FilmSelection from "./screens/profile-creation-F01-movie-selection";
 import StartScreen from "./screens/start";
 import CreateAccountScreen from "./screens/create-account";
 import { supabase } from "./lib/supabase";
@@ -68,7 +69,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea}>
-        <ArtistSelection/>
+        <FilmSelection/>
       </SafeAreaView>
     </SafeAreaProvider>
     /*<SafeAreaProvider>

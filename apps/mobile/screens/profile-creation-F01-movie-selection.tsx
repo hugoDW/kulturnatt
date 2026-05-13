@@ -4,6 +4,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -21,13 +22,14 @@ type Props = {
 
 const AUTH_REDIRECT_SCHEME = "tsm";
 
-export default function ArtistSelection({ onBackPress: _onBackPress }: Props) {
+export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
   const [loading, setLoading] = useState(false);
 
 
   async function handleCreateAccount() {
 
     setLoading(true);
+
   }
 
   return (
@@ -38,22 +40,27 @@ export default function ArtistSelection({ onBackPress: _onBackPress }: Props) {
 
       <View style={styles.screenBackground}>
         <View style={styles.headerSection}>
-          <Text style={styles.headerText}>Who's on your playlist?</Text>
-          <Text style={styles.headerSubtitle}>Add the artists that you can't get enough of.</Text>
+          <Text style={styles.headerText}>What movies inspire you?</Text>
+          <Text style={styles.headerSubtitle}>Add films that define you as a cinephile.</Text>
         </View>
 
-        <View style={styles.artistSection}>
-
+        <View style={styles.filmSection}>
+          
           <TouchableOpacity
             style={[
-              styles.addArtistButton
+              styles.addFilmButton
             ]}
             onPress={() => {}}
           >
-            <Text style={styles.addArtistPlus}>+</Text>
-            <Text style={styles.addArtistHeader}>Add artists</Text>
+            <Text style={styles.addFilmPlus}>+</Text>
+            <Text style={styles.addFilmHeader}>Add film</Text>
           </TouchableOpacity>
+
+          </View>
+                
         
+
+        <View style={styles.interestSection}>
         </View>
 
         <TouchableOpacity
@@ -101,34 +108,47 @@ const styles = StyleSheet.create({
     color: "#5a6162",
   },
 
-  /* INTEREST SECTION */
-  artistSection: {
+  /* FILM SECTION */
+  filmSection: {
     marginTop: 50,
-    alignItems: "center"
+    paddingBottom: 100,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
   },
 
-  /* INTEREST BUTTON, NOT SELECTED */
-  addArtistButton: {
-    borderRadius: 12,
+  /* FILM ADD BUTTON, NOT SELECTED */
+  addFilmButton: {
+    borderRadius: 5,
     borderWidth: 2,
-    borderColor: "#D1D5DB",
-    height: 90,
-    width: 340,
+    borderColor: "#E9ECEF",
+    height: 120,
+    width: 80,
     backgroundColor: "#F8F9FA",
     flexDirection: "column",
     alignItems: "center",
+    marginBottom: 12
   },
 
-  addArtistPlus: {
+  addFilmPlus: {
     color: "#6C5CE7",
     fontSize: 32,
   },
 
-  addArtistHeader: {
+  addFilmHeader: {
     fontFamily: "Inter",
     fontSize: 15,
     fontWeight: 500,
     color: "#6C5CE7",
+  },
+
+  interestHeader: {
+    fontFamily: "Inter",
+    fontSize: 15,
+    fontWeight: 500,
+    color: "#2C3E50",
   },
 
   interestSubtitle: {
@@ -139,7 +159,7 @@ const styles = StyleSheet.create({
   },
 
   /* INTEREST BUTTON, SELECTED */
-  addArtistButtonSelected: {
+  interestButtonSelected: {
     borderRadius: 12,
     height: 65,
     width: 340,
@@ -154,7 +174,7 @@ const styles = StyleSheet.create({
     color: "#FFFFFF"
   },
 
-  addArtistHeaderSelected: {
+  interestHeaderSelected: {
     fontFamily: "Inter",
     fontSize: 15,
     fontWeight: 500,
@@ -168,7 +188,7 @@ const styles = StyleSheet.create({
     color: "#FFFFFF"
   },
 
-  addArtistButtonChevronSelected: {
+  interestButtonChevronSelected: {
     position: "absolute",
     left: 310,
     color: "#FFF"
