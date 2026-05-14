@@ -1,7 +1,11 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  FlatList,
   Image,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -13,7 +17,6 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
 import BackButton from "../components/backButton";
-import { supabase } from "../lib/supabase";
 
 type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -40,7 +43,9 @@ const CITIES = ["Stockholm", "Göteborg", "Malmö", "Uppsala", "Västerås"];
 
 export default function EventPageScreen() {
   const navigation = useNavigation<NavigationProp>();
-  const [selectedCity, setSelectedCity] = useState("Stockholm");
+  const listRef = useRef<FlatList<EventItem>>(null);
+  const scrollOffsetRef = useRef(0);
+  const [selectedCity, setSelectedCity] = useState<string | null>("Stockholm");
   const [searchText, setSearchText] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [events, setEvents] = useState<EventItem[]>([]);
@@ -49,10 +54,16 @@ export default function EventPageScreen() {
 
   const title = submittedQuery
     ? `Results for "${submittedQuery}"`
-    : `Explore ${selectedCity}`;
+    : selectedCity
+      ? `Explore ${selectedCity}`
+      : "Explore all events";
 
   const encodedParams = useMemo(() => {
-    const params = new URLSearchParams({ city: selectedCity });
+    const params = new URLSearchParams();
+
+    if (selectedCity) {
+      params.set("city", selectedCity);
+    }
 
     if (submittedQuery.trim()) {
       params.set("query", submittedQuery.trim());
@@ -70,21 +81,9 @@ export default function EventPageScreen() {
     setIsLoading(true);
     setErrorMessage(null);
 
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-
-    if (!token) {
-      setEvents([]);
-      setErrorMessage("Log in to explore events.");
-      setIsLoading(false);
-      return;
-    }
-
-    const headers = { Authorization: `Bearer ${token}` };
-
     const [kulturbiljettResponse, ticketmasterResponse] = await Promise.allSettled([
-      fetch(`${API_URL}/external/events?${encodedParams}`, { headers }),
-      fetch(`${API_URL}/external/ticketmaster/events?${encodedParams}`, { headers }),
+      fetch(`${API_URL}/external/events?${encodedParams}`),
+      fetch(`${API_URL}/external/ticketmaster/events?${encodedParams}`),
     ]);
 
     const nextEvents: EventItem[] = [];
@@ -128,6 +127,34 @@ export default function EventPageScreen() {
     setSubmittedQuery("");
   }
 
+  const handleScroll = useCallback(
+    (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+      scrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+    },
+    [],
+  );
+
+  const handleWheel = useCallback((event: {
+    deltaMode?: number;
+    deltaY: number;
+    preventDefault: () => void;
+  }) => {
+    event.preventDefault();
+
+    const deltaMultiplier = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 400 : 1;
+    const nextOffset = Math.max(
+      0,
+      scrollOffsetRef.current + event.deltaY * deltaMultiplier * 0.35,
+    );
+
+    listRef.current?.scrollToOffset({ offset: nextOffset, animated: false });
+  }, []);
+
+  const webWheelProps =
+    Platform.OS === "web"
+      ? ({ onWheel: handleWheel } as unknown as object)
+      : {};
+
   return (
     <View style={styles.container}>
       <BackButton
@@ -142,48 +169,59 @@ export default function EventPageScreen() {
         <Text style={styles.logo}>tsm</Text>
       </View>
 
-      <ScrollView
+      <FlatList
+        ref={listRef}
         style={styles.scroll}
         contentContainerStyle={styles.content}
+        data={isLoading ? [] : events}
+        keyExtractor={(event, index) =>
+          `${event.source}-${event.id ?? event.title ?? event.name}-${index}`
+        }
         keyboardShouldPersistTaps="handled"
-      >
-        <Text style={styles.title}>Events</Text>
-
-        <View style={styles.searchRow}>
-          <TextInput
-            value={searchText}
-            onChangeText={setSearchText}
-            onSubmitEditing={submitSearch}
-            placeholder="Search all events"
-            placeholderTextColor="#6F7482"
-            returnKeyType="search"
-            style={styles.searchInput}
-          />
-          <Pressable style={styles.searchButton} onPress={submitSearch}>
-            <Text style={styles.searchButtonText}>Search</Text>
-          </Pressable>
-        </View>
-
-        {submittedQuery ? (
-          <Pressable style={styles.clearButton} onPress={clearSearch}>
-            <Text style={styles.clearButtonText}>Clear search</Text>
-          </Pressable>
-        ) : null}
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.cityList}
-        >
-          {CITIES.map((city) => {
-            const isSelected = city === selectedCity;
-
-            return (
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+        {...webWheelProps}
+        ListHeaderComponent={
+          <>
+            <View style={styles.searchRow}>
+              <TextInput
+                value={searchText}
+                onChangeText={setSearchText}
+                onSubmitEditing={submitSearch}
+                placeholder="Search activities"
+                placeholderTextColor="#6F7482"
+                returnKeyType="search"
+                style={styles.searchInput}
+              />
               <Pressable
-                key={city}
-                onPress={() => setSelectedCity(city)}
-                style={[styles.cityButton, isSelected && styles.cityButtonSelected]}
+                accessibilityLabel="Search"
+                style={styles.searchButton}
+                onPress={submitSearch}
               >
+                <SearchIcon />
+              </Pressable>
+            </View>
+
+            {submittedQuery ? (
+              <Pressable style={styles.clearButton} onPress={clearSearch}>
+                <Text style={styles.clearButtonText}>Clear search</Text>
+              </Pressable>
+            ) : null}
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.cityList}
+            >
+              {CITIES.map((city) => {
+                const isSelected = city === selectedCity;
+
+                return (
+                <Pressable
+                  key={city}
+                  onPress={() => setSelectedCity(isSelected ? null : city)}
+                  style={[styles.cityButton, isSelected && styles.cityButtonSelected]}
+                >
                 <Text
                   style={[
                     styles.cityButtonText,
@@ -193,41 +231,31 @@ export default function EventPageScreen() {
                   {city}
                 </Text>
               </Pressable>
-            );
-          })}
-        </ScrollView>
+                );
+              })}
+            </ScrollView>
 
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{title}</Text>
-          <Text style={styles.resultCount}>{events.length} Events</Text>
-        </View>
+            {isLoading ? (
+              <View style={styles.stateBlock}>
+                <ActivityIndicator color="#000050" />
+                <Text style={styles.stateText}>Loading events</Text>
+              </View>
+            ) : null}
 
-        {isLoading ? (
-          <View style={styles.stateBlock}>
-            <ActivityIndicator color="#000050" />
-            <Text style={styles.stateText}>Loading events</Text>
-          </View>
-        ) : null}
-
-        {!isLoading && errorMessage ? (
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        ) : null}
-
-        {!isLoading && events.length === 0 ? (
-          <View style={styles.stateBlock}>
-            <Text style={styles.stateText}>No events found.</Text>
-          </View>
-        ) : null}
-
-        {!isLoading
-          ? events.map((event, index) => (
-              <EventCard
-                key={`${event.source}-${event.id ?? event.title ?? event.name}-${index}`}
-                event={event}
-              />
-            ))
-          : null}
-      </ScrollView>
+            {!isLoading && errorMessage ? (
+              <Text style={styles.errorText}>{errorMessage}</Text>
+            ) : null}
+          </>
+        }
+        ListEmptyComponent={
+          !isLoading ? (
+            <View style={styles.stateBlock}>
+              <Text style={styles.stateText}>No events found.</Text>
+            </View>
+          ) : null
+        }
+        renderItem={({ item }) => <EventCard event={item} />}
+      />
     </View>
   );
 }
@@ -255,6 +283,15 @@ function EventCard({ event }: { event: EventItem }) {
         <Text style={styles.cardTitle}>{displayTitle}</Text>
         {meta ? <Text style={styles.metaText}>{meta}</Text> : null}
       </View>
+    </View>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <View style={styles.searchIcon}>
+      <View style={styles.searchIconCircle} />
+      <View style={styles.searchIconHandle} />
     </View>
   );
 }
@@ -306,48 +343,59 @@ const styles = StyleSheet.create({
     paddingBottom: 44,
   },
 
-  title: {
-    fontFamily: "Inter",
-    fontSize: 42,
-    fontWeight: "900",
-    color: "#416bcc",
-    textAlign: "center",
-  },
-
   searchRow: {
     marginTop: 24,
     flexDirection: "row",
-    gap: 8,
+    alignItems: "center",
+    minHeight: 48,
+    borderRadius: 24,
+    backgroundColor: "#EFE8F1",
+    paddingLeft: 18,
+    paddingRight: 8,
   },
 
   searchInput: {
     flex: 1,
-    minHeight: 48,
-    borderRadius: 8,
-    backgroundColor: "#FFFFFF",
-    borderWidth: 1,
-    borderColor: "#C7D3EA",
-    paddingHorizontal: 14,
+    minHeight: 46,
+    paddingRight: 10,
     fontFamily: "Inter",
     fontSize: 15,
     color: "#111827",
   },
 
   searchButton: {
-    minHeight: 48,
-    minWidth: 86,
-    borderRadius: 8,
-    backgroundColor: "#2B2B2B",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 12,
   },
 
-  searchButtonText: {
-    fontFamily: "Inter",
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
+  searchIcon: {
+    width: 19,
+    height: 19,
+  },
+
+  searchIconCircle: {
+    position: "absolute",
+    left: 1,
+    top: 1,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: "#3E3E46",
+  },
+
+  searchIconHandle: {
+    position: "absolute",
+    right: 1,
+    bottom: 2,
+    width: 8,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: "#3E3E46",
+    transform: [{ rotate: "45deg" }],
   },
 
   clearButton: {
@@ -371,7 +419,7 @@ const styles = StyleSheet.create({
 
   cityButton: {
     minHeight: 38,
-    borderRadius: 8,
+    borderRadius: 19,
     borderWidth: 1,
     borderColor: "#B9C7E5",
     backgroundColor: "#FFFFFF",
@@ -381,7 +429,7 @@ const styles = StyleSheet.create({
   },
 
   cityButtonSelected: {
-    backgroundColor: "#000050",
+    backgroundColor: "#4444ca",
     borderColor: "#000050",
   },
 

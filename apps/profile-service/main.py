@@ -174,7 +174,7 @@ def validate_external_limit(limit: int):
         raise HTTPException(status_code=400, detail="limit must be between 1 and 20")
 
 
-@app.get("/external/events", dependencies=[Depends(get_current_user)])
+@app.get("/external/events")
 def external_events(query: str | None = None, city: str | None = None):
     try:
         return {"events": list_kulturbiljett_events(query, city)}
@@ -182,7 +182,7 @@ def external_events(query: str | None = None, city: str | None = None):
         raise_external_api_error(error)
 
 
-@app.get("/external/events/{event_id}", dependencies=[Depends(get_current_user)])
+@app.get("/external/events/{event_id}")
 def external_event(event_id: str):
     try:
         return get_kulturbiljett_event(event_id)
@@ -190,7 +190,7 @@ def external_event(event_id: str):
         raise_external_api_error(error)
 
 
-@app.get("/external/ticketmaster/events", dependencies=[Depends(get_current_user)])
+@app.get("/external/ticketmaster/events")
 def external_ticketmaster_events(query: str | None = None, city: str | None = None):
     try:
         return {"events": list_ticketmaster_events(query, city)}
@@ -198,7 +198,7 @@ def external_ticketmaster_events(query: str | None = None, city: str | None = No
         raise_external_api_error(error)
 
 
-@app.get("/external/music/search", dependencies=[Depends(get_current_user)])
+@app.get("/external/music/search")
 def external_music_search(query: str, category: str = "artist", limit: int = 5):
     validate_external_limit(limit)
     try:
@@ -207,7 +207,7 @@ def external_music_search(query: str, category: str = "artist", limit: int = 5):
         raise_external_api_error(error)
 
 
-@app.get("/external/music/artists/search", dependencies=[Depends(get_current_user)])
+@app.get("/external/music/artists/search")
 def external_artist_search(query: str, limit: int = 5):
     validate_external_limit(limit)
     try:
@@ -216,7 +216,7 @@ def external_artist_search(query: str, limit: int = 5):
         raise_external_api_error(error)
 
 
-@app.get("/external/music/songs/search", dependencies=[Depends(get_current_user)])
+@app.get("/external/music/songs/search")
 def external_song_search(query: str, limit: int = 5):
     validate_external_limit(limit)
     try:
@@ -225,7 +225,7 @@ def external_song_search(query: str, limit: int = 5):
         raise_external_api_error(error)
 
 
-@app.get("/external/music/albums/search", dependencies=[Depends(get_current_user)])
+@app.get("/external/music/albums/search")
 def external_album_search(query: str, limit: int = 5):
     validate_external_limit(limit)
     try:

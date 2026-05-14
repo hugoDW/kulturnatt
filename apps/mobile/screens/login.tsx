@@ -15,27 +15,35 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
 
+
 import BackButton from "../components/backButton";
 import { supabase } from "../lib/supabase";
 
+
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Login">;
+
 
 export default function LoginScreen() {
   const navigation = useNavigation<NavigationProp>();
+
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
+
   async function handleLogin() {
     const normalizedEmail = email.trim().toLowerCase();
+
 
     if (!normalizedEmail || !password) {
       Alert.alert("Missing fields", "Enter email and password.");
       return;
     }
 
+
     setLoading(true);
+
 
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -43,26 +51,32 @@ export default function LoginScreen() {
         password,
       });
 
+
       if (error) {
         Alert.alert("Login failed", error.message);
         return;
       }
 
+
       const token = data.session?.access_token;
       const user = data.user;
+
 
       if (!token || !user) {
         Alert.alert("Login failed", "No account found.");
         return;
       }
 
+
       console.log("Logged in user:", user.id);
       console.log("Access token:", token);
 
+
       Alert.alert("Success", "You are logged in.");
 
-      
-    
+
+     
+   
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Something went wrong while logging in.";
@@ -71,6 +85,7 @@ export default function LoginScreen() {
       setLoading(false);
     }
   }
+
 
   return (
     <KeyboardAvoidingView
@@ -83,9 +98,11 @@ export default function LoginScreen() {
       >
         <BackButton onPress={() => navigation.goBack()} />
 
+
         <View style={styles.logoSection}>
           <Text style={styles.title}>tsm</Text>
         </View>
+
 
         <View style={styles.inputSection}>
           <Text style={styles.label}>Email</Text>
@@ -103,6 +120,7 @@ export default function LoginScreen() {
             value={email}
           />
 
+
           <Text style={styles.label}>Password</Text>
           <TextInput
             autoCapitalize="none"
@@ -117,12 +135,14 @@ export default function LoginScreen() {
             value={password}
           />
 
+
           <TouchableOpacity
             disabled={loading}
             onPress={() => navigation.navigate("ForgotPassword")}
           >
             <Text style={styles.forgotText}>Forgotten your password?</Text>
           </TouchableOpacity>
+
 
           <TouchableOpacity
             disabled={loading}
@@ -141,33 +161,39 @@ export default function LoginScreen() {
   );
 }
 
+
 const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+
 
   container: {
     flex: 1,
     alignItems: "center",
   },
 
+
   logoSection: {
-    marginTop: 80,
+    marginTop: 50,
     alignItems: "center",
   },
 
+
   title: {
     fontFamily: "Inter",
-    fontSize: 70,
+    fontSize: 60,
     fontWeight: "900",
     letterSpacing: 2,
   },
+
 
   inputSection: {
     width: "100%",
     paddingHorizontal: 50,
     marginTop: 70,
   },
+
 
   label: {
     fontFamily: "Inter",
@@ -176,6 +202,7 @@ const styles = StyleSheet.create({
     color: "#111",
     marginBottom: 6,
   },
+
 
   input: {
     width: "100%",
@@ -186,12 +213,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     color: "#000",
 
+
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 6,
     elevation: 7,
   },
+
 
   forgotText: {
     fontFamily: "Inter",
@@ -202,6 +231,7 @@ const styles = StyleSheet.create({
     marginTop: -20,
     marginBottom: 34,
   },
+
 
   loginButton: {
     alignItems: "center",
@@ -216,9 +246,11 @@ const styles = StyleSheet.create({
     elevation: 7,
   },
 
+
   loginButtonDisabled: {
     opacity: 0.65,
   },
+
 
   loginButtonText: {
     color: "#FFF",
@@ -227,3 +259,8 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 });
+
+
+
+
+

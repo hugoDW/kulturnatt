@@ -10,6 +10,7 @@ import {
 } from "@react-navigation/native";
 
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { supabase } from "./lib/supabase";
 
 import StartScreen from "./screens/start";
 import CreateAccountScreen from "./screens/createAccount";
@@ -18,9 +19,9 @@ import VerifyEmailScreen from "./screens/verifyEmail";
 import WelcomeScreen from "./screens/welcome";
 import ForgotPasswordScreen from "./screens/forgotPassword";
 import ResetPasswordScreen from "./screens/resetPassword";
-
-import { supabase } from "./lib/supabase";
 import EventPageScreen from "./screens/eventPage";
+import ArtistSearchScreen from "./screens/artistSearch";
+
 
 export type RootStackParamList = {
   Start: undefined;
@@ -31,6 +32,7 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   ResetPassword: undefined;
   EventPage: undefined;
+  ArtistSearch: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -167,7 +169,7 @@ export default function App() {
         }}
       >
         <Stack.Navigator
-          initialRouteName="Start"
+          initialRouteName="ArtistSearch"
           screenOptions={{
             headerShown: false,
           }}
@@ -180,6 +182,7 @@ export default function App() {
           <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
           <Stack.Screen name="EventPage" component={EventPageScreen} />
+          <Stack.Screen name="ArtistSearch" component={ArtistSearchScreen} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
