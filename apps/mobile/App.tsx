@@ -20,7 +20,6 @@ import WelcomeScreen from "./screens/welcome";
 import ForgotPasswordScreen from "./screens/forgotPassword";
 import ResetPasswordScreen from "./screens/resetPassword";
 import EventPageScreen from "./screens/eventPage";
-import ArtistSearchScreen from "./screens/artistSearch";
 
 
 export type RootStackParamList = {
@@ -32,7 +31,6 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   ResetPassword: undefined;
   EventPage: undefined;
-  ArtistSearch: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -169,7 +167,7 @@ export default function App() {
         }}
       >
         <Stack.Navigator
-          initialRouteName="ArtistSearch"
+          initialRouteName="Start"
           screenOptions={{
             headerShown: false,
           }}
@@ -182,7 +180,7 @@ export default function App() {
           <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
           <Stack.Screen name="EventPage" component={EventPageScreen} />
-          <Stack.Screen name="ArtistSearch" component={ArtistSearchScreen} />
+        
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>
