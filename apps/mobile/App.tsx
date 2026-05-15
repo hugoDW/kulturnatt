@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef } from "react";
-import { Alert } from "react-native";
+import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import * as Linking from "expo-linking";
@@ -41,7 +41,7 @@ export default function App() {
   const handledAuthCallbackUrl = useRef<string | null>(null);
   const pendingRoute = useRef<"ResetPassword" | "VerifyEmail" | null>(null);
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Inter: require("./assets/fonts/Inter.ttf"),
   });
 
@@ -151,8 +151,14 @@ export default function App() {
     };
   }, [handleAuthCallback]);
 
-  if (!fontsLoaded) {
-    return null;
+  if (!fontsLoaded && !fontError) {
+    return (
+      <SafeAreaProvider>
+        <View style={styles.loadingScreen}>
+          <ActivityIndicator color="#000050" />
+        </View>
+      </SafeAreaProvider>
+    );
   }
 
   return (
@@ -214,3 +220,12 @@ function appendUrlParams(params: URLSearchParams, value: string) {
     params.set(key, paramValue);
   });
 }
+
+const styles = StyleSheet.create({
+  loadingScreen: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#ECF2FF",
+  },
+});
