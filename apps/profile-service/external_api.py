@@ -1,21 +1,10 @@
-import sys
-from pathlib import Path
 from typing import Any
 
 import requests
 
-
-SOURCE_APPS_DIR = Path(__file__).resolve().parents[1]
-DOCKER_APP_DIR = Path("/app")
-
-for api_parent_dir in (SOURCE_APPS_DIR, DOCKER_APP_DIR):
-    if api_parent_dir.exists():
-        sys.path.insert(0, str(api_parent_dir))
-
-from API import kulturbiljett  # noqa: E402
-from API import musicbrainz  # noqa: E402
-from API import ticketmaster  # noqa: E402
-from API import tmdb  # noqa: E402
+from API import kulturbiljett
+from API import musicbrainz
+from API import tmdb
 
 
 class ExternalApiError(Exception):
@@ -51,14 +40,6 @@ def list_kulturbiljett_events(
 def get_kulturbiljett_event(event_id: str) -> dict[str, Any]:
     event = _call_external(kulturbiljett.get_event, event_id)
     return _format_kulturbiljett_event(event)
-
-
-def list_ticketmaster_events(
-    query: str | None = None,
-    city: str | None = None,
-) -> list[dict[str, Any]]:
-    events = _call_external(ticketmaster.get_events, city, query)
-    return [_format_ticketmaster_event(event) for event in events or []]
 
 
 def _matches_event_filters(
@@ -147,19 +128,6 @@ def _format_kulturbiljett_event(event: dict[str, Any]) -> dict[str, Any]:
             }
             for date in dates.values()
         ],
-    }
-
-
-def _format_ticketmaster_event(event: dict[str, Any]) -> dict[str, Any]:
-    return {
-        "id": event.get("id"),
-        "title": event.get("name"),
-        "source": "Ticketmaster",
-        "name": event.get("name"),
-        "date": event.get("date"),
-        "venue": event.get("venue"),
-        "city": event.get("city"),
-        "image_url": event.get("image_url"),
     }
 
 

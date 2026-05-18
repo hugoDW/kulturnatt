@@ -4,6 +4,10 @@ primary_region = "arn"
 [build]
   dockerfile = "Dockerfile"
 
+[env]
+  PROFILE_UPSTREAM = "kulturnatt-profile.internal:8001"
+  MATCHING_UPSTREAM = "kulturnatt-matching.internal:8002"
+
 [http_service]
   internal_port = 80
   force_https = true
