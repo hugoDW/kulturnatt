@@ -1,21 +1,11 @@
-import sys
-from pathlib import Path
 from typing import Any
 
 import requests
 
-
-SOURCE_APPS_DIR = Path(__file__).resolve().parents[1]
-DOCKER_APP_DIR = Path("/app")
-
-for api_parent_dir in (SOURCE_APPS_DIR, DOCKER_APP_DIR):
-    if api_parent_dir.exists():
-        sys.path.insert(0, str(api_parent_dir))
-
-from API import kulturbiljett  # noqa: E402
-from API import musicbrainz  # noqa: E402
-from API import ticketmaster  # noqa: E402
-from API import tmdb  # noqa: E402
+from API import kulturbiljett
+from API import musicbrainz
+from API import ticketmaster
+from API import tmdb
 
 
 class ExternalApiError(Exception):
