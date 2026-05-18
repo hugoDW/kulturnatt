@@ -99,7 +99,7 @@ Vilka secrets varje app behöver:
 
 - **kulturnatt-profile**: `SUPABASE_JWT_SECRET`, `SUPABASE_URL`, `SUPABASE_KEY`, `INTERNAL_SECRET`, `MATCHING_SERVICE_URL=http://kulturnatt-matching.internal:8002`
 - **kulturnatt-matching**: `SUPABASE_JWT_SECRET`, `INTERNAL_SECRET`, `PROFILE_SERVICE_URL=http://kulturnatt-profile.internal:8001`
-- **kulturnatt-gateway**: `PROFILE_UPSTREAM=kulturnatt-profile.internal:8001`, `MATCHING_UPSTREAM=kulturnatt-matching.internal:8002`
+- **kulturnatt-gateway**: inga secrets — `PROFILE_UPSTREAM` och `MATCHING_UPSTREAM` ligger i `apps/gateway/fly.toml` under `[env]` (inte hemliga värden, så de behöver inte krypteras)
 
 ## Kostnader
 
