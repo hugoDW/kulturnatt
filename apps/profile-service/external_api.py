@@ -4,6 +4,7 @@ import requests
 
 from API import kulturbiljett
 from API import musicbrainz
+from API import ticketmaster
 from API import tmdb
 
 
@@ -40,6 +41,14 @@ def list_kulturbiljett_events(
 def get_kulturbiljett_event(event_id: str) -> dict[str, Any]:
     event = _call_external(kulturbiljett.get_event, event_id)
     return _format_kulturbiljett_event(event)
+
+
+def list_ticketmaster_events(
+    query: str | None = None,
+    city: str | None = None,
+) -> list[dict[str, Any]]:
+    events = _call_external(ticketmaster.get_events, city, query)
+    return [_format_ticketmaster_event(event) for event in events or []]
 
 
 def _matches_event_filters(
@@ -128,6 +137,19 @@ def _format_kulturbiljett_event(event: dict[str, Any]) -> dict[str, Any]:
             }
             for date in dates.values()
         ],
+    }
+
+
+def _format_ticketmaster_event(event: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "id": event.get("id"),
+        "title": event.get("name"),
+        "source": "Ticketmaster",
+        "name": event.get("name"),
+        "date": event.get("date"),
+        "venue": event.get("venue"),
+        "city": event.get("city"),
+        "image_url": event.get("image_url"),
     }
 
 

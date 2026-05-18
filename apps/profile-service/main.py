@@ -26,6 +26,7 @@ from external_api import (
     get_tmdb_person,
     get_tmdb_tv,
     list_kulturbiljett_events,
+    list_ticketmaster_events,
     search_album,
     search_artist,
     search_music,
@@ -190,6 +191,14 @@ def external_events(query: str | None = None, city: str | None = None):
 def external_event(event_id: str):
     try:
         return get_kulturbiljett_event(event_id)
+    except ExternalApiError as error:
+        raise_external_api_error(error)
+
+
+@app.get("/external/ticketmaster/events", dependencies=[Depends(get_current_user)])
+def external_ticketmaster_events(query: str | None = None, city: str | None = None):
+    try:
+        return {"events": list_ticketmaster_events(query, city)}
     except ExternalApiError as error:
         raise_external_api_error(error)
 
