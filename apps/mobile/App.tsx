@@ -13,6 +13,7 @@ import FilmSelection from "./screens/profile-creation-F01-movie-selection";
 import StartScreen from "./screens/start";
 import CreateAccountScreen from "./screens/create-account";
 import { supabase } from "./lib/supabase";
+import MovieSelection from "./screens/profile-creation-F01-movie-selection";
 /*import LoginScreen from "./screens/loginScreen"; */
 
 const CREATE_ACCOUNT_BACKGROUND = "#E7EDF6";
@@ -69,7 +70,7 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <SafeAreaView style={styles.safeArea}>
-        <FilmSelection/>
+        <MovieSelection/>
       </SafeAreaView>
     </SafeAreaProvider>
     /*<SafeAreaProvider>

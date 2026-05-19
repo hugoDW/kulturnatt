@@ -2,34 +2,134 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  FlatList,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Image } from "react-native";
+import MovieDisplay from "../components/MovieDisplay"
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
 
 import { supabase } from "../lib/supabase";
+import { searchMovies } from "../apiservices/tmdbservice"
 
 type Props = {
   onBackPress?: () => void;
 };
 
+type Movie = {
+  id: number;
+  title: string;
+  year: string;
+  director: string;
+  poster_path: string;
+};
+
 const AUTH_REDIRECT_SCHEME = "tsm";
 
 export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
+  const [movieModalVisible, setMovieModalVisible] = useState(false);
+  const [movieSearch, setMovieSearch] = useState("");
+  /*const [movieResults, setMovieResults] = useState([]);*/
+  const [movieResults, setMovieResults] = useState<Movie[]>([]);
+  const [favoriteMovies, setFavoriteMovies] = useState<Movie[]>([]);
+  const addMovie = (movie: Movie) => {
+    setFavoriteMovies((prev) => [...prev, movie]);
+    setMovieModalVisible(false);
+  }
   const [loading, setLoading] = useState(false);
 
+  const mockMovies = [
+    {
+      id: 1,
+      title: "Blade Runner",
+      year: "1982",
+      director: "Ridley Scott",
+      poster_path: "https://www.themoviedb.org/t/p/w1280/63N9uy8nd9j7Eog2axPQ8lbr3Wj.jpg"
+    },
 
-  async function handleCreateAccount() {
+    {
+      id: 2,
+      title: "Blade Runner 2049",
+      year: "2017",
+      director: "Denis Villeneuve",
+      poster_path: "https://image.tmdb.org/t/p/w500/gajva2L0rPYkEWjzgFlBXCAVBE5.jpg"
+    },
 
-    setLoading(true);
+    {
+      id: 3,
+      title: "Blade Runner: Black Out 2022",
+      year: "2017",
+      director: "Shinichiro Watanabe",
+      poster_path: "https://www.themoviedb.org/t/p/w1280/zzRjnUOVXyjp2WudgT7KxJLYh9D.jpg"
+    },
 
+    {
+      id: 4,
+      title: "Fallen Angels",
+      year: "1995",
+      director: "Wong Kar-Wai",
+      poster_path: "https://www.themoviedb.org/t/p/w1280/yyM9BPdwttK5LKZSLvHae7QPKo1.jpg"
+    },
+
+    {
+      id: 5,
+      title: "A Scene at the Sea",
+      year: "1991",
+      director: "Takeshi Kitano",
+      poster_path: "https://www.themoviedb.org/t/p/w1280/uSwYQjd48iXVU8KHSSV9V6QYvBd.jpg"
+    },
+
+    {
+      id: 6,
+      title: "Swing Girls",
+      year: "2004",
+      director: "Shinobu Yaguchi",
+      poster_path: "https://www.themoviedb.org/t/p/w1280/u7lAziuBxlX4DQQzuPHDRoOwtDx.jpg"
+    },
+
+    {
+      id: 7,
+      title: "Mishima: A Life in Four Chapters",
+      year: "1985",
+      director: "Paul Schrader",
+      poster_path: "https://www.themoviedb.org/t/p/w1280/4kIXsE4SwUjO0eUqpolsHNO5GLH.jpg"
+    },
+  ]
+
+  function removeMovie(id: number) {
+    setFavoriteMovies((prev) =>
+      prev.filter((movie) => movie.id !== id)
+    );
+  }
+
+
+  async function handleMovieSearch() {
+    const filtered = mockMovies.filter((movie) =>
+    movie.title
+      .toLowerCase()
+      .includes(movieSearch.toLowerCase())
+  );
+
+  setMovieResults(filtered);
+    
+    /*try {
+      const data = await searchMovies(movieSearch);
+
+      setMovieResults(data.results);
+      console.log(movieResults)
+    } catch( error ) {
+      console.error(error)
+    }*/
   }
 
   return (
@@ -46,26 +146,77 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
 
         <View style={styles.filmSection}>
           
+          
+          {favoriteMovies.map((movie) => (
+            <View
+              key={movie.id}
+              style={styles.posterWrapper}
+            >
+              <Image
+                source={{ uri: movie.poster_path }}
+                style={styles.favoritePoster}
+              />
+
+              <TouchableOpacity
+                style={styles.removeButton}
+                onPress={() => removeMovie(movie.id)}
+              >
+                <Ionicons
+                  name="trash"
+                  size={18}
+                  color="#6C5CE7"
+                />
+              </TouchableOpacity>
+            </View>
+          ))}
+          
           <TouchableOpacity
             style={[
               styles.addFilmButton
             ]}
-            onPress={() => {}}
+            onPress={() => setMovieModalVisible(true)}
           >
             <Text style={styles.addFilmPlus}>+</Text>
             <Text style={styles.addFilmHeader}>Add film</Text>
           </TouchableOpacity>
+            
+          <Modal
+            visible={movieModalVisible}
+            animationType="slide"
+          >
+            <View style={styles.modalContainer}>
+              <TextInput
+                style={styles.searchField}
+                value={movieSearch}
+                onChangeText={setMovieSearch}
+                placeholder="Search movies..."
+                onSubmitEditing={handleMovieSearch}
+              />
+              <FlatList
+                data={movieResults}
+                keyExtractor={(item) => item.id.toString()}
+                renderItem={({ item }) => (
+                  <MovieDisplay
+                    movie={item}
+                    onAdd={addMovie}
+                  />
+                )}
+              /> 
+            </View>
 
-          </View>
-                
-        
+            <TouchableOpacity
+                style={styles.goBackButton}
+                onPress={() => setMovieModalVisible(false)}
+              >
+                <Text style={styles.finalizeButtonText}>Go back</Text>
+            </TouchableOpacity>
 
-        <View style={styles.interestSection}>
+          </Modal>
+
         </View>
 
         <TouchableOpacity
             disabled={loading}
-            onPress={handleCreateAccount}
             style={[styles.finalizeButton, loading && styles.finalizeButtonDisabled]}
           >
             {loading ? (
@@ -119,7 +270,32 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
-  /* FILM ADD BUTTON, NOT SELECTED */
+  posterWrapper: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+    marginBottom: 30
+  },
+
+  favoritePoster: {
+    height: 120,
+    width: 80,
+    borderRadius: 8,
+  },
+
+  removeButton: {
+    position: "absolute",
+    top: 125,
+    paddingHorizontal: 32,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: "#E9ECEF",
+  },
+
+  /* FILM ADD BUTTON */
   addFilmButton: {
     borderRadius: 5,
     borderWidth: 2,
@@ -144,54 +320,47 @@ const styles = StyleSheet.create({
     color: "#6C5CE7",
   },
 
-  interestHeader: {
-    fontFamily: "Inter",
-    fontSize: 15,
-    fontWeight: 500,
-    color: "#2C3E50",
-  },
-
-  interestSubtitle: {
-    fontFamily: "Inter",
-    fontSize: 13,
-    fontWeight: 400,
-    color: "#7F8C8D"
-  },
-
-  /* INTEREST BUTTON, SELECTED */
-  interestButtonSelected: {
-    borderRadius: 12,
-    height: 65,
-    width: 340,
-    backgroundColor: "#6C5CE7",
-    flexDirection: "row",
+  /* SEARCH + SELECT MOVIE */
+  modalContainer: {
+    borderRadius: 5,
+    borderWidth: 2,
+    paddingVertical: 15,
+    borderColor: "#E9ECEF",
+    backgroundColor: "#FFF",
+    flexDirection: "column",
     alignItems: "center",
     marginBottom: 12
   },
 
-  interestIconSelected: {
-    paddingLeft: 10,
-    color: "#FFFFFF"
+  searchField: {
+    paddingHorizontal: 120,
   },
 
-  interestHeaderSelected: {
-    fontFamily: "Inter",
-    fontSize: 15,
-    fontWeight: 500,
-    color: "#FFFFFF",
-  },
-
-  interestSubtitleSelected: {
-    fontFamily: "Inter",
-    fontSize: 13,
-    fontWeight: 400,
-    color: "#FFFFFF"
-  },
-
-  interestButtonChevronSelected: {
+  goBackButton: {
     position: "absolute",
-    left: 310,
-    color: "#FFF"
+    alignItems: "center",
+    backgroundColor: "#202124",
+    borderRadius: 8,
+    width: 150,
+    height: 40,
+    bottom: 40,
+    left: 112,
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 7,
+    zIndex: 999
+  },
+
+  searchButton: {
+    alignItems: "center",
+    backgroundColor: "#202124",
+    borderRadius: 8,
+    justifyContent: "center",
+    elevation: 7,
+    zIndex: 999
   },
 
   finalizeButton: {
