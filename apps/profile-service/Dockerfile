@@ -4,11 +4,12 @@ FROM python:3.12-slim
 WORKDIR /app
 
 # installera python-paket
-COPY requirements.txt .
+COPY apps/profile-service/requirements.txt .
 RUN pip install -r requirements.txt
 
 # kopiera in koden
-COPY . .
+COPY apps/profile-service/ .
+COPY apps/API/ ./API/
 
 # servern lyssnar på port 8001
 EXPOSE 8001

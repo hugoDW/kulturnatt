@@ -17,6 +17,13 @@ server {
         proxy_set_header Authorization $http_authorization;
     }
 
+    location /external/ {
+        set $profile_upstream "${PROFILE_UPSTREAM}";
+        proxy_pass http://$profile_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header Authorization $http_authorization;
+    }
+
     location = /swipe {
         set $matching_upstream "${MATCHING_UPSTREAM}";
         proxy_pass http://$matching_upstream;

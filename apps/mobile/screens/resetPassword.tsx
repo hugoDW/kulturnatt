@@ -11,63 +11,57 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import * as Linking from "expo-linking";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../App";
 
+import BackButton from "../components/backButton";
 import { supabase } from "../lib/supabase";
 
-type Props = {
-  onBackPress?: () => void;
-};
+type NavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "ResetPassword"
+>;
 
-const AUTH_REDIRECT_SCHEME = "tsm";
+export default function ResetPasswordScreen() {
+  const navigation = useNavigation<NavigationProp>();
 
-export default function CreateAccountScreen({ onBackPress: _onBackPress }: Props) {
-  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleCreateAccount() {
-    const normalizedEmail = email.trim().toLowerCase();
-
-    if (!normalizedEmail || !password || !confirmPassword) {
-      Alert.alert("Missing fields", "Enter email, password, and confirm password.");
+  async function handleUpdatePassword() {
+    if (!password || !confirmPassword) {
+      Alert.alert("Missing fields", "Enter and confirm your new password.");
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert("Password mismatch", "Password and confirm password must match.");
+      Alert.alert("Password mismatch", "Both password fields must match.");
       return;
     }
 
     setLoading(true);
 
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email: normalizedEmail,
+      const { error } = await supabase.auth.updateUser({
         password,
-        options: {
-          emailRedirectTo: Linking.createURL("auth/callback", {
-            scheme: AUTH_REDIRECT_SCHEME,
-          }),
-        },
       });
 
       if (error) {
-        Alert.alert("Registration failed", error.message);
+        Alert.alert("Update failed", error.message);
         return;
       }
 
-      if (!data.session) {
-        Alert.alert("Check your email", "Confirm your account to finish signing up.");
-        return;
-      }
-
-      Alert.alert("Account created", "You are now registered.");
+      Alert.alert("Password updated", "You can now log in with your new password.");
+      navigation.replace("Login");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Something went wrong while signing up.";
-      Alert.alert("Registration failed", message);
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while updating your password.";
+
+      Alert.alert("Update failed", message);
     } finally {
       setLoading(false);
     }
@@ -79,31 +73,17 @@ export default function CreateAccountScreen({ onBackPress: _onBackPress }: Props
       style={styles.keyboardView}
     >
       <LinearGradient
-        colors={["#84A9FF", "#C9D9FF", "#F5F8FF"]}
+        colors={["#ECF2FF", "#ECF2FF", "#ECF2FF"]}
         style={styles.container}
       >
+        <BackButton onPress={() => navigation.goBack()} />
+
         <View style={styles.logoSection}>
           <Text style={styles.title}>tsm</Text>
-          <Text style={[styles.title, { opacity: 0 }]}>tsm</Text>
         </View>
 
         <View style={styles.inputSection}>
-          <Text>Email</Text>
-          <TextInput
-            autoCapitalize="none"
-            autoComplete="email"
-            autoCorrect={false}
-            editable={!loading}
-            inputMode="email"
-            keyboardType="email-address"
-            onChangeText={setEmail}
-            placeholder="Example: svensvensson@tsm.se"
-            style={styles.input}
-            textContentType="emailAddress"
-            value={email}
-          />
-
-          <Text>Password</Text>
+          <Text style={styles.label}>New password</Text>
           <TextInput
             autoCapitalize="none"
             autoComplete="password-new"
@@ -116,13 +96,13 @@ export default function CreateAccountScreen({ onBackPress: _onBackPress }: Props
             value={password}
           />
 
-          <Text>Confirm password</Text>
+          <Text style={styles.label}>Confirm password</Text>
           <TextInput
             autoCapitalize="none"
             autoComplete="password-new"
             editable={!loading}
             onChangeText={setConfirmPassword}
-            onSubmitEditing={handleCreateAccount}
+            onSubmitEditing={handleUpdatePassword}
             placeholder="Confirm password"
             secureTextEntry
             style={styles.input}
@@ -132,13 +112,13 @@ export default function CreateAccountScreen({ onBackPress: _onBackPress }: Props
 
           <TouchableOpacity
             disabled={loading}
-            onPress={handleCreateAccount}
-            style={[styles.registerButton, loading && styles.registerButtonDisabled]}
+            onPress={handleUpdatePassword}
+            style={[styles.updateButton, loading && styles.updateButtonDisabled]}
           >
             {loading ? (
               <ActivityIndicator color="#FFFFFF" />
             ) : (
-              <Text style={styles.registerButtonText}>Register</Text>
+              <Text style={styles.updateButtonText}>Update password</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -158,13 +138,13 @@ const styles = StyleSheet.create({
   },
 
   logoSection: {
-    marginTop: 50,
+    marginTop: 80,
     alignItems: "center",
   },
 
   title: {
     fontFamily: "Inter",
-    fontSize: 60,
+    fontSize: 70,
     fontWeight: "900",
     letterSpacing: 2,
   },
@@ -172,7 +152,15 @@ const styles = StyleSheet.create({
   inputSection: {
     width: "100%",
     paddingHorizontal: 50,
-    marginTop: -40,
+    marginTop: 70,
+  },
+
+  label: {
+    fontFamily: "Inter",
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#111",
+    marginBottom: 6,
   },
 
   input: {
@@ -180,9 +168,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#F7F2F8",
     paddingVertical: 12,
     borderRadius: 8,
-    marginBottom: 50,
+    marginBottom: 42,
     paddingHorizontal: 12,
-    alignItems: "center",
+    color: "#000",
 
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
@@ -191,12 +179,11 @@ const styles = StyleSheet.create({
     elevation: 7,
   },
 
-  registerButton: {
+  updateButton: {
     alignItems: "center",
-    backgroundColor: "#202124",
+    backgroundColor: "#2c2c2c",
     borderRadius: 8,
     justifyContent: "center",
-    marginTop: -10,
     minHeight: 48,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
@@ -205,15 +192,14 @@ const styles = StyleSheet.create({
     elevation: 7,
   },
 
-  registerButtonDisabled: {
+  updateButtonDisabled: {
     opacity: 0.65,
   },
 
-  registerButtonText: {
-    color: "#FFFFFF",
+  updateButtonText: {
+    color: "#FFF",
     fontFamily: "Inter",
     fontSize: 14,
-    fontStyle: "italic",
     fontWeight: "800",
   },
 });

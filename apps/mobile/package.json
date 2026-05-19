@@ -4,26 +4,33 @@
   "main": "index.ts",
   "scripts": {
     "start": "node scripts/with-root-env.js expo start",
+    "dev": "node scripts/with-root-env.js expo start --dev-client",
     "android": "node scripts/with-root-env.js expo start --android",
+    "android:dev": "node scripts/with-root-env.js expo start --dev-client --android",
     "ios": "node scripts/with-root-env.js expo start --ios",
     "web": "node scripts/with-root-env.js expo start --web"
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-community/datetimepicker": "8.6.0",
     "@react-native-masked-view/masked-view": "0.3.2",
+    "@react-navigation/native": "^7.2.2",
+    "@react-navigation/native-stack": "^7.14.12",
     "@supabase/supabase-js": "^2.105.3",
-    "expo": "~54.0.0",
-    "expo-dev-client": "~6.0.21",
-    "expo-linear-gradient": "~15.0.8",
-    "expo-linking": "~8.0.12",
-    "expo-status-bar": "~3.0.9",
-    "react": "19.1.0",
-    "react-native": "0.81.5",
+    "expo": "^55.0.18",
+    "expo-dev-client": "~55.0.32",
+    "expo-linear-gradient": "~55.0.13",
+    "expo-linking": "~55.0.14",
+    "expo-status-bar": "~55.0.5",
+    "expo-system-ui": "~55.0.17",
+    "react": "19.2.0",
+    "react-native": "0.83.6",
+    "react-native-input-select": "^2.1.13",
     "react-native-safe-area-context": "~5.6.2",
     "react-native-url-polyfill": "^3.0.0"
   },
   "devDependencies": {
-    "@types/react": "~19.1.10",
+    "@types/react": "~19.2.10",
     "typescript": "~5.9.2"
   },
   "private": true
