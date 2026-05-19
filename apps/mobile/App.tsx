@@ -20,6 +20,9 @@ import WelcomeScreen from "./screens/welcome";
 import ForgotPasswordScreen from "./screens/forgotPassword";
 import ResetPasswordScreen from "./screens/resetPassword";
 import EventPageScreen from "./screens/eventPage";
+import ArtistSearchScreen from "./screens/artistSearch";
+import SongSearchScreen from "./screens/songSearch";
+import AlbumSearchScreen from "./screens/albumSearch";
 
 
 export type RootStackParamList = {
@@ -31,6 +34,9 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   ResetPassword: undefined;
   EventPage: undefined;
+  ArtistSearch: undefined;
+  SongSearch: undefined;
+  AlbumSearch: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -186,6 +192,9 @@ export default function App() {
           <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
           <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
           <Stack.Screen name="EventPage" component={EventPageScreen} />
+          <Stack.Screen name="ArtistSearch" component={ArtistSearchScreen} />
+          <Stack.Screen name="SongSearch" component={SongSearchScreen} />
+          <Stack.Screen name="AlbumSearch" component={AlbumSearchScreen} />
         
         </Stack.Navigator>
       </NavigationContainer>

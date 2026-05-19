@@ -286,6 +286,10 @@ def get_artist_results(query, limit=10):
     return [format_artist(artist) for artist in artists]
 
 
+def artistSearch(query, limit=10):
+    return get_artist_results(query, limit=limit)
+
+
 # Låtar från Spotify + låtomslag
 
 def search_spotify_tracks(query, limit=5):
@@ -327,6 +331,10 @@ def get_recording_results(query, limit=10):
     return [format_spotify_track(track) for track in tracks]
 
 
+def songSearch(query, limit=10):
+    return get_recording_results(query, limit=limit)
+
+
 # Album från Spotify + albumomslag
 
 def search_spotify_albums(query, limit=5):
@@ -365,6 +373,10 @@ def get_release_results(query, limit=10):
     albums = results.get("albums", {}).get("items", []) if results else []
 
     return [format_spotify_album(album) for album in albums]
+
+
+def albumSearch(query, limit=10):
+    return get_release_results(query, limit=limit)
 
 
 # Gemensamma sökfunktioner

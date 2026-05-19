@@ -297,21 +297,50 @@ function SearchIcon() {
 }
 
 function sortEvents(items: EventItem[]) {
+  const now = Date.now();
+
   return [...items].sort((a, b) => {
-    if (!a.date && !b.date) {
+    const aTime = parseEventTime(a.date);
+    const bTime = parseEventTime(b.date);
+
+    if (aTime === null && bTime === null) {
       return 0;
     }
 
-    if (!a.date) {
+    if (aTime === null) {
       return 1;
     }
 
-    if (!b.date) {
+    if (bTime === null) {
       return -1;
     }
 
-    return a.date.localeCompare(b.date);
+    const aIsUpcoming = aTime >= now;
+    const bIsUpcoming = bTime >= now;
+
+    if (aIsUpcoming && !bIsUpcoming) {
+      return -1;
+    }
+
+    if (!aIsUpcoming && bIsUpcoming) {
+      return 1;
+    }
+
+    return aIsUpcoming ? aTime - bTime : bTime - aTime;
   });
+}
+
+function parseEventTime(value?: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const normalizedValue = value.includes("T")
+    ? value
+    : value.replace(" ", "T");
+  const timestamp = new Date(normalizedValue).getTime();
+
+  return Number.isNaN(timestamp) ? null : timestamp;
 }
 
 const styles = StyleSheet.create({

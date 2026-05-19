@@ -40,17 +40,37 @@ def list_kulturbiljett_events(
     city: str | None = None,
 ) -> list[dict[str, Any]]:
     data = _call_external(kulturbiljett.get_events)
-    events = data.values() if isinstance(data, dict) else data
+    summaries = data.values() if isinstance(data, dict) else data
+    events = [
+        event
+        for summary in summaries or []
+        if (event := _get_kulturbiljett_event_detail(summary)) is not None
+    ]
+
     return [
         _format_kulturbiljett_event_summary(event)
-        for event in events or []
+        for event in events
         if _matches_event_filters(event, query, city)
     ]
 
 
 def get_kulturbiljett_event(event_id: str) -> dict[str, Any]:
     event = _call_external(kulturbiljett.get_event, event_id)
-    return _format_kulturbiljett_event(event)
+    return _format_kulturbiljett_event({"event_id": event_id, **event})
+
+
+def _get_kulturbiljett_event_detail(summary: dict[str, Any]) -> dict[str, Any] | None:
+    event_id = summary.get("event_id")
+
+    if not event_id:
+        return summary
+
+    try:
+        event = _call_external(kulturbiljett.get_event, event_id)
+    except ExternalApiError:
+        return None
+
+    return {**summary, **event}
 
 
 def list_ticketmaster_events(
@@ -108,6 +128,11 @@ def _format_kulturbiljett_event_summary(event: dict[str, Any]) -> dict[str, Any]
     organizer = event.get("organizer")
     locations = _event_locations(event)
     cities = sorted({location.get("city") for location in locations if location.get("city")})
+    dates = _event_dates(event)
+    first_date = min(
+        (date.get("unixtime_start") for date in dates if date.get("unixtime_start")),
+        default=None,
+    )
     return {
         "id": event.get("event_id"),
         "title": event.get("title"),
@@ -115,8 +140,8 @@ def _format_kulturbiljett_event_summary(event: dict[str, Any]) -> dict[str, Any]
         "organizer": organizer.get("name") if isinstance(organizer, dict) else None,
         "city": cities[0] if cities else None,
         "venue": locations[0].get("name") if locations else None,
-        "date": None,
-        "image_url": None,
+        "date": kulturbiljett.fmt_time(first_date) if first_date else None,
+        "image_url": _first_kulturbiljett_image(event),
     }
 
 
@@ -148,6 +173,24 @@ def _format_kulturbiljett_event(event: dict[str, Any]) -> dict[str, Any]:
             for date in dates.values()
         ],
     }
+
+
+def _event_dates(event: dict[str, Any]) -> list[dict[str, Any]]:
+    dates = event.get("dates")
+    if isinstance(dates, dict):
+        return list(dates.values())
+    if isinstance(dates, list):
+        return dates
+    return []
+
+
+def _first_kulturbiljett_image(event: dict[str, Any]) -> str | None:
+    images = event.get("images")
+    if isinstance(images, dict):
+        return next((image for image in images.values() if image), None)
+    if isinstance(images, list):
+        return next((image for image in images if image), None)
+    return None
 
 
 def _format_ticketmaster_event(event: dict[str, Any]) -> dict[str, Any]:
