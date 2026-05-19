@@ -4,6 +4,7 @@ import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import * as Linking from "expo-linking";
 
+
 import CreateProfileFirst from "./screens/create-profile-first"
 import ProfileCreationInfo from "./screens/profile-creation-01-info"
 import InterestSelection from "./screens/profile-creation-02-interest-selection";
@@ -14,6 +15,7 @@ import StartScreen from "./screens/start";
 import CreateAccountScreen from "./screens/create-account";
 import { supabase } from "./lib/supabase";
 import MovieSelection from "./screens/profile-creation-F01-movie-selection";
+import LiteratureInterestScreen from "./screens/create-litterature";
 /*import LoginScreen from "./screens/loginScreen"; */
 
 const CREATE_ACCOUNT_BACKGROUND = "#E7EDF6";
