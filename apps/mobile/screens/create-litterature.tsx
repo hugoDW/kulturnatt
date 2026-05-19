@@ -157,7 +157,7 @@ export default function LiteratureInterestScreen({
           </View>
         )}
 
-        {/* Genre-sektioner */}
+        {/* Genre-kategorier */}
         {allGenres.map((category) => (
           <View key={category.title} style={styles.section}>
             <View style={styles.sectionHeader}>
@@ -199,7 +199,7 @@ export default function LiteratureInterestScreen({
           </View>
         ))}
 
-        {/* Save-knapp längst ner */}
+        {/* Save knapp längst ned*/}
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
           <Text style={styles.saveButtonText}>Save Preferences</Text>
         </TouchableOpacity>
