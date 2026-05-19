@@ -1,0 +1,27 @@
+app = "kulturnatt-gateway"
+primary_region = "arn"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PROFILE_UPSTREAM = "kulturnatt-profile.internal:8001"
+  MATCHING_UPSTREAM = "kulturnatt-matching.internal:8002"
+
+[http_service]
+  internal_port = 80
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+  [[http_service.checks]]
+    interval = "15s"
+    timeout = "2s"
+    grace_period = "10s"
+    method = "get"
+    path = "/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"
