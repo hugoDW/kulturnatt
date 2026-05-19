@@ -15,6 +15,7 @@ def get_events(city=None, query=None):
     params = {
         "apikey": API_KEY,
         "countryCode": "SE",
+        "sort": "date,asc",
     }
 
     if city:

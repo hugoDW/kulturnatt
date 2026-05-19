@@ -31,7 +31,7 @@ type SongResult = {
   spotify_url?: string | null;
 };
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, "");
 
 export default function SongSearchScreen() {
   const navigation = useNavigation<NavigationProp>();

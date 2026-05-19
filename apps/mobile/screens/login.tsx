@@ -68,11 +68,7 @@ export default function LoginScreen() {
       }
 
 
-      console.log("Logged in user:", user.id);
-      console.log("Access token:", token);
-
-
-      navigation.navigate("EventPage");
+      navigation.navigate("EventPage", { accessToken: token });
    
     } catch (error) {
       const message =

@@ -13,15 +13,19 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
 import BackButton from "../components/backButton";
+import { supabase } from "../lib/supabase";
 
 type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   "EventPage"
 >;
+
+type EventPageRouteProp = RouteProp<RootStackParamList, "EventPage">;
 
 type EventSource = "Kulturbiljett" | "Ticketmaster";
 
@@ -37,36 +41,29 @@ type EventItem = {
   image_url?: string | null;
 };
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
-
+const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, "");
 const CITIES = ["Stockholm", "Göteborg", "Malmö", "Uppsala", "Västerås"];
 
 export default function EventPageScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<EventPageRouteProp>();
   const listRef = useRef<FlatList<EventItem>>(null);
   const scrollOffsetRef = useRef(0);
-  const [selectedCity, setSelectedCity] = useState<string | null>("Stockholm");
+  const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [events, setEvents] = useState<EventItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const title = submittedQuery
-    ? `Results for "${submittedQuery}"`
-    : selectedCity
-      ? `Explore ${selectedCity}`
-      : "Explore all events";
-
   const encodedParams = useMemo(() => {
     const params = new URLSearchParams();
+    const trimmedQuery = submittedQuery.trim();
 
-    if (selectedCity) {
+    if (trimmedQuery) {
+      params.set("query", trimmedQuery);
+    } else if (selectedCity) {
       params.set("city", selectedCity);
-    }
-
-    if (submittedQuery.trim()) {
-      params.set("query", submittedQuery.trim());
     }
 
     return params.toString();
@@ -80,39 +77,56 @@ export default function EventPageScreen() {
 
     setIsLoading(true);
     setErrorMessage(null);
+    setEvents([]);
 
-    const [kulturbiljettResponse, ticketmasterResponse] = await Promise.allSettled([
-      fetch(`${API_URL}/external/events?${encodedParams}`),
-      fetch(`${API_URL}/external/ticketmaster/events?${encodedParams}`),
-    ]);
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      const token = route.params?.accessToken ?? data.session?.access_token;
 
-    const nextEvents: EventItem[] = [];
-    const failedSources: string[] = [];
+      if (error || !token) {
+        setEvents([]);
+        setErrorMessage("Log in again to load events.");
+        return;
+      }
 
-    if (kulturbiljettResponse.status === "fulfilled" && kulturbiljettResponse.value.ok) {
-      const json = await kulturbiljettResponse.value.json();
-      nextEvents.push(...((json.events ?? []) as EventItem[]));
-    } else {
-      failedSources.push("Kulturbiljett");
+      const requestOptions = {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      };
+
+      const queryString = encodedParams ? `?${encodedParams}` : "";
+      async function loadSource(url: string) {
+        const response = await fetch(url, requestOptions);
+
+        if (!response.ok) {
+          throw new Error("Event source failed");
+        }
+
+        const json = await response.json();
+        const sourceEvents = (json.events ?? []) as EventItem[];
+
+        setEvents((currentEvents) => sortEvents([...currentEvents, ...sourceEvents]));
+      }
+
+      const responses = await Promise.allSettled([
+        loadSource(`${API_URL}/external/events${queryString}`),
+        loadSource(`${API_URL}/external/ticketmaster/events${queryString}`),
+      ]);
+      const failedSources = responses.filter((response) => response.status === "rejected");
+
+      setErrorMessage(
+        failedSources.length === responses.length ? "Could not load events right now." : null,
+      );
+    } catch (error) {
+      setEvents([]);
+      setErrorMessage(
+        error instanceof Error ? error.message : "Could not load events right now.",
+      );
+    } finally {
+      setIsLoading(false);
     }
-
-    if (ticketmasterResponse.status === "fulfilled" && ticketmasterResponse.value.ok) {
-      const json = await ticketmasterResponse.value.json();
-      nextEvents.push(...((json.events ?? []) as EventItem[]));
-    } else {
-      failedSources.push("Ticketmaster");
-    }
-
-    setEvents(sortEvents(nextEvents));
-    setErrorMessage(
-      failedSources.length === 2
-        ? "Could not load events right now."
-        : failedSources.length === 1
-          ? `${failedSources[0]} could not load right now.`
-          : null,
-    );
-    setIsLoading(false);
-  }, [encodedParams]);
+  }, [encodedParams, route.params?.accessToken]);
 
   useEffect(() => {
     loadEvents();
@@ -173,7 +187,7 @@ export default function EventPageScreen() {
         ref={listRef}
         style={styles.scroll}
         contentContainerStyle={styles.content}
-        data={isLoading ? [] : events}
+        data={events}
         keyExtractor={(event, index) =>
           `${event.source}-${event.id ?? event.title ?? event.name}-${index}`
         }
@@ -217,20 +231,20 @@ export default function EventPageScreen() {
                 const isSelected = city === selectedCity;
 
                 return (
-                <Pressable
-                  key={city}
-                  onPress={() => setSelectedCity(isSelected ? null : city)}
-                  style={[styles.cityButton, isSelected && styles.cityButtonSelected]}
-                >
-                <Text
-                  style={[
-                    styles.cityButtonText,
-                    isSelected && styles.cityButtonTextSelected,
-                  ]}
-                >
-                  {city}
-                </Text>
-              </Pressable>
+                  <Pressable
+                    key={city}
+                    onPress={() => setSelectedCity(isSelected ? null : city)}
+                    style={[styles.cityButton, isSelected && styles.cityButtonSelected]}
+                  >
+                    <Text
+                      style={[
+                        styles.cityButtonText,
+                        isSelected && styles.cityButtonTextSelected,
+                      ]}
+                    >
+                      {city}
+                    </Text>
+                  </Pressable>
                 );
               })}
             </ScrollView>
@@ -297,36 +311,10 @@ function SearchIcon() {
 }
 
 function sortEvents(items: EventItem[]) {
-  const now = Date.now();
-
   return [...items].sort((a, b) => {
     const aTime = parseEventTime(a.date);
     const bTime = parseEventTime(b.date);
-
-    if (aTime === null && bTime === null) {
-      return 0;
-    }
-
-    if (aTime === null) {
-      return 1;
-    }
-
-    if (bTime === null) {
-      return -1;
-    }
-
-    const aIsUpcoming = aTime >= now;
-    const bIsUpcoming = bTime >= now;
-
-    if (aIsUpcoming && !bIsUpcoming) {
-      return -1;
-    }
-
-    if (!aIsUpcoming && bIsUpcoming) {
-      return 1;
-    }
-
-    return aIsUpcoming ? aTime - bTime : bTime - aTime;
+    return (aTime ?? Number.POSITIVE_INFINITY) - (bTime ?? Number.POSITIVE_INFINITY);
   });
 }
 
@@ -335,10 +323,19 @@ function parseEventTime(value?: string | null) {
     return null;
   }
 
-  const normalizedValue = value.includes("T")
-    ? value
-    : value.replace(" ", "T");
-  const timestamp = new Date(normalizedValue).getTime();
+  const match = value.match(
+    /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2}))?/,
+  );
+
+  const timestamp = match
+    ? new Date(
+        Number(match[1]),
+        Number(match[2]) - 1,
+        Number(match[3]),
+        Number(match[4] ?? 0),
+        Number(match[5] ?? 0),
+      ).getTime()
+    : new Date(value).getTime();
 
   return Number.isNaN(timestamp) ? null : timestamp;
 }
@@ -473,24 +470,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
 
-  sectionHeader: {
-    marginBottom: 12,
-  },
-
-  sectionTitle: {
-    fontFamily: "Inter",
-    fontSize: 22,
-    fontWeight: "900",
-    color: "#000050",
-  },
-
-  resultCount: {
-    marginTop: 4,
-    fontFamily: "Inter",
-    fontSize: 13,
-    color: "#4B5563",
-  },
-
   stateBlock: {
     minHeight: 120,
     alignItems: "center",
@@ -558,14 +537,6 @@ const styles = StyleSheet.create({
     fontWeight: "900",
     color: "#2B2B2B",
     textTransform: "uppercase",
-  },
-
-  priceText: {
-    flexShrink: 0,
-    fontFamily: "Inter",
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#374151",
   },
 
   cardTitle: {

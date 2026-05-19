@@ -35,7 +35,7 @@ type AlbumResult = {
   spotify_url?: string | null;
 };
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, "");
 
 export default function AlbumSearchScreen() {
   const navigation = useNavigation<NavigationProp>();

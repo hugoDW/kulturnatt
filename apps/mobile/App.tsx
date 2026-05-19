@@ -33,7 +33,7 @@ export type RootStackParamList = {
   Welcome: undefined;
   ForgotPassword: undefined;
   ResetPassword: undefined;
-  EventPage: undefined;
+  EventPage: { accessToken?: string } | undefined;
   ArtistSearch: undefined;
   SongSearch: undefined;
   AlbumSearch: undefined;

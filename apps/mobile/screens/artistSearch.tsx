@@ -34,7 +34,7 @@ type ArtistResult = {
   image?: CoverImage | null;
 };
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL;
+const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, "");
 
 export default function ArtistSearchScreen() {
   const navigation = useNavigation<NavigationProp>();

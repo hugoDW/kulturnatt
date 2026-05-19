@@ -1,6 +1,8 @@
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
 import requests
+import time
 
 from API import kulturbiljett
 from API import musicbrainz
@@ -30,18 +32,23 @@ def list_kulturbiljett_events(
     city: str | None = None,
 ) -> list[dict[str, Any]]:
     data = _call_external(kulturbiljett.get_events)
-    summaries = data.values() if isinstance(data, dict) else data
-    events = [
-        event
-        for summary in summaries or []
-        if (event := _get_kulturbiljett_event_detail(summary)) is not None
-    ]
+    summaries = list(data.values() if isinstance(data, dict) else data or [])
+    events: list[dict[str, Any]] = []
 
-    return [
-        _format_kulturbiljett_event_summary(event)
-        for event in events
-        if _matches_event_filters(event, query, city)
-    ]
+    with ThreadPoolExecutor(max_workers=12) as executor:
+        event_details = executor.map(_get_kulturbiljett_event_detail, summaries)
+
+        for event in event_details:
+            if (
+                event is None
+                or _next_event_timestamp(event) is None
+                or not _matches_event_filters(event, query, city)
+            ):
+                continue
+
+            events.append(_format_kulturbiljett_event_summary(event))
+
+    return sort_events(events)[:20]
 
 
 def get_kulturbiljett_event(event_id: str) -> dict[str, Any]:
@@ -68,7 +75,11 @@ def list_ticketmaster_events(
     city: str | None = None,
 ) -> list[dict[str, Any]]:
     events = _call_external(ticketmaster.get_events, city, query)
-    return [_format_ticketmaster_event(event) for event in events or []]
+    return sort_events([_format_ticketmaster_event(event) for event in events or []])[:20]
+
+
+def sort_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return sorted(events, key=lambda event: event.get("date") or "")
 
 
 def _matches_event_filters(
@@ -118,11 +129,7 @@ def _format_kulturbiljett_event_summary(event: dict[str, Any]) -> dict[str, Any]
     organizer = event.get("organizer")
     locations = _event_locations(event)
     cities = sorted({location.get("city") for location in locations if location.get("city")})
-    dates = _event_dates(event)
-    first_date = min(
-        (date.get("unixtime_start") for date in dates if date.get("unixtime_start")),
-        default=None,
-    )
+    first_date = _next_event_timestamp(event)
     return {
         "id": event.get("event_id"),
         "title": event.get("title"),
@@ -172,6 +179,16 @@ def _event_dates(event: dict[str, Any]) -> list[dict[str, Any]]:
     if isinstance(dates, list):
         return dates
     return []
+
+
+def _next_event_timestamp(event: dict[str, Any]) -> int | None:
+    now = int(time.time())
+    upcoming_dates = [
+        date.get("unixtime_start")
+        for date in _event_dates(event)
+        if date.get("unixtime_start") and date.get("unixtime_start") >= now
+    ]
+    return min(upcoming_dates, default=None)
 
 
 def _first_kulturbiljett_image(event: dict[str, Any]) -> str | None:
