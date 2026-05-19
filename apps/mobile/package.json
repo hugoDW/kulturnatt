@@ -4,7 +4,9 @@
   "main": "index.ts",
   "scripts": {
     "start": "node scripts/with-root-env.js expo start",
+    "dev": "node scripts/with-root-env.js expo start --dev-client",
     "android": "node scripts/with-root-env.js expo start --android",
+    "android:dev": "node scripts/with-root-env.js expo start --dev-client --android",
     "ios": "node scripts/with-root-env.js expo start --ios",
     "web": "node scripts/with-root-env.js expo start --web"
   },

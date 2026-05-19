@@ -72,10 +72,7 @@ export default function LoginScreen() {
       console.log("Access token:", token);
 
 
-      Alert.alert("Success", "You are logged in.");
-
-
-     
+      navigation.navigate("EventPage");
    
     } catch (error) {
       const message =

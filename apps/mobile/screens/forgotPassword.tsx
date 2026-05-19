@@ -16,6 +16,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
 
 import BackButton from "../components/backButton";
+import { getAuthRedirectUrl, RESET_PASSWORD_PATH } from "../lib/authRedirects";
 import { supabase } from "../lib/supabase";
 
 type NavigationProp = NativeStackNavigationProp<
@@ -23,7 +24,7 @@ type NavigationProp = NativeStackNavigationProp<
   "ForgotPassword"
 >;
 
-const RESET_PASSWORD_REDIRECT_URL = "tsm://auth/reset-password";
+const RESET_PASSWORD_REDIRECT_URL = getAuthRedirectUrl(RESET_PASSWORD_PATH);
 
 export default function ForgotPasswordScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -42,6 +43,10 @@ export default function ForgotPasswordScreen() {
     setLoading(true);
 
     try {
+      if (__DEV__) {
+        console.info("Reset password redirect URL:", RESET_PASSWORD_REDIRECT_URL);
+      }
+
       const { error } = await supabase.auth.resetPasswordForEmail(
         normalizedEmail,
         {

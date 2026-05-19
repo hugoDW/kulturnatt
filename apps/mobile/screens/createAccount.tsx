@@ -18,6 +18,7 @@ import type { RootStackParamList } from "../App";
 
 
 import BackButton from "../components/backButton";
+import { getAuthRedirectUrl, VERIFY_EMAIL_PATH } from "../lib/authRedirects";
 import { supabase } from "../lib/supabase";
 
 
@@ -27,7 +28,7 @@ type NavigationProp = NativeStackNavigationProp<
 >;
 
 
-const EMAIL_VERIFY_REDIRECT_URL = "tsm://auth/callback";
+const EMAIL_VERIFY_REDIRECT_URL = getAuthRedirectUrl(VERIFY_EMAIL_PATH);
 
 
 export default function CreateAccountScreen() {
