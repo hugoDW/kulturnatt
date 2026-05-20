@@ -82,6 +82,9 @@ Anropas av mobilappen via gatewayen. Kräver giltig Supabase JWT.
 | `POST` | `/profile/setup` | Skapar ny profil. Triggar `recompute` hos matching-service. |
 | `PUT` | `/profile/update` | Uppdaterar profilen. Triggar `recompute`. |
 | `GET` | `/profile/swipes` | Returnerar den inloggades förberäknade ranked list. |
+| `GET` | `/external/events`, `/external/events/{event_id}` | Proxy mot Kulturbiljett. |
+| `GET` | `/external/ticketmaster/events` | Proxy mot Ticketmaster. |
+| `GET` | `/external/music/search`, `/external/music/artists/search`, `/external/music/songs/search`, `/external/music/albums/search` | Proxy mot MusicBrainz / Spotify-metadata. |
 
 ### Interna endpoints
 
@@ -149,13 +152,15 @@ Filtrering bort: sig själv, fel kön, ålder utanför `age_range`, blockerade o
 ## gateway
 
 **Mapp:** `apps/gateway/`
-**Image:** `nginx:1.27-alpine` (inget eget Dockerfile behövs)
+**Image:** byggs från egen `Dockerfile` ovanpå `nginx:alpine` — `nginx.conf.template` renderas vid container-start med `envsubst` så `${PROFILE_UPSTREAM}` / `${MATCHING_UPSTREAM}` kan sättas via env-variabler.
 
-`nginx.conf`:
+Routing:
 
 ```
-/profile/  →  profile-service:8001
-/swipe     →  matching-service:8002
+/health     →  200 "ok" (svaras direkt av gateway)
+/profile/   →  profile-service:8001
+/external/  →  profile-service:8001   (proxy mot tredjeparts-API:er)
+/swipe      →  matching-service:8002
 ```
 
 Inga andra paths exponeras utåt. Authorization-headern proxas vidare så JWT:n når sista servicen.
@@ -329,15 +334,18 @@ Registrerar like eller reject. Vid ömsesidig like → match.
 
 ---
 
-## Externa API:er (fortfarande monolitiska)
+## Externa tredjeparts-API:er
 
-`apps/API/` innehåller hjälpklienter mot tredjepartsapis. De konsumeras inte ännu av mikrotjänsterna men används som datakällor för intresselistor.
+`apps/profile-service/API/` innehåller hjälpklienter mot externa datakällor. De wrappas av `apps/profile-service/external_api.py` och exponeras via gateway under `/external/*` (kräver JWT — de är tillgängliga endast för inloggade användare som söker fram intresselistor i mobilappen).
 
 | Fil | Källa |
 |-----|-------|
-| `kulturbiljett.py` | events och biljettdata |
+| `kulturbiljett.py` | events och biljettdata (`/external/events`, `/external/events/{event_id}`) |
+| `ticketmaster.py` | events från Ticketmaster (`/external/ticketmaster/events`) |
 | `tmdb.py` | filmer, TV-serier, regissörer |
-| `musicbrainz.py` | artister, låtar, musikgenrer |
+| `musicbrainz.py` | artister, låtar, musikgenrer (`/external/music/...`) |
+
+matching-service rör aldrig de här klienterna — all extern datahämtning sker i profile-service.
 
 ---
 
@@ -420,7 +428,14 @@ apps/
 │   ├── internal_auth.py
 │   ├── db.py
 │   ├── user.py
+│   ├── external_api.py    ← wrapper kring de externa klienterna i API/
+│   ├── API/               ← externa tredjeparts-klienter
+│   │   ├── kulturbiljett.py
+│   │   ├── ticketmaster.py
+│   │   ├── tmdb.py
+│   │   └── musicbrainz.py
 │   ├── Dockerfile
+│   ├── fly.toml
 │   ├── requirements.txt
 │   └── README.md
 ├── matching-service/     ← ingen DB, äger algoritmerna
@@ -436,15 +451,14 @@ apps/
 │   │   ├── test_algorithms.py
 │   │   └── test_services.py
 │   ├── Dockerfile
+│   ├── fly.toml
 │   ├── requirements.txt
 │   └── README.md
 ├── gateway/              ← nginx reverse proxy
-│   ├── nginx.conf
+│   ├── nginx.conf.template
+│   ├── Dockerfile
+│   ├── fly.toml
 │   └── README.md
-├── API/                  ← externa tredjeparts-klienter
-│   ├── kulturbiljett.py
-│   ├── tmdb.py
-│   └── musicbrainz.py
 └── mobile/               ← React Native + Expo
 
 docker-compose.yml        ← startar de tre containrarna lokalt
