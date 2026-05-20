@@ -13,8 +13,13 @@ import {
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { supabase } from "../lib/supabase";
+import BackButton from "../components/backButton";
+import type { RootStackParamList } from "../App";
+import { useProfileCreation } from "../lib/profileCreation";
 
 type Props = {
   onBackPress?: () => void;
@@ -22,7 +27,11 @@ type Props = {
 
 const AUTH_REDIRECT_SCHEME = "tsm";
 
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, "GenreSelection">;
+
 export default function GenreSelection({ onBackPress: _onBackPress }: Props) {
+  const navigation = useNavigation<NavigationProp>();
+  const { updateDraft } = useProfileCreation();
   const [favoriteGenres, setFavoriteGenres] = useState<string[]>([]);
   const MUSIC_GENRES = [
     "Ambient",
@@ -62,7 +71,8 @@ export default function GenreSelection({ onBackPress: _onBackPress }: Props) {
 
 
   async function handleContinue() {
-    console.log( favoriteGenres );
+    updateDraft({ music_genre: favoriteGenres });
+    navigation.navigate("ArtistSelection");
   }
 
   return (
@@ -72,6 +82,13 @@ export default function GenreSelection({ onBackPress: _onBackPress }: Props) {
     >
 
       <View style={styles.screenBackground}>
+        <BackButton
+          onPress={() =>
+            navigation.canGoBack()
+              ? navigation.goBack()
+              : navigation.navigate("Start")
+          }
+        />
         <View style={styles.headerSection}>
           <Text style={styles.headerText}>What genres are you into?</Text>
           <Text style={styles.headerSubtitle}>Select the genres that define your music taste.</Text>

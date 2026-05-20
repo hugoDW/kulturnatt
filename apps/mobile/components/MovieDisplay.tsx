@@ -9,9 +9,9 @@ import {
 type Movie = {
   id: number;
   title: string;
-  year: string;
-  director: string;
-  poster_path: string;
+  year?: string | null;
+  director?: string | null;
+  poster_path?: string | null;
 };
 
 type Props = {
@@ -26,18 +26,22 @@ export default function MovieDisplay({ movie, onAdd }: Props) {
           onPress={() => onAdd(movie)}
           >
 
-            <Image
-                source={ { uri: movie.poster_path }}
-                style={styles.moviePoster}
-            />
+            {movie.poster_path ? (
+              <Image
+                  source={ { uri: movie.poster_path }}
+                  style={styles.moviePoster}
+              />
+            ) : (
+              <View style={styles.moviePoster} />
+            )}
 
             <View style={styles.movieInfo}>
                 <Text style={styles.movieTitle}>
-                    {movie.title} ({movie.year})
+                    {movie.title}{movie.year ? ` (${movie.year})` : ""}
                 </Text>
 
                 <Text style={styles.sub}>
-                    dir. {movie.director}
+                    {movie.director ? `dir. ${movie.director}` : "Director unknown"}
                 </Text>
             </View>
 

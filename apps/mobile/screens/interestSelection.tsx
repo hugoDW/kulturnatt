@@ -12,8 +12,13 @@ import {
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { supabase } from "../lib/supabase";
+import BackButton from "../components/backButton";
+import type { RootStackParamList } from "../App";
+import { useProfileCreation } from "../lib/profileCreation";
 
 type Props = {
   onBackPress?: () => void;
@@ -21,7 +26,11 @@ type Props = {
 
 const AUTH_REDIRECT_SCHEME = "tsm";
 
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, "InterestSelection">;
+
 export default function InterestSelection({ onBackPress: _onBackPress }: Props) {
+  const navigation = useNavigation<NavigationProp>();
+  const { updateDraft } = useProfileCreation();
   const [musicInterest, setMusicInterested] = useState(false);
   const [filmInterest, setfilmInterested] = useState(false);
   const [tvInterest, setTVInterested] = useState(false);
@@ -31,39 +40,32 @@ export default function InterestSelection({ onBackPress: _onBackPress }: Props) 
   const [loading, setLoading] = useState(false);
 
 
-  async function handleCreateAccount() {
+  function handleContinue() {
+    updateDraft({
+      art: visualArtsInterest,
+    });
 
-    setLoading(true);
-
-    try {
-      const { data, error } = await supabase.auth.signUp({
-        username: normalizedUsername,
-        password,
-        options: {
-          emailRedirectTo: Linking.createURL("auth/callback", {
-            scheme: AUTH_REDIRECT_SCHEME,
-          }),
-        },
-      });
-
-      if (error) {
-        Alert.alert("Registration failed", error.message);
-        return;
-      }
-
-      if (!data.session) {
-        Alert.alert("Check your email", "Confirm your account to finish signing up.");
-        return;
-      }
-
-      Alert.alert("Account created", "You are now registered.");
-    } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Something went wrong while signing up.";
-      Alert.alert("Registration failed", message);
-    } finally {
-      setLoading(false);
+    if (musicInterest) {
+      navigation.navigate("GenreSelection");
+      return;
     }
+
+    if (filmInterest) {
+      navigation.navigate("MovieSelection");
+      return;
+    }
+
+    if (tvInterest) {
+      navigation.navigate("ShowSelection");
+      return;
+    }
+
+    if (literatureInterest) {
+      navigation.navigate("LiteratureInterest");
+      return;
+    }
+
+    Alert.alert("Select an interest", "Choose at least one category to continue.");
   }
 
   return (
@@ -73,6 +75,13 @@ export default function InterestSelection({ onBackPress: _onBackPress }: Props) 
     >
 
       <View style={styles.screenBackground}>
+        <BackButton
+          onPress={() =>
+            navigation.canGoBack()
+              ? navigation.goBack()
+              : navigation.navigate("Start")
+          }
+        />
         <View style={styles.headerSection}>
           <Text style={styles.headerText}>What are you passionate about?</Text>
           <Text style={styles.headerSubtitle}>Select categories to explore specific interests.</Text>
@@ -306,7 +315,7 @@ export default function InterestSelection({ onBackPress: _onBackPress }: Props) 
 
         <TouchableOpacity
             disabled={loading}
-            onPress={handleCreateAccount}
+            onPress={handleContinue}
             style={[styles.finalizeButton, loading && styles.finalizeButtonDisabled]}
           >
             {loading ? (

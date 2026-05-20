@@ -6,7 +6,6 @@ import {
   KeyboardAvoidingView,
   Modal,
   Platform,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -16,10 +15,13 @@ import {
 import { Image } from "react-native";
 import ShowDisplay from "../components/ShowDisplay"
 import { Ionicons } from '@react-native-vector-icons/ionicons';
-import { LinearGradient } from "expo-linear-gradient";
-import * as Linking from "expo-linking";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import { supabase } from "../lib/supabase";
+import BackButton from "../components/backButton";
+import type { RootStackParamList } from "../App";
+import { searchTmdb } from "../apiservices/tmdbservice";
+import { useProfileCreation } from "../lib/profileCreation";
 
 type Props = {
   onBackPress?: () => void;
@@ -28,20 +30,26 @@ type Props = {
 type Show = {
   id: number;
   name: string;
-  first_air_date: string;
-  poster_path: string;
+  first_air_date?: string | null;
+  "first aired"?: string | null;
+  poster_path?: string | null;
 };
 
-const AUTH_REDIRECT_SCHEME = "tsm";
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, "ShowSelection">;
 
 export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
+  const navigation = useNavigation<NavigationProp>();
+  const { updateDraft, saveDraft, resetDraft } = useProfileCreation();
   const [movieModalVisible, setMovieModalVisible] = useState(false);
   const [showSearch, setShowSearch] = useState("");
   const [showResults, setShowResults] = useState<Show[]>([]);
   const [favoriteShows, setFavoriteShows] = useState<Show[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const handleGoBack = () => {
     setMovieModalVisible(false)
     setShowResults([])
+    setSearchError(null)
   }
   const addShow = (show: Show) => {
     setFavoriteShows((prev) => [...prev, show]);
@@ -130,16 +138,48 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
 
 
   async function handleShowSearch() {
-    const filtered = mockShows.filter((show) =>
-      show.name
-        .toLowerCase()
-        .includes(showSearch.toLowerCase())
-        &&
-      !favoriteShows.some(
-        (favorite) => favorite.id === show.id
-      )
-    );
-    setShowResults(filtered);
+    setIsSearching(true);
+    setSearchError(null);
+
+    try {
+      const results = await searchTmdb<Show>(showSearch, "tv");
+      setShowResults(
+        results.map((show) => ({
+          ...show,
+          first_air_date: show.first_air_date ?? show["first aired"] ?? null,
+        })).filter(
+          (show) => !favoriteShows.some((favorite) => favorite.id === show.id),
+        ),
+      );
+    } catch (error) {
+      setShowResults([]);
+      setSearchError(
+        error instanceof Error ? error.message : "Could not search shows right now.",
+      );
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
+  async function handleContinue() {
+    setLoading(true);
+
+    try {
+      const nextDraft = {
+        shows: favoriteShows.map((show) => show.name),
+      };
+      updateDraft(nextDraft);
+      await saveDraft(nextDraft);
+      resetDraft();
+      navigation.navigate("EventPage");
+    } catch (error) {
+      Alert.alert(
+        "Profile save failed",
+        error instanceof Error ? error.message : "Could not save your profile right now.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   
@@ -160,6 +200,13 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
     >
 
       <View style={styles.screenBackground}>
+        <BackButton
+          onPress={() =>
+            navigation.canGoBack()
+              ? navigation.goBack()
+              : navigation.navigate("Start")
+          }
+        />
         <View style={styles.headerSection}>
           <Text style={styles.headerText}>What shows do you love?</Text>
           <Text style={styles.headerSubtitle}>Add the shows that you love to binge.</Text>
@@ -181,10 +228,14 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
               key={movie.id}
               style={styles.posterWrapper}
             >
-              <Image
-                source={{ uri: movie.poster_path }}
-                style={styles.favoritePoster}
-              />
+              {movie.poster_path ? (
+                <Image
+                  source={{ uri: movie.poster_path }}
+                  style={styles.favoritePoster}
+                />
+              ) : (
+                <View style={styles.favoritePoster} />
+              )}
 
               <TouchableOpacity
                 style={styles.removeButton}
@@ -232,6 +283,21 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
               <FlatList
                 data={showResults}
                 keyExtractor={(item) => item.id.toString()}
+                ListHeaderComponent={
+                  isSearching ? (
+                    <View style={styles.searchState}>
+                      <ActivityIndicator color="#202124" />
+                      <Text style={styles.searchStateText}>Searching shows</Text>
+                    </View>
+                  ) : searchError ? (
+                    <Text style={styles.searchError}>{searchError}</Text>
+                  ) : null
+                }
+                ListEmptyComponent={
+                  !isSearching && !searchError ? (
+                    <Text style={styles.searchStateText}>Search for a show to add.</Text>
+                  ) : null
+                }
                 renderItem={({ item }) => (
                   <ShowDisplay
                     show={item}
@@ -252,6 +318,7 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
 
         <TouchableOpacity
             disabled={loading}
+            onPress={handleContinue}
             style={[styles.finalizeButton, loading && styles.finalizeButtonDisabled]}
           >
             {loading ? (
@@ -421,6 +488,30 @@ const styles = StyleSheet.create({
 
   searchField: {
     paddingHorizontal: 120,
+  },
+
+  searchState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 24,
+    gap: 8,
+  },
+
+  searchStateText: {
+    paddingVertical: 18,
+    fontFamily: "Inter",
+    fontSize: 14,
+    color: "#5a6162",
+    textAlign: "center",
+  },
+
+  searchError: {
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    fontFamily: "Inter",
+    fontSize: 14,
+    color: "#9F1239",
+    textAlign: "center",
   },
 
   goBackButton: {

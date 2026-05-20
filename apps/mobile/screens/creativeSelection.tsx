@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -12,13 +13,16 @@ import {
   View,
 } from "react-native";
 import { Image } from "react-native";
-import MovieDisplay from "../components/MovieDisplay"
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { LinearGradient } from "expo-linear-gradient";
-import * as Linking from "expo-linking";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import { supabase } from "../lib/supabase";
 import CreativeDisplay from "../components/CreativeDisplay";
+import BackButton from "../components/backButton";
+import type { RootStackParamList } from "../App";
+import { searchTmdb } from "../apiservices/tmdbservice";
+import { useProfileCreation } from "../lib/profileCreation";
 
 type Props = {
   onBackPress?: () => void;
@@ -27,20 +31,27 @@ type Props = {
 type Creative = {
   id: number;
   name: string;
-  date_of_birth: string;
-  profile_path: string;
+  date_of_birth?: string | null;
+  profile_path?: string | null;
 };
 
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, "ActorDirectorSelection">;
+
 export default function CreativeSelection({ onBackPress: _onBackPress }: Props) {
+  const navigation = useNavigation<NavigationProp>();
+  const { updateDraft, saveDraft, resetDraft } = useProfileCreation();
   const [creativeModalVisible, setCreativeModalVisible] = useState(false);
   const [creativeSearch, setCreativeSearch] = useState("");
   const [creativeResults, setCreativeResults] = useState<Creative[]>([]);
   const [favoriteActors, setFavoriteActors] = useState<Creative[]>([]);
   const [favoriteDirectors, setFavoriteDirectors] = useState<Creative[]>([]);
   const [searchType, setSearchType] = useState<"actor" | "director" | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
   const handleGoBack = () => {
     setCreativeModalVisible(false)
     setCreativeResults([])
+    setSearchError(null)
   }
   const addActor = (creative: Creative) => {
     setFavoriteActors((prev) => [...prev, creative]);
@@ -152,23 +163,51 @@ export default function CreativeSelection({ onBackPress: _onBackPress }: Props) 
 
 
   async function handleCreativeSearch() {
-    const source = searchType === "actor"
-      ? mockActors
-      : mockDirectors;
-    
-    const favorites = searchType === "actor"
-      ? favoriteActors
-      : favoriteDirectors;
-    
-    const filtered = source.filter((creative) =>
-      creative.name
-        .toLowerCase()
-        .includes(creativeSearch.toLowerCase()) &&
-      !favorites.some(
-        (favorite) => favorite.id === creative.id
-      )
-    );
-    setCreativeResults(filtered);
+    if (!searchType) {
+      return;
+    }
+
+    const favorites = searchType === "actor" ? favoriteActors : favoriteDirectors;
+
+    setIsSearching(true);
+    setSearchError(null);
+
+    try {
+      const results = await searchTmdb<Creative>(creativeSearch, searchType);
+      setCreativeResults(
+        results.filter(
+          (creative) => !favorites.some((favorite) => favorite.id === creative.id),
+        ),
+      );
+    } catch (error) {
+      setCreativeResults([]);
+      setSearchError(
+        error instanceof Error ? error.message : "Could not search TMDB people right now.",
+      );
+    } finally {
+      setIsSearching(false);
+    }
+  }
+
+  async function handleContinue() {
+    setLoading(true);
+
+    try {
+      const nextDraft = {
+        directors: favoriteDirectors.map((director) => director.name),
+      };
+      updateDraft(nextDraft);
+      await saveDraft(nextDraft);
+      resetDraft();
+      navigation.navigate("EventPage");
+    } catch (error) {
+      Alert.alert(
+        "Profile save failed",
+        error instanceof Error ? error.message : "Could not save your profile right now.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
     
     /*try {
@@ -187,6 +226,13 @@ export default function CreativeSelection({ onBackPress: _onBackPress }: Props) 
     >
 
       <View style={styles.screenBackground}>
+        <BackButton
+          onPress={() =>
+            navigation.canGoBack()
+              ? navigation.goBack()
+              : navigation.navigate("Start")
+          }
+        />
         <View style={styles.headerSection}>
           <Text style={styles.headerText}>Who are your GOATs?</Text>
           <Text style={styles.headerSubtitle}>Add the creatives behind your favorite films.</Text>
@@ -207,10 +253,14 @@ export default function CreativeSelection({ onBackPress: _onBackPress }: Props) 
               key={creative.id}
               style={styles.posterWrapper}
             >
-              <Image
-                source={{ uri: creative.profile_path }}
-                style={styles.favoritePoster}
-              />
+              {creative.profile_path ? (
+                <Image
+                  source={{ uri: creative.profile_path }}
+                  style={styles.favoritePoster}
+                />
+              ) : (
+                <View style={styles.favoritePoster} />
+              )}
 
               <LinearGradient
                 colors={[
@@ -268,10 +318,14 @@ export default function CreativeSelection({ onBackPress: _onBackPress }: Props) 
               key={creative.id}
               style={styles.posterWrapper}
             >
-              <Image
-                source={{ uri: creative.profile_path }}
-                style={styles.favoritePoster}
-              />
+              {creative.profile_path ? (
+                <Image
+                  source={{ uri: creative.profile_path }}
+                  style={styles.favoritePoster}
+                />
+              ) : (
+                <View style={styles.favoritePoster} />
+              )}
 
               <LinearGradient
                 colors={[
@@ -332,6 +386,21 @@ export default function CreativeSelection({ onBackPress: _onBackPress }: Props) 
               <FlatList
                 data={creativeResults}
                 keyExtractor={(item) => item.id.toString()}
+                ListHeaderComponent={
+                  isSearching ? (
+                    <View style={styles.searchState}>
+                      <ActivityIndicator color="#202124" />
+                      <Text style={styles.searchStateText}>Searching TMDB</Text>
+                    </View>
+                  ) : searchError ? (
+                    <Text style={styles.searchError}>{searchError}</Text>
+                  ) : null
+                }
+                ListEmptyComponent={
+                  !isSearching && !searchError ? (
+                    <Text style={styles.searchStateText}>Search to add a person.</Text>
+                  ) : null
+                }
                 renderItem={({ item }) => (
                   <CreativeDisplay
                     creative={item}
@@ -356,6 +425,7 @@ export default function CreativeSelection({ onBackPress: _onBackPress }: Props) 
 
         <TouchableOpacity
             disabled={loading}
+            onPress={handleContinue}
             style={[styles.finalizeButton, loading && styles.finalizeButtonDisabled]}
           >
             {loading ? (
@@ -518,6 +588,30 @@ const styles = StyleSheet.create({
 
   searchField: {
     paddingHorizontal: 120,
+  },
+
+  searchState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 24,
+    gap: 8,
+  },
+
+  searchStateText: {
+    paddingVertical: 18,
+    fontFamily: "Inter",
+    fontSize: 14,
+    color: "#5a6162",
+    textAlign: "center",
+  },
+
+  searchError: {
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    fontFamily: "Inter",
+    fontSize: 14,
+    color: "#9F1239",
+    textAlign: "center",
   },
 
   goBackButton: {

@@ -1,25 +1,48 @@
-const API_URL = "http://10.0.2.2:8000";
-
 import { supabase } from "../lib/supabase";
 
-export async function searchMovies( query: string ) {
-    const {
-        data: { session },
-    } = await supabase.auth.getSession();
+const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, "");
 
-    const response = await fetch(
-        '$(API_URL)/external/tmdb/search?query=$(encodeURIComponent(query))&category=movie',
-        {
-            headers: {
-                Authorization: 'Bearer $(session?.access_token)',
-            },
-        }
-    );
+export type TmdbCategory = "movie" | "tv" | "actor" | "director";
 
-    if ( !response.ok ) {
-        throw new Error("Movie search failed.");
-    }
+export async function searchTmdb<T>(query: string, category: TmdbCategory) {
+  const trimmedQuery = query.trim();
 
-    return response.json();
+  if (!trimmedQuery) {
+    return [];
+  }
 
+  if (!API_URL) {
+    throw new Error("Missing EXPO_PUBLIC_API_URL");
+  }
+
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+
+  if (error || !session?.access_token) {
+    throw new Error("Log in again to search TMDB.");
+  }
+
+  const params = new URLSearchParams({
+    query: trimmedQuery,
+    category,
+  });
+
+  const response = await fetch(
+    `${API_URL}/external/tmdb/search?${params.toString()}`,
+    {
+      headers: {
+        Authorization: `Bearer ${session.access_token}`,
+      },
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("TMDB search failed.");
+  }
+
+  const json = await response.json();
+
+  return (json.results ?? []) as T[];
 }

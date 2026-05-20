@@ -15,15 +15,23 @@ import Dropdown from 'react-native-input-select';
 import DateTimePicker, { DateTimePickerAndroid } from '@react-native-community/datetimepicker';
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { supabase } from "../lib/supabase";
-import { Value } from "react-native/types_generated/Libraries/Animated/AnimatedExports";
+import BackButton from "../components/backButton";
+import type { RootStackParamList } from "../App";
+import { useProfileCreation } from "../lib/profileCreation";
 
 type Props = {
   onBackPress?: () => void;
 };
 
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, "CreateProfileFirst">;
+
 export default function CreateProfileScreen({ onBackPress: _onBackPress }: Props) {
+  const navigation = useNavigation<NavigationProp>();
+  const { updateDraft } = useProfileCreation();
   const [username, setUsername] = useState("");
   const [gender, setGender] = useState("");
   const [date, setDate] = useState<Date | null > (null);
@@ -53,7 +61,12 @@ export default function CreateProfileScreen({ onBackPress: _onBackPress }: Props
     setLoading(true);
 
     try {
-      
+      updateDraft({
+        username: normalizedUsername,
+        gender,
+        dob: date.toISOString().slice(0, 10),
+      });
+      navigation.navigate("ProfileCreationInfo");
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Something went wrong while signing up.";
@@ -72,6 +85,13 @@ export default function CreateProfileScreen({ onBackPress: _onBackPress }: Props
         colors={["#84A9FF", "#C9D9FF", "#F5F8FF"]}
         style={styles.container}
       >
+        <BackButton
+          onPress={() =>
+            navigation.canGoBack()
+              ? navigation.goBack()
+              : navigation.navigate("Start")
+          }
+        />
         <View style={styles.logoSection}>
           <Text style={styles.title}>tsm</Text>
           <Text style={[styles.title, { opacity: 0 }]}>tsm</Text>
@@ -103,7 +123,7 @@ export default function CreateProfileScreen({ onBackPress: _onBackPress }: Props
               { label: "Non-binary", value: 'nonbinary' },
             ]}
             selectedValue={gender}
-            onValueChange={(value) => setGender(value) }
+            onValueChange={(value) => setGender(String(value ?? "")) }
             />
           
           <Text>Date of birth</Text>
@@ -130,7 +150,7 @@ export default function CreateProfileScreen({ onBackPress: _onBackPress }: Props
                 display={Platform.OS === "ios" ? "spinner" : "default"}
                 maximumDate={new Date()}
                 minimumDate={new Date(1909, 8, 21)}
-                onValueChange={onChange}
+                onChange={onChange}
               />
             )}
         </View>

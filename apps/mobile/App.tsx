@@ -10,6 +10,7 @@ import {
 
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { supabase } from "./lib/supabase";
+import { ProfileCreationProvider } from "./lib/profileCreation";
 
 import StartScreen from "./screens/start";
 import CreateAccountScreen from "./screens/createAccount";
@@ -22,19 +23,15 @@ import EventPageScreen from "./screens/eventPage";
 import ArtistSearchScreen from "./screens/artistSearch";
 import SongSearchScreen from "./screens/songSearch";
 import AlbumSearchScreen from "./screens/albumSearch";
-
-import CreateProfileFirst from "./screens/create-profile-first";
-import ProfileCreationInfo from "./screens/profile-creation-01-info";
-import InterestSelection from "./screens/profile-creation-02-interest-selection";
-import GenreSelection from "./screens/profile-creation-M01-genre-selection";
-import ArtistSelection from "./screens/profile-creation-M02-artist-selection";
-import MovieSelection from "./screens/profile-creation-F01-movie-selection";
-import ActorDirectorSelection from "./screens/profile-creation-F02-actor-director-selection";
-import ShowSelection from "./screens/profile-creation-TV01-show-selection";
-import LiteratureInterestScreen from "./screens/create-litterature";
-
-import DevNavBar from "./components/DevNavBar";
-
+import CreateProfileFirst from "./screens/profileFirst";
+import ProfileCreationInfo from "./screens/profileInfo";
+import InterestSelection from "./screens/interestSelection";
+import GenreSelection from "./screens/genreSelection";
+import ArtistSelection from "./screens/artistSearch";
+import MovieSelection from "./screens/movieSelection";
+import ActorDirectorSelection from "./screens/creativeSelection";
+import ShowSelection from "./screens/showSelection";
+import LiteratureInterestScreen from "./screens/literatureInterest";
 
 export type RootStackParamList = {
   Start: undefined;
@@ -198,34 +195,35 @@ export default function App() {
           }
         }}
       >
-        <Stack.Navigator
-          initialRouteName="Start"
-          screenOptions={{
-            headerShown: false,
-          }}
-        >
-          <Stack.Screen name="Start" component={StartScreen} />
-          <Stack.Screen name="Login" component={LoginScreen} />
-          <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
-          <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
-          <Stack.Screen name="Welcome" component={WelcomeScreen} />
-          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-          <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-          <Stack.Screen name="EventPage" component={EventPageScreen} />
-          <Stack.Screen name="ArtistSearch" component={ArtistSearchScreen} />
-          <Stack.Screen name="SongSearch" component={SongSearchScreen} />
-          <Stack.Screen name="AlbumSearch" component={AlbumSearchScreen} />
-          <Stack.Screen name="CreateProfileFirst" component={CreateProfileFirst} />
-          <Stack.Screen name="ProfileCreationInfo" component={ProfileCreationInfo} />
-          <Stack.Screen name="InterestSelection" component={InterestSelection} />
-          <Stack.Screen name="GenreSelection" component={GenreSelection} />
-          <Stack.Screen name="ArtistSelection" component={ArtistSelection} />
-          <Stack.Screen name="MovieSelection" component={MovieSelection} />
-          <Stack.Screen name="ActorDirectorSelection" component={ActorDirectorSelection} />
-          <Stack.Screen name="ShowSelection" component={ShowSelection} />
-          <Stack.Screen name="LiteratureInterest" component={LiteratureInterestScreen} />
-        </Stack.Navigator>
-        <DevNavBar />
+        <ProfileCreationProvider>
+          <Stack.Navigator
+            initialRouteName="Start"
+            screenOptions={{
+              headerShown: false,
+            }}
+          >
+            <Stack.Screen name="Start" component={StartScreen} />
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="CreateAccount" component={CreateAccountScreen} />
+            <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+            <Stack.Screen name="Welcome" component={WelcomeScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+            <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+            <Stack.Screen name="EventPage" component={EventPageScreen} />
+            <Stack.Screen name="ArtistSearch" component={ArtistSearchScreen} />
+            <Stack.Screen name="SongSearch" component={SongSearchScreen} />
+            <Stack.Screen name="AlbumSearch" component={AlbumSearchScreen} />
+            <Stack.Screen name="CreateProfileFirst" component={CreateProfileFirst} />
+            <Stack.Screen name="ProfileCreationInfo" component={ProfileCreationInfo} />
+            <Stack.Screen name="InterestSelection" component={InterestSelection} />
+            <Stack.Screen name="GenreSelection" component={GenreSelection} />
+            <Stack.Screen name="ArtistSelection" component={ArtistSelection} />
+            <Stack.Screen name="MovieSelection" component={MovieSelection} />
+            <Stack.Screen name="ActorDirectorSelection" component={ActorDirectorSelection} />
+            <Stack.Screen name="ShowSelection" component={ShowSelection} />
+            <Stack.Screen name="LiteratureInterest" component={LiteratureInterestScreen} />
+          </Stack.Navigator>
+        </ProfileCreationProvider>
       </NavigationContainer>
     </SafeAreaProvider>
   );

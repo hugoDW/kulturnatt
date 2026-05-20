@@ -6,7 +6,19 @@ import {
     TouchableOpacity
 } from "react-native";
 
-export default function MovieDisplay({ movie }) {
+type Movie = {
+  id: number;
+  title: string;
+  year: string;
+  director: string;
+  poster_path: string;
+};
+
+type Props = {
+  movie: Movie;
+};
+
+export default function MovieDisplay({ movie }: Props) {
     return (
         <TouchableOpacity style={styles.movieDisplay}>
 

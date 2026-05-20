@@ -9,8 +9,8 @@ import {
 type Show = {
   id: number;
   name: string;
-  first_air_date: string;
-  poster_path: string;
+  first_air_date?: string | null;
+  poster_path?: string | null;
 };
 
 type Props = {
@@ -25,10 +25,14 @@ export default function ShowDisplay({ show, onAdd }: Props) {
           onPress={() => onAdd(show)}
           >
 
-            <Image
-                source={ { uri: show.poster_path }}
-                style={styles.moviePoster}
-            />
+            {show.poster_path ? (
+              <Image
+                  source={ { uri: show.poster_path }}
+                  style={styles.moviePoster}
+              />
+            ) : (
+              <View style={styles.moviePoster} />
+            )}
 
             <View style={styles.movieInfo}>
                 <Text style={styles.movieTitle}>
@@ -36,7 +40,7 @@ export default function ShowDisplay({ show, onAdd }: Props) {
                 </Text>
 
                 <Text style={styles.sub}>
-                    first aired on {show.first_air_date}
+                    {show.first_air_date ? `first aired on ${show.first_air_date}` : "First air date unknown"}
                 </Text>
             </View>
 

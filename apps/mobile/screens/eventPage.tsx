@@ -18,6 +18,7 @@ import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
 import BackButton from "../components/backButton";
+import NavBar from "../components/NavBar";
 import { supabase } from "../lib/supabase";
 
 type NavigationProp = NativeStackNavigationProp<
@@ -270,6 +271,7 @@ export default function EventPageScreen() {
         }
         renderItem={({ item }) => <EventCard event={item} />}
       />
+      <NavBar />
     </View>
   );
 }
@@ -366,7 +368,7 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 22,
     paddingTop: 34,
-    paddingBottom: 44,
+    paddingBottom: 116,
   },
 
   searchRow: {
