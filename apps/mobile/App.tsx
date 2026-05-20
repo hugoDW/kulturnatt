@@ -3,7 +3,6 @@ import { ActivityIndicator, Alert, StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { useFonts } from "expo-font";
 import * as Linking from "expo-linking";
-
 import {
   NavigationContainer,
   createNavigationContainerRef,
@@ -24,6 +23,18 @@ import ArtistSearchScreen from "./screens/artistSearch";
 import SongSearchScreen from "./screens/songSearch";
 import AlbumSearchScreen from "./screens/albumSearch";
 
+import CreateProfileFirst from "./screens/create-profile-first";
+import ProfileCreationInfo from "./screens/profile-creation-01-info";
+import InterestSelection from "./screens/profile-creation-02-interest-selection";
+import GenreSelection from "./screens/profile-creation-M01-genre-selection";
+import ArtistSelection from "./screens/profile-creation-M02-artist-selection";
+import MovieSelection from "./screens/profile-creation-F01-movie-selection";
+import ActorDirectorSelection from "./screens/profile-creation-F02-actor-director-selection";
+import ShowSelection from "./screens/profile-creation-TV01-show-selection";
+import LiteratureInterestScreen from "./screens/create-litterature";
+
+import DevNavBar from "./components/DevNavBar";
+
 
 export type RootStackParamList = {
   Start: undefined;
@@ -37,6 +48,15 @@ export type RootStackParamList = {
   ArtistSearch: undefined;
   SongSearch: undefined;
   AlbumSearch: undefined;
+  CreateProfileFirst: undefined;
+  ProfileCreationInfo: undefined;
+  InterestSelection: undefined;
+  GenreSelection: undefined;
+  ArtistSelection: undefined;
+  MovieSelection: undefined;
+  ActorDirectorSelection: undefined;
+  ShowSelection: undefined;
+  LiteratureInterest: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -195,8 +215,17 @@ export default function App() {
           <Stack.Screen name="ArtistSearch" component={ArtistSearchScreen} />
           <Stack.Screen name="SongSearch" component={SongSearchScreen} />
           <Stack.Screen name="AlbumSearch" component={AlbumSearchScreen} />
-        
+          <Stack.Screen name="CreateProfileFirst" component={CreateProfileFirst} />
+          <Stack.Screen name="ProfileCreationInfo" component={ProfileCreationInfo} />
+          <Stack.Screen name="InterestSelection" component={InterestSelection} />
+          <Stack.Screen name="GenreSelection" component={GenreSelection} />
+          <Stack.Screen name="ArtistSelection" component={ArtistSelection} />
+          <Stack.Screen name="MovieSelection" component={MovieSelection} />
+          <Stack.Screen name="ActorDirectorSelection" component={ActorDirectorSelection} />
+          <Stack.Screen name="ShowSelection" component={ShowSelection} />
+          <Stack.Screen name="LiteratureInterest" component={LiteratureInterestScreen} />
         </Stack.Navigator>
+        <DevNavBar />
       </NavigationContainer>
     </SafeAreaProvider>
   );
