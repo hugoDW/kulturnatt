@@ -14,7 +14,7 @@ import {
   View,
 } from "react-native";
 import { Image } from "react-native";
-import MovieDisplay from "../components/MovieDisplay"
+import ShowDisplay from "../components/ShowDisplay"
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { LinearGradient } from "expo-linear-gradient";
 import * as Linking from "expo-linking";
@@ -25,11 +25,10 @@ type Props = {
   onBackPress?: () => void;
 };
 
-type Movie = {
+type Show = {
   id: number;
-  title: string;
-  year: string;
-  director: string;
+  name: string;
+  first_air_date: string;
   poster_path: string;
 };
 
@@ -37,121 +36,113 @@ const AUTH_REDIRECT_SCHEME = "tsm";
 
 export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
   const [movieModalVisible, setMovieModalVisible] = useState(false);
-  const [movieSearch, setMovieSearch] = useState("");
-  /*const [movieResults, setMovieResults] = useState([]);*/
-  const [movieResults, setMovieResults] = useState<Movie[]>([]);
-  const [favoriteMovies, setFavoriteMovies] = useState<Movie[]>([]);
+  const [showSearch, setShowSearch] = useState("");
+  const [showResults, setShowResults] = useState<Show[]>([]);
+  const [favoriteShows, setFavoriteShows] = useState<Show[]>([]);
   const handleGoBack = () => {
     setMovieModalVisible(false)
-    setMovieResults([])
+    setShowResults([])
   }
-  const addMovie = (movie: Movie) => {
-    setFavoriteMovies((prev) => [...prev, movie]);
+  const addShow = (show: Show) => {
+    setFavoriteShows((prev) => [...prev, show]);
     setMovieModalVisible(false);
-    setMovieResults([])
+    setShowResults([])
   }
   const [loading, setLoading] = useState(false);
 
-  const mockMovies = [
+  const mockShows = [
     {
-      id: 1,
-      title: "Blade Runner",
-      year: "1982",
-      director: "Ridley Scott",
-      poster_path: "https://www.themoviedb.org/t/p/w1280/63N9uy8nd9j7Eog2axPQ8lbr3Wj.jpg"
+      id: 30991,
+      name: "Cowboy Bebop",
+      first_air_date: "1998-04-03",
+      poster_path: "https://image.tmdb.org/t/p/w500/xDiXDfZwC6XYC6fxHI1jl3A3Ill.jpg"
     },
 
     {
-      id: 2,
-      title: "Blade Runner 2049",
-      year: "2017",
-      director: "Denis Villeneuve",
-      poster_path: "https://image.tmdb.org/t/p/w500/gajva2L0rPYkEWjzgFlBXCAVBE5.jpg"
+      id: 890,
+      name: "Neon Genesis Evangelion",
+      first_air_date: "1995-10-04",
+      poster_path: "https://image.tmdb.org/t/p/w500/y2ah9t0navXyIvoHg1uIbIHO3tt.jpg"
     },
 
     {
-      id: 3,
-      title: "Once Upon a Time in the West",
-      year: "1969",
-      director: "Sergio Leone",
-      poster_path: "https://www.themoviedb.org/t/p/w1280/qbYgqOczabWNn2XKwgMtVrntD6P.jpg"
+      id: 4087,
+      name: "The X-Files",
+      first_air_date: "1993-09-10",
+      poster_path: "https://image.tmdb.org/t/p/w1280/rcBx0p8h51LHceyhquYMxbspJQu.jpg"
     },
 
     {
-      id: 4,
-      title: "Fallen Angels",
-      year: "1995",
-      director: "Wong Kar-Wai",
-      poster_path: "https://www.themoviedb.org/t/p/w1280/yyM9BPdwttK5LKZSLvHae7QPKo1.jpg"
+      id: 1920,
+      name: "Twin Peaks",
+      first_air_date: "1993-04-08",
+      poster_path: "https://image.tmdb.org/t/p/w1280/lA9CNSdo50iQPZ8A2fyVpMvJZAf.jpg"
     },
 
     {
-      id: 5,
-      title: "A Scene at the Sea",
-      year: "1991",
-      director: "Takeshi Kitano",
-      poster_path: "https://www.themoviedb.org/t/p/w1280/uSwYQjd48iXVU8KHSSV9V6QYvBd.jpg"
+      id: 105248,
+      name: "Cyberpunk: Edgerunners",
+      first_air_date: "2022-09-13",
+      poster_path: "https://image.tmdb.org/t/p/original/lqcDVZ8pyk08AVftMBildDR3QUK.jpg"
     },
 
     {
-      id: 6,
-      title: "Swing Girls",
-      year: "2004",
-      director: "Shinobu Yaguchi",
-      poster_path: "https://www.themoviedb.org/t/p/w1280/u7lAziuBxlX4DQQzuPHDRoOwtDx.jpg"
+      id: 2710,
+      name: "It's Always Sunny in Philadelphia",
+      first_air_date: "2005-08-04",
+      poster_path: "https://image.tmdb.org/t/p/original/vw6LRXbKiERbdwvDem3Tms4Wj5i.jpg"
     },
 
     {
-      id: 7,
-      title: "Mishima: A Life in Four Chapters",
-      year: "1985",
-      director: "Paul Schrader",
-      poster_path: "https://www.themoviedb.org/t/p/w1280/4kIXsE4SwUjO0eUqpolsHNO5GLH.jpg"
+      id: 1398,
+      name: "The Sopranos",
+      first_air_date: "1999-01-10",
+      poster_path: "https://image.tmdb.org/t/p/w1280/rTc7ZXdroqjkKivFPvCPX0Ru7uw.jpg"
     },
 
     {
-      id: 8,
-      title: "Nattvardsgästerna",
-      year: "1963",
-      director: "Ingmar Bergman",
-      poster_path: "https://image.tmdb.org/t/p/original/qZ2vPKZXYO3Jn4Fwcnvw5uiXOJR.jpg"
+      id: 35935,
+      name: "Berserk",
+      first_air_date: "1997-10-08",
+      poster_path: "https://image.tmdb.org/t/p/w1280/xctRBSZzvoHDHz38ZZUGxRYetvG.jpg"
     },
 
     {
-      id: 9,
-      title: "Another Round",
-      year: "2020",
-      director: "Thomas Vinterberg",
-      poster_path: "https://www.themoviedb.org/t/p/w1280/aDcIt4NHURLKnAEu7gow51Yd00Q.jpg"
+      id: 2759,
+      name: "The Day Today",
+      first_air_date: "1994-01-19",
+      poster_path: "https://image.tmdb.org/t/p/w1280/8BbXIZRuzxtkzWuCuJEEkLzYC4a.jpg"
     },
 
     {
-      id: 10,
-      title: "Perfect Days",
-      year: "2024",
-      director: "Wim Wenders",
-      poster_path: "https://www.themoviedb.org/t/p/w1280/mjEk5Wwx6TYVqw29zSaUHclMIgp.jpg"
+      id: 4617,
+      name: "Max Headroom",
+      first_air_date: "1987-03-31",
+      poster_path: "https://image.tmdb.org/t/p/w1280/jXuXeYuv80WJJ9zvA756WCfK1KD.jpg"
     },
   ]
 
-  function removeMovie(id: number) {
-    setFavoriteMovies((prev) =>
-      prev.filter((movie) => movie.id !== id)
+  function removeShow(id: number) {
+    setFavoriteShows((prev) =>
+      prev.filter((show) => show.id !== id)
     );
   }
 
 
-  async function handleMovieSearch() {
-    const filtered = mockMovies.filter((movie) =>
-      movie.title
+  async function handleShowSearch() {
+    const filtered = mockShows.filter((show) =>
+      show.name
         .toLowerCase()
-        .includes(movieSearch.toLowerCase()) &&
-      !favoriteMovies.some(
-        (favorite) => favorite.id === movie.id
+        .includes(showSearch.toLowerCase())
+        &&
+      !favoriteShows.some(
+        (favorite) => favorite.id === show.id
       )
-  );
+    );
+    setShowResults(filtered);
+  }
 
-  setMovieResults(filtered);
+  
     
     /*try {
       const data = await searchMovies(movieSearch);
@@ -161,7 +152,6 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
     } catch( error ) {
       console.error(error)
     }*/
-  }
 
   return (
     <KeyboardAvoidingView
@@ -171,22 +161,22 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
 
       <View style={styles.screenBackground}>
         <View style={styles.headerSection}>
-          <Text style={styles.headerText}>What movies inspire you?</Text>
-          <Text style={styles.headerSubtitle}>Add films that define you as a cinephile.</Text>
+          <Text style={styles.headerText}>What shows do you love?</Text>
+          <Text style={styles.headerSubtitle}>Add the shows that you love to binge.</Text>
         </View>
 
         <View style={styles.counterSection}>
           <Text style={styles.counterText}>
             Your Selections</Text>
           <Text style={styles.counter}>
-            {favoriteMovies.length} of 10
+            {favoriteShows.length} of 10
           </Text>
         </View>
 
-        <View style={styles.filmSection}>
+        <View style={styles.showSection}>
           
           
-          {favoriteMovies.map((movie) => (
+          {favoriteShows.map((movie) => (
             <View
               key={movie.id}
               style={styles.posterWrapper}
@@ -198,7 +188,7 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
 
               <TouchableOpacity
                 style={styles.removeButton}
-                onPress={() => removeMovie(movie.id)}
+                onPress={() => removeShow(movie.id)}
               >
                 <Ionicons
                   name="trash"
@@ -213,18 +203,18 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
           
           <TouchableOpacity            
             onPress={() => setMovieModalVisible(true)}
-            disabled={favoriteMovies.length >= 10}
+            disabled={favoriteShows.length >= 10}
             style={[
-              styles.addFilmButton,
-              favoriteMovies.length >= 10 && styles.addFilmButtonDisabled
+              styles.addShowButton,
+              favoriteShows.length >= 10 && styles.addShowButtonDisabled
             ]}
           >
             <Text style={[
-              styles.addFilmPlus,
-              favoriteMovies.length >= 10 && styles.addFilmPlusDisabled,]}>+</Text>
+              styles.addShowPlus,
+              favoriteShows.length >= 10 && styles.addShowPlusDisabled,]}>+</Text>
             <Text style={[
-              styles.addFilmHeader,
-              favoriteMovies.length >= 10 && styles.addFilmHeaderDisabled,]}>Add film</Text>
+              styles.addShowHeader,
+              favoriteShows.length >= 10 && styles.addShowHeaderDisabled,]}>Add show</Text>
           </TouchableOpacity>
             
           <Modal
@@ -234,18 +224,18 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
             <View style={styles.modalContainer}>
               <TextInput
                 style={styles.searchField}
-                value={movieSearch}
-                onChangeText={setMovieSearch}
-                placeholder="Search movies..."
-                onSubmitEditing={handleMovieSearch}
+                value={showSearch}
+                onChangeText={setShowSearch}
+                placeholder="Search shows..."
+                onSubmitEditing={handleShowSearch}
               />
               <FlatList
-                data={movieResults}
+                data={showResults}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item }) => (
-                  <MovieDisplay
-                    movie={item}
-                    onAdd={addMovie}
+                  <ShowDisplay
+                    show={item}
+                    onAdd={addShow}
                   />
                 )}
               /> 
@@ -323,8 +313,8 @@ const styles = StyleSheet.create({
     color: "#6C5CE7",
   },
 
-  /* FILM SECTION */
-  filmSection: {
+  /* SHOW SECTION */
+  showSection: {
     paddingBottom: 100,
     alignItems: "center",
     justifyContent: "center",
@@ -358,8 +348,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#E9ECEF",
   },
 
-  /* FILM ADD BUTTON */
-  addFilmButton: {
+  /* SHOW ADD BUTTON */
+  addShowButton: {
     position: "absolute",
     justifyContent: "center",
     alignItems: "center",
@@ -375,12 +365,12 @@ const styles = StyleSheet.create({
     marginBottom: 12
   },
 
-  addFilmPlus: {
+  addShowPlus: {
     color: "#6C5CE7",
     fontSize: 32,
   },
 
-  addFilmHeader: {
+  addShowHeader: {
     fontFamily: "Inter",
     fontSize: 15,
     fontWeight: 500,
@@ -388,7 +378,7 @@ const styles = StyleSheet.create({
     color: "#6C5CE7",
   },
 
-  addFilmButtonDisabled: {
+  addShowButtonDisabled: {
     position: "absolute",
     justifyContent: "center",
     alignItems: "center",
@@ -404,12 +394,12 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
 
-  addFilmPlusDisabled: {
+  addShowPlusDisabled: {
     color: "#E9ECEF",
     fontSize: 32,
   },
 
-  addFilmHeaderDisabled: {
+  addShowHeaderDisabled: {
     color: "#E9ECEF",
     fontFamily: "Inter",
     fontSize: 15,
@@ -417,7 +407,7 @@ const styles = StyleSheet.create({
     marginTop: -10,
   },
 
-  /* SEARCH + SELECT MOVIE */
+  /* SEARCH + SELECT SHOW */
   modalContainer: {
     borderRadius: 5,
     borderWidth: 2,
