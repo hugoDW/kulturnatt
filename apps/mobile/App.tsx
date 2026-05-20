@@ -33,6 +33,8 @@ import ActorDirectorSelection from "./screens/profile-creation-F02-actor-directo
 import ShowSelection from "./screens/profile-creation-TV01-show-selection";
 import LiteratureInterestScreen from "./screens/create-litterature";
 
+import DevNavBar from "./components/DevNavBar";
+
 
 export type RootStackParamList = {
   Start: undefined;
@@ -223,6 +225,7 @@ export default function App() {
           <Stack.Screen name="ShowSelection" component={ShowSelection} />
           <Stack.Screen name="LiteratureInterest" component={LiteratureInterestScreen} />
         </Stack.Navigator>
+        <DevNavBar />
       </NavigationContainer>
     </SafeAreaProvider>
   );
