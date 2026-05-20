@@ -11,67 +11,74 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import * as Linking from "expo-linking";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../App";
 
+
+import BackButton from "../components/backButton";
 import { supabase } from "../lib/supabase";
 
-type Props = {
-  onBackPress?: () => void;
-};
 
-const AUTH_REDIRECT_SCHEME = "tsm";
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Login">;
 
-export default function CreateAccountScreen({ onBackPress: _onBackPress }: Props) {
+
+export default function LoginScreen() {
+  const navigation = useNavigation<NavigationProp>();
+
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-  async function handleCreateAccount() {
+
+  async function handleLogin() {
     const normalizedEmail = email.trim().toLowerCase();
 
-    if (!normalizedEmail || !password || !confirmPassword) {
-      Alert.alert("Missing fields", "Enter email, password, and confirm password.");
+
+    if (!normalizedEmail || !password) {
+      Alert.alert("Missing fields", "Enter email and password.");
       return;
     }
 
-    if (password !== confirmPassword) {
-      Alert.alert("Password mismatch", "Password and confirm password must match.");
-      return;
-    }
 
     setLoading(true);
 
+
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: normalizedEmail,
         password,
-        options: {
-          emailRedirectTo: Linking.createURL("auth/callback", {
-            scheme: AUTH_REDIRECT_SCHEME,
-          }),
-        },
       });
 
+
       if (error) {
-        Alert.alert("Registration failed", error.message);
+        Alert.alert("Login failed", error.message);
         return;
       }
 
-      if (!data.session) {
-        Alert.alert("Check your email", "Confirm your account to finish signing up.");
+
+      const token = data.session?.access_token;
+      const user = data.user;
+
+
+      if (!token || !user) {
+        Alert.alert("Login failed", "No account found.");
         return;
       }
 
-      Alert.alert("Account created", "You are now registered.");
+
+      navigation.navigate("EventPage", { accessToken: token });
+   
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Something went wrong while signing up.";
-      Alert.alert("Registration failed", message);
+        error instanceof Error ? error.message : "Something went wrong while logging in.";
+      Alert.alert("Login failed", message);
     } finally {
       setLoading(false);
     }
   }
+
 
   return (
     <KeyboardAvoidingView
@@ -79,16 +86,19 @@ export default function CreateAccountScreen({ onBackPress: _onBackPress }: Props
       style={styles.keyboardView}
     >
       <LinearGradient
-        colors={["#84A9FF", "#C9D9FF", "#F5F8FF"]}
+        colors={["#ECF2FF", "#ECF2FF", "#ECF2FF"]}
         style={styles.container}
       >
+        <BackButton onPress={() => navigation.goBack()} />
+
+
         <View style={styles.logoSection}>
           <Text style={styles.title}>tsm</Text>
-          <Text style={[styles.title, { opacity: 0 }]}>tsm</Text>
         </View>
 
+
         <View style={styles.inputSection}>
-          <Text>Email</Text>
+          <Text style={styles.label}>Email</Text>
           <TextInput
             autoCapitalize="none"
             autoComplete="email"
@@ -103,42 +113,39 @@ export default function CreateAccountScreen({ onBackPress: _onBackPress }: Props
             value={email}
           />
 
-          <Text>Password</Text>
+
+          <Text style={styles.label}>Password</Text>
           <TextInput
             autoCapitalize="none"
-            autoComplete="password-new"
+            autoComplete="password"
             editable={!loading}
             onChangeText={setPassword}
+            onSubmitEditing={handleLogin}
             placeholder="Example: password123"
             secureTextEntry
             style={styles.input}
-            textContentType="newPassword"
+            textContentType="password"
             value={password}
           />
 
-          <Text>Confirm password</Text>
-          <TextInput
-            autoCapitalize="none"
-            autoComplete="password-new"
-            editable={!loading}
-            onChangeText={setConfirmPassword}
-            onSubmitEditing={handleCreateAccount}
-            placeholder="Confirm password"
-            secureTextEntry
-            style={styles.input}
-            textContentType="newPassword"
-            value={confirmPassword}
-          />
 
           <TouchableOpacity
             disabled={loading}
-            onPress={handleCreateAccount}
-            style={[styles.registerButton, loading && styles.registerButtonDisabled]}
+            onPress={() => navigation.navigate("ForgotPassword")}
+          >
+            <Text style={styles.forgotText}>Forgotten your password?</Text>
+          </TouchableOpacity>
+
+
+          <TouchableOpacity
+            disabled={loading}
+            onPress={handleLogin}
+            style={[styles.loginButton, loading && styles.loginButtonDisabled]}
           >
             {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color="#000000" />
             ) : (
-              <Text style={styles.registerButtonText}>Register</Text>
+              <Text style={styles.loginButtonText}>Log in</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -147,20 +154,24 @@ export default function CreateAccountScreen({ onBackPress: _onBackPress }: Props
   );
 }
 
+
 const styles = StyleSheet.create({
   keyboardView: {
     flex: 1,
   },
+
 
   container: {
     flex: 1,
     alignItems: "center",
   },
 
+
   logoSection: {
     marginTop: 50,
     alignItems: "center",
   },
+
 
   title: {
     fontFamily: "Inter",
@@ -169,20 +180,32 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
 
+
   inputSection: {
     width: "100%",
     paddingHorizontal: 50,
-    marginTop: -40,
+    marginTop: 70,
   },
+
+
+  label: {
+    fontFamily: "Inter",
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#111",
+    marginBottom: 6,
+  },
+
 
   input: {
     width: "100%",
     backgroundColor: "#F7F2F8",
     paddingVertical: 12,
     borderRadius: 8,
-    marginBottom: 50,
+    marginBottom: 42,
     paddingHorizontal: 12,
-    alignItems: "center",
+    color: "#000",
+
 
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
@@ -191,12 +214,23 @@ const styles = StyleSheet.create({
     elevation: 7,
   },
 
-  registerButton: {
+
+  forgotText: {
+    fontFamily: "Inter",
+    fontSize: 13,
+    fontStyle: "italic",
+    fontWeight: "700",
+    color: "#111",
+    marginTop: -20,
+    marginBottom: 34,
+  },
+
+
+  loginButton: {
     alignItems: "center",
-    backgroundColor: "#202124",
+    backgroundColor: "#2c2c2c",
     borderRadius: 8,
     justifyContent: "center",
-    marginTop: -10,
     minHeight: 48,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
@@ -205,15 +239,21 @@ const styles = StyleSheet.create({
     elevation: 7,
   },
 
-  registerButtonDisabled: {
+
+  loginButtonDisabled: {
     opacity: 0.65,
   },
 
-  registerButtonText: {
-    color: "#FFFFFF",
+
+  loginButtonText: {
+    color: "#FFF",
     fontFamily: "Inter",
     fontSize: 14,
-    fontStyle: "italic",
     fontWeight: "800",
   },
 });
+
+
+
+
+

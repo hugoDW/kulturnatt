@@ -10,10 +10,14 @@ HEADERS = {"Authorization": f"Token {os.getenv('KULTURBILJETT_API_KEY')}"}
 BASE = "https://kulturbiljetter.se/api/v3/events"
 
 def get_events():
-    return requests.get(f"{BASE}/", headers=HEADERS).json()
+    response = requests.get(f"{BASE}/", headers=HEADERS, timeout=10)
+    response.raise_for_status()
+    return response.json()
 
 def get_event(event_id):
-    return requests.get(f"{BASE}/{event_id}", headers=HEADERS).json()
+    response = requests.get(f"{BASE}/{event_id}", headers=HEADERS, timeout=10)
+    response.raise_for_status()
+    return response.json()
 
 def strip_html(s):
     return re.sub(r"<[^>]+>", "", s or "").strip()
@@ -38,3 +42,4 @@ if __name__ == "__main__":
             loc = e["locations"].get(str(d["location_id"]), {})
             print(f"  - {fmt_time(d['unixtime_start'])} @ {loc.get('name', '?')} ({d['ticket_available']} tickets left)")
         print("\n" + "-" * 60 + "\n")
+        

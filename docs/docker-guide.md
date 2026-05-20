@@ -86,11 +86,13 @@ Den **enda** containern som syns utåt. Tar emot all trafik från mobilappen och
 | Path | Skickas till |
 |---|---|
 | `/profile/*` | profile-service:8001 |
+| `/external/*` | profile-service:8001 (externa tredjeparts-API:er, t.ex. Kulturbiljett, TMDB, MusicBrainz, Ticketmaster) |
 | `/swipe` | matching-service:8002 |
+| `/health` | svarar `ok` direkt från gateway, ingen upstream |
 
 Mobilappen pratar bara med en URL — `http://localhost` (lokalt) eller en publik Fly.io-domän (i produktion). Gateway gömmer det faktum att vi har två backends.
 
-Konfig: `apps/gateway/nginx.conf`.
+Konfig: `apps/gateway/nginx.conf.template` (renderas till `nginx.conf` vid container-start med envsubst, så `${PROFILE_UPSTREAM}` och `${MATCHING_UPSTREAM}` kan sättas via env).
 
 ### profile-service (FastAPI, port 8001)
 
@@ -100,6 +102,8 @@ Konfig: `apps/gateway/nginx.conf`.
 - `POST /profile/setup` — skapar ny profil
 - `PUT /profile/update` — uppdaterar profil
 - `GET /profile/swipes` — hämtar användarens ranked list
+- `GET /external/events`, `/external/events/{event_id}`, `/external/ticketmaster/events`,
+  `/external/music/...` — proxy mot tredjeparts-API:er (Kulturbiljett, TMDB, MusicBrainz, Ticketmaster) för intresselistor
 
 **Interna endpoints** (bara matching-service kallar dessa, skyddade av `X-Internal-Secret`-header):
 - `GET /internal/users` — hämtar alla användare

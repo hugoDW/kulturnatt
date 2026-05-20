@@ -3,17 +3,15 @@ import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import MaskedView from "@react-native-masked-view/masked-view";
+import { useNavigation } from "@react-navigation/native";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "../App";
 
-type Props = {
-  onLoginPress?: () => void;
-  onCreateAccountPress?: () => void;
-};
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Start">;
 
-export default function StartScreen({
-  onLoginPress,
-  onCreateAccountPress,
-}: Props) {
+export default function StartScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NavigationProp>();
 
   return (
     <LinearGradient
@@ -21,10 +19,7 @@ export default function StartScreen({
       style={styles.container}
     >
       <View style={styles.logoSection}>
-  
-        <MaskedView
-          maskElement={<Text style={styles.title}>tsm</Text>}
-        >
+        <MaskedView maskElement={<Text style={styles.title}>tsm</Text>}>
           <LinearGradient
             colors={["#0B0B1F", "#3A3AFF"]}
             start={{ x: 0, y: 0 }}
@@ -55,15 +50,17 @@ export default function StartScreen({
         <View style={styles.line} />
       </View>
 
-    
       <View style={[styles.buttonSection, { bottom: insets.bottom + 120 }]}>
-        <TouchableOpacity style={styles.loginButton} onPress={onLoginPress}>
+        <TouchableOpacity
+          style={styles.loginButton}
+          onPress={() => navigation.navigate("Login")} 
+        >
           <Text style={styles.buttonTextLog}>Log in</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           style={styles.createButton}
-          onPress={onCreateAccountPress}
+          onPress={() => navigation.navigate("CreateAccount")}
         >
           <Text style={styles.buttonTextReg}>Register</Text>
         </TouchableOpacity>

@@ -1,0 +1,31 @@
+# skicka inte med onödiga filer till Fly:s builder
+.git
+.github
+.idea
+.vscode
+.claude
+.pytest_cache
+.DS_Store
+
+# secrets — får aldrig hamna i image
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__
+*.pyc
+*.pyo
+
+# node / mobile (helt orelevant för backend-bygget)
+apps/mobile
+**/node_modules
+
+# docs / readme
+docs
+*.md
+
+# docker / fly själva
+docker-compose.yml
+fly.*.toml
+Dockerfile.*

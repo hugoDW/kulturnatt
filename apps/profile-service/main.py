@@ -239,7 +239,7 @@ def external_album_search(query: str, limit: int = 5):
         raise_external_api_error(error)
 
 
-@app.get("/external/tmdb/search")
+@app.get("/external/tmdb/search", dependencies=[Depends(get_current_user)])
 def external_tmdb_search(query: str, category: str = "movie"):
     try:
         return {"results": search_tmdb(query, category)}

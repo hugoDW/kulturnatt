@@ -1,0 +1,33 @@
+server {
+    listen 80;
+
+    # resolve upstream hostnames at request time so .flycast / .internal
+    # work even if the target machine is starting up
+    resolver [fdaa::3] ipv6=on valid=10s;
+
+    location = /health {
+        access_log off;
+        return 200 "ok\n";
+    }
+
+    location /profile/ {
+        set $profile_upstream "${PROFILE_UPSTREAM}";
+        proxy_pass http://$profile_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header Authorization $http_authorization;
+    }
+
+    location /external/ {
+        set $profile_upstream "${PROFILE_UPSTREAM}";
+        proxy_pass http://$profile_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header Authorization $http_authorization;
+    }
+
+    location = /swipe {
+        set $matching_upstream "${MATCHING_UPSTREAM}";
+        proxy_pass http://$matching_upstream;
+        proxy_set_header Host $host;
+        proxy_set_header Authorization $http_authorization;
+    }
+}
