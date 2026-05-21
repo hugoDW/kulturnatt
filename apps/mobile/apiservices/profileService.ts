@@ -59,6 +59,29 @@ export async function saveProfileSetup(payload: ProfileSetupPayload) {
   return response.json();
 }
 
+export async function updateProfile(payload: ProfileSetupPayload) {
+  if (!API_URL) {
+    throw new Error("Missing EXPO_PUBLIC_API_URL");
+  }
+
+  const accessToken = await getAccessToken();
+
+  const response = await fetch(`${API_URL}/profile/update`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    throw new Error("Could not update your profile right now.");
+  }
+
+  return response.json();
+}
+
 export async function getProfileSetup(): Promise<ProfileSetupPayload | null> {
   if (!API_URL) {
     throw new Error("Missing EXPO_PUBLIC_API_URL");
