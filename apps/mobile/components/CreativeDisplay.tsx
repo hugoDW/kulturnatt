@@ -9,13 +9,7 @@ import {
 type Creative = {
   id: number;
   name: string;
-  date_of_birth?: string | null;
-  profile_path?: string | null;
-};
-
-type Props = {
-  creative: Creative;
-  onAdd: (creative: Creative) => void;
+  profile_path: string;
 };
 
 export default function CreativeDisplay({ creative, onAdd }: Props) {
@@ -37,9 +31,6 @@ export default function CreativeDisplay({ creative, onAdd }: Props) {
             <View style={styles.movieInfo}>
                 <Text style={styles.movieTitle}>
                     {creative.name}
-                </Text>
-                <Text style={styles.sub}>
-                    {creative.date_of_birth ? `born ${creative.date_of_birth}` : "Birth date unknown"}
                 </Text>
             </View>
 

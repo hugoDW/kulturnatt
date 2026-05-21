@@ -32,6 +32,10 @@ import MovieSelection from "./screens/movieSelection";
 import ActorDirectorSelection from "./screens/creativeSelection";
 import ShowSelection from "./screens/showSelection";
 import LiteratureInterestScreen from "./screens/literatureInterest";
+import ProfileCreationBio from "./screens/profile-creation-bio";
+import ProfileFinalPreview from "./screens/profile-creation-final-preview";
+
+import DevNavBar from "./components/DevNavBar"
 
 export type RootStackParamList = {
   Start: undefined;
@@ -54,6 +58,8 @@ export type RootStackParamList = {
   ActorDirectorSelection: undefined;
   ShowSelection: undefined;
   LiteratureInterest: undefined;
+  ProfileCreationBio: undefined;
+  ProfileFinalPreview: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -222,7 +228,10 @@ export default function App() {
             <Stack.Screen name="ActorDirectorSelection" component={ActorDirectorSelection} />
             <Stack.Screen name="ShowSelection" component={ShowSelection} />
             <Stack.Screen name="LiteratureInterest" component={LiteratureInterestScreen} />
+            <Stack.Screen name="ProfileCreationBio" component={ProfileCreationBio} />
+            <Stack.Screen name="ProfileFinalPreview" component={ProfileFinalPreview} />
           </Stack.Navigator>
+          <DevNavBar/>
         </ProfileCreationProvider>
       </NavigationContainer>
     </SafeAreaProvider>

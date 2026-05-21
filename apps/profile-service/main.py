@@ -256,10 +256,26 @@ def external_tmdb_movie(movie_id: int):
         raise_external_api_error(error)
 
 
+@app.get("/external/tmdb/tv/search", dependencies=[Depends(get_current_user)])
+def external_tmdb_search(query: str, category: str = "tv"):
+    try:
+        return {"results": search_tmdb(query, category)}
+    except ExternalApiError as error:
+        raise_external_api_error(error)
+
+
 @app.get("/external/tmdb/tv/{show_id}", dependencies=[Depends(get_current_user)])
 def external_tmdb_tv(show_id: int):
     try:
         return get_tmdb_tv(show_id)
+    except ExternalApiError as error:
+        raise_external_api_error(error)
+
+
+@app.get("/external/tmdb/people/search", dependencies=[Depends(get_current_user)])
+def external_tmdb_people_search(query: str, category: str = "actor"):
+    try:
+        return {"results": search_tmdb(query, category)}
     except ExternalApiError as error:
         raise_external_api_error(error)
 

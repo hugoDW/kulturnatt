@@ -36,7 +36,7 @@ export default function ShowDisplay({ show, onAdd }: Props) {
 
             <View style={styles.movieInfo}>
                 <Text style={styles.movieTitle}>
-                    {show.name}
+                    {show.name} ({show.first_air_date?.slice(0, 4)})
                 </Text>
 
                 <Text style={styles.sub}>

@@ -65,80 +65,6 @@ export default function CreativeSelection({ onBackPress: _onBackPress }: Props) 
   }
   const [loading, setLoading] = useState(false);
 
-  const mockActors = [
-    {
-      id: 1,
-      name: "Sigourney Weaver",
-      date_of_birth: "1949-10-08",
-      profile_path: "https://media.themoviedb.org/t/p/w600_and_h900_face/wTSnfktNBLd6kwQxgvkqYw6vEon.jpg"
-    },
-
-    {
-      id: 2,
-      name: "Harrison Ford",
-      date_of_birth: "1949-10-08",
-      profile_path: "https://media.themoviedb.org/t/p/w600_and_h900_face/pjBMJVPpcZK23Vt1nzr1zEBTWrP.jpg"
-    },
-
-    {
-      id: 3,
-      name: "Mark Hamill",
-      date_of_birth: "1951-09-25",
-      profile_path: "https://media.themoviedb.org/t/p/w600_and_h900_face/zMQ93JTLW8KxusKhOlHFZhih3YQ.jpg"
-    },
-
-    {
-      id: 4,
-      name: "Carrie Fisher",
-      date_of_birth: "1956-10-21",
-      profile_path: "https://media.themoviedb.org/t/p/w600_and_h900_face/of4yHmryKPy92eeskUQ7MRmjC3l.jpg"
-    },
-
-    {
-      id: 5,
-      name: "Peter Cushing",
-      date_of_birth: "1913-05-26",
-      profile_path: "https://media.themoviedb.org/t/p/w600_and_h900_face/if5g03wn6uvHx7F6FxXHLebKc0q.jpg"
-    },
-  ]
-
-  const mockDirectors = [
-    {
-      id: 6,
-      name: "David Lynch",
-      date_of_birth: "1946-01-20",
-      profile_path: "https://media.themoviedb.org/t/p/w600_and_h900_face/wwBzRDoIW6Ld64h6OkQ6ImCZKsR.jpg"
-    },
-
-    {
-      id: 7,
-      name: "George Lucas",
-      date_of_birth: "1944-05-14",
-      profile_path: "https://media.themoviedb.org/t/p/w600_and_h900_face/mDLDvsx8PaZoEThkBdyaG1JxPdf.jpg"
-    },
-
-    {
-      id: 8,
-      name: "Wong Kar-Wai",
-      date_of_birth: "1958-07-17",
-      profile_path: "https://media.themoviedb.org/t/p/w600_and_h900_face/iI4IxsIA5DMhIFHcD6C2FyZGKwc.jpg"
-    },
-
-    {
-      id: 9,
-      name: "Ingmar Bergman",
-      date_of_birth: "1918-07-14",
-      profile_path: "https://media.themoviedb.org/t/p/w600_and_h900_face/nkmOaXNRoioViN9OQf2n9Iu6akA.jpg"
-    },
-
-    {
-      id: 10,
-      name: "Jan Troell",
-      date_of_birth: "1931-07-23",
-      profile_path: "https://media.themoviedb.org/t/p/w600_and_h900_face/97PdhzeptEiQ7wyG566D5BwsMM2.jpg"
-    },
-  ]
-
   function openActorSearch() {
     setSearchType("actor");
     setCreativeModalVisible(true);
@@ -209,15 +135,6 @@ export default function CreativeSelection({ onBackPress: _onBackPress }: Props) 
       setLoading(false);
     }
   }
-    
-    /*try {
-      const data = await searchMovies(creativeSearch);
-
-      setMovieResults(data.results);
-      console.log(movieResults)
-    } catch( error ) {
-      console.error(error)
-    }*/
 
   return (
     <KeyboardAvoidingView
