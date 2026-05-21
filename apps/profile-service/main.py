@@ -406,3 +406,17 @@ def internal_save_match(body: MatchUpdate):
         body.user_b_id, body.b_liked, body.b_matched,
     )
     return {"status": "ok"}
+
+
+if __name__ == "__main__":
+    # Dual-stack bind: gateway reaches us over IPv6 (fdaa::...),
+    # Fly's machine-level healthcheck probes over IPv4.
+    import socket
+    import uvicorn
+
+    sock = socket.create_server(
+        ("", 8001),
+        family=socket.AF_INET6,
+        dualstack_ipv6=True,
+    )
+    uvicorn.run(app, fd=sock.fileno())
