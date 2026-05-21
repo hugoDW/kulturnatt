@@ -3,6 +3,7 @@ import {
   getProfileSetup,
   ProfileSetupPayload,
   saveProfileSetup,
+  updateProfile,
 } from "../apiservices/profileService";
 
 type ProfileDraft = ProfileSetupPayload;
@@ -45,6 +46,7 @@ const ProfileCreationContext =
 
 export function ProfileCreationProvider({ children }: { children: React.ReactNode }) {
   const [draft, setDraft] = useState<ProfileDraft>(initialDraft);
+  const [profileExists, setProfileExists] = useState(false);
 
   const updateDraft = useCallback((nextDraft: Partial<ProfileDraft>) => {
     setDraft((currentDraft) => ({
@@ -60,10 +62,15 @@ export function ProfileCreationProvider({ children }: { children: React.ReactNod
         ...nextDraft,
       };
 
-      await saveProfileSetup(nextSavedDraft);
+      if (profileExists) {
+        await updateProfile(nextSavedDraft);
+      } else {
+        await saveProfileSetup(nextSavedDraft);
+        setProfileExists(true);
+      }
       setDraft(nextSavedDraft);
     },
-    [draft],
+    [draft, profileExists],
   );
 
   const loadSavedDraft = useCallback(async () => {
@@ -74,12 +81,43 @@ export function ProfileCreationProvider({ children }: { children: React.ReactNod
     const savedDraft = await getProfileSetup();
 
     if (savedDraft) {
-      setDraft(savedDraft);
+      // Defensive: backend may return null for unset array fields
+      const normalized: ProfileDraft = {
+        ...initialDraft,
+        ...savedDraft,
+        preferred_gender: savedDraft.preferred_gender ?? [],
+        age_range: savedDraft.age_range ?? [18, 99],
+        events: savedDraft.events ?? [],
+        songs: savedDraft.songs ?? [],
+        albums: savedDraft.albums ?? [],
+        movies: savedDraft.movies ?? [],
+        shows: savedDraft.shows ?? [],
+        artists: savedDraft.artists ?? [],
+        directors: savedDraft.directors ?? [],
+        music_genre: savedDraft.music_genre ?? [],
+        movie_genre: savedDraft.movie_genre ?? [],
+        literature: savedDraft.literature ?? [],
+        bio: savedDraft.bio ?? "",
+        art: savedDraft.art ?? false,
+        profile_image_uri: savedDraft.profile_image_uri ?? null,
+      };
+      console.log("[ProfileCreation] loaded profile:", {
+        username: normalized.username,
+        bio: normalized.bio,
+        artists: normalized.artists.length,
+        songs: normalized.songs.length,
+        events: normalized.events.length,
+      });
+      setDraft(normalized);
+      setProfileExists(true);
+    } else {
+      console.log("[ProfileCreation] /profile/me returned null (no profile yet)");
     }
   }, [draft]);
 
   const resetDraft = useCallback(() => {
     setDraft(initialDraft);
+    setProfileExists(false);
   }, []);
 
   const value = useMemo<ProfileCreationContextValue>(
