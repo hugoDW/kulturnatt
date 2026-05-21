@@ -13,6 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
 import BackButton from "../components/backButton";
+import { apiGetJson } from "../apiservices/apiClient";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "SongSearch">;
 
@@ -30,8 +31,6 @@ type SongResult = {
   cover?: CoverImage | null;
   spotify_url?: string | null;
 };
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, "");
 
 export default function SongSearchScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -51,29 +50,18 @@ export default function SongSearchScreen() {
       return;
     }
 
-    if (!API_URL) {
-      setErrorMessage("Missing EXPO_PUBLIC_API_URL");
-      return;
-    }
-
     setIsLoading(true);
     setErrorMessage(null);
 
     try {
-      const params = new URLSearchParams({
-        query: trimmedQuery,
-        limit: "10",
-      });
-      const response = await fetch(
-        `${API_URL}/external/music/songs/search?${params.toString()}`,
+      const json = await apiGetJson<{ results?: SongResult[] }>(
+        "/external/music/songs/search",
+        { query: trimmedQuery, limit: 10 },
+        "Could not load songs right now.",
+        "Log in again to search songs.",
       );
 
-      if (!response.ok) {
-        throw new Error("Could not load songs right now.");
-      }
-
-      const json = await response.json();
-      setSongs((json.results ?? []) as SongResult[]);
+      setSongs(json.results ?? []);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Could not load songs right now.",

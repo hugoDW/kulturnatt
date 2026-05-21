@@ -1,6 +1,4 @@
-import { supabase } from "../lib/supabase";
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, "");
+import { apiGetJson } from "./apiClient";
 
 export type TmdbCategory = "movie" | "tv" | "actor" | "director";
 
@@ -11,38 +9,12 @@ export async function searchTmdb<T>(query: string, category: TmdbCategory) {
     return [];
   }
 
-  if (!API_URL) {
-    throw new Error("Missing EXPO_PUBLIC_API_URL");
-  }
-
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
-
-  if (error || !session?.access_token) {
-    throw new Error("Log in again to search TMDB.");
-  }
-
-  const params = new URLSearchParams({
-    query: trimmedQuery,
-    category,
-  });
-
-  const response = await fetch(
-    `${API_URL}/external/tmdb/search?${params.toString()}`,
-    {
-      headers: {
-        Authorization: `Bearer ${session.access_token}`,
-      },
-    },
+  const json = await apiGetJson<{ results?: T[] }>(
+    "/external/tmdb/search",
+    { query: trimmedQuery, category },
+    "TMDB search failed.",
+    "Log in again to search TMDB.",
   );
-
-  if (!response.ok) {
-    throw new Error("TMDB search failed.");
-  }
-
-  const json = await response.json();
 
   return (json.results ?? []) as T[];
 }

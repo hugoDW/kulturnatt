@@ -13,6 +13,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
 import BackButton from "../components/backButton";
+import { apiGetJson } from "../apiservices/apiClient";
 
 type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -34,8 +35,6 @@ type ArtistResult = {
   image?: CoverImage | null;
 };
 
-const API_URL = process.env.EXPO_PUBLIC_API_URL?.replace(/\/+$/, "");
-
 export default function ArtistSearchScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [searchText, setSearchText] = useState("");
@@ -54,29 +53,18 @@ export default function ArtistSearchScreen() {
       return;
     }
 
-    if (!API_URL) {
-      setErrorMessage("Missing EXPO_PUBLIC_API_URL");
-      return;
-    }
-
     setIsLoading(true);
     setErrorMessage(null);
 
     try {
-      const params = new URLSearchParams({
-        query: trimmedQuery,
-        limit: "10",
-      });
-      const response = await fetch(
-        `${API_URL}/external/music/artists/search?${params.toString()}`,
+      const json = await apiGetJson<{ results?: ArtistResult[] }>(
+        "/external/music/artists/search",
+        { query: trimmedQuery, limit: 10 },
+        "Could not load artists right now.",
+        "Log in again to search artists.",
       );
 
-      if (!response.ok) {
-        throw new Error("Could not load artists right now.");
-      }
-
-      const json = await response.json();
-      setArtists((json.results ?? []) as ArtistResult[]);
+      setArtists(json.results ?? []);
     } catch (error) {
       setErrorMessage(
         error instanceof Error ? error.message : "Could not load artists right now.",
