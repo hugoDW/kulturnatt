@@ -13,5 +13,6 @@ COPY . .
 # servern lyssnar på port 8001
 EXPOSE 8001
 
-# starta uvicorn-servern
-CMD ["uvicorn", "main:app", "--host", "::", "--port", "8001"]
+# starta uvicorn-servern (main.py opens a dual-stack socket so både Fly:s
+# IPv4-healthcheck och gateway:ns IPv6-trafik kan nå porten)
+CMD ["python", "main.py"]
