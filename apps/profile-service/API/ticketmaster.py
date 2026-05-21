@@ -32,15 +32,20 @@ def get_events(city=None, query=None):
     events = []
 
     for event in data.get("_embedded", {}).get("events", []):
+        start = event.get("dates", {}).get("start", {})
+        local_date = start.get("localDate")
+        local_time = start.get("localTime")
+        date = f"{local_date} {local_time[:5]}" if local_date and local_time else local_date
+
         events.append({
             "id": event.get("id"),
             "name": event.get("name"),
-            "date": event.get("dates", {}).get("start", {}).get("localDate"),
+            "date": date,
             "venue": event.get("_embedded", {}).get("venues", [{}])[0].get("name"),
             "city": event.get("_embedded", {}).get("venues", [{}])[0].get("city", {}).get("name"),
             "image_url": get_event_image(event)
         })
-    
+
     return events
 
 def get_event_image(event):

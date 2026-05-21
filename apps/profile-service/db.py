@@ -81,7 +81,20 @@ def update_profile(user: User):
 
 
 def create_profile(user: User):
-    supabase.table("profile").upsert({
+    existing = (
+        supabase.table("profile")
+        .select("id_profile")
+        .eq("id_profile", str(user.user_id))
+        .execute()
+    )
+
+    if existing.data:
+        # Profile already exists — only update editable fields so we don't
+        # wipe liked_users / matched_users / etc.
+        update_profile(user)
+        return
+
+    supabase.table("profile").insert({
         "id_profile": str(user.user_id),
         "username": user.username,
         "dob": user.dob.isoformat(),
