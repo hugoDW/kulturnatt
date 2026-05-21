@@ -14,11 +14,22 @@ import {
   View,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { RouteProp } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
-import BackButton from "../components/backButton";
+import { Ionicons } from "@react-native-vector-icons/ionicons";
+
 import NavBar from "../components/NavBar";
+import LikedEventsSheet from "../components/sheets/LikedEventsSheet";
+import {
+  getCurrentUserId,
+  isLiked,
+  loadLikedEvents,
+  saveLikedEvents,
+  toggleLike,
+  type LikedEvent,
+} from "../lib/likedEvents";
 import { supabase } from "../lib/supabase";
 
 type NavigationProp = NativeStackNavigationProp<
@@ -48,6 +59,7 @@ const CITIES = ["Stockholm", "Göteborg", "Malmö", "Uppsala", "Västerås"];
 export default function EventPageScreen() {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute<EventPageRouteProp>();
+  const insets = useSafeAreaInsets();
   const listRef = useRef<FlatList<EventItem>>(null);
   const scrollOffsetRef = useRef(0);
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
@@ -56,6 +68,46 @@ export default function EventPageScreen() {
   const [events, setEvents] = useState<EventItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [likedEvents, setLikedEvents] = useState<LikedEvent[]>([]);
+  const [savedListOpen, setSavedListOpen] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const id = await getCurrentUserId();
+      setUserId(id);
+      if (id) {
+        const stored = await loadLikedEvents(id);
+        setLikedEvents(stored);
+      }
+    })();
+  }, []);
+
+  const handleToggleLike = useCallback(
+    (event: EventItem) => {
+      if (!userId) return;
+      const eventId = `${event.source}:${event.id ?? event.title ?? event.name ?? ""}`;
+      const meta = [event.date, event.city, event.venue ?? event.organizer]
+        .filter(Boolean)
+        .join(" • ");
+      const likedEvent: LikedEvent = {
+        id: eventId,
+        name: event.title ?? event.name ?? "Untitled event",
+        image: event.image_url ?? null,
+        subtitle: meta || null,
+      };
+      setLikedEvents((current) => {
+        const next = toggleLike(current, likedEvent);
+        saveLikedEvents(userId, next).catch(() => {});
+        return next;
+      });
+    },
+    [userId],
+  );
+
+  function eventIdFor(event: EventItem) {
+    return `${event.source}:${event.id ?? event.title ?? event.name ?? ""}`;
+  }
 
   const encodedParams = useMemo(() => {
     const params = new URLSearchParams();
@@ -70,67 +122,88 @@ export default function EventPageScreen() {
     return params.toString();
   }, [selectedCity, submittedQuery]);
 
-  const loadEvents = useCallback(async () => {
-    if (!API_URL) {
-      setErrorMessage("Missing EXPO_PUBLIC_API_URL");
-      return;
-    }
-
-    setIsLoading(true);
-    setErrorMessage(null);
-    setEvents([]);
-
-    try {
-      const { data, error } = await supabase.auth.getSession();
-      const token = route.params?.accessToken ?? data.session?.access_token;
-
-      if (error || !token) {
-        setEvents([]);
-        setErrorMessage("Log in again to load events.");
+  const loadEvents = useCallback(
+    async (signal: AbortSignal) => {
+      if (!API_URL) {
+        setErrorMessage("Missing EXPO_PUBLIC_API_URL");
         return;
       }
 
-      const requestOptions = {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      };
+      setIsLoading(true);
+      setErrorMessage(null);
 
-      const queryString = encodedParams ? `?${encodedParams}` : "";
-      async function loadSource(url: string) {
-        const response = await fetch(url, requestOptions);
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (signal.aborted) return;
 
-        if (!response.ok) {
-          throw new Error("Event source failed");
+        const token = route.params?.accessToken ?? data.session?.access_token;
+
+        if (error || !token) {
+          setEvents([]);
+          setErrorMessage("Log in again to load events.");
+          return;
         }
 
-        const json = await response.json();
-        const sourceEvents = (json.events ?? []) as EventItem[];
+        const requestOptions = {
+          headers: { Authorization: `Bearer ${token}` },
+          signal,
+        };
 
-        setEvents((currentEvents) => sortEvents([...currentEvents, ...sourceEvents]));
+        const queryString = encodedParams ? `?${encodedParams}` : "";
+        const sources = [
+          `${API_URL}/external/events${queryString}`,
+          `${API_URL}/external/ticketmaster/events${queryString}`,
+        ];
+
+        const responses = await Promise.allSettled(
+          sources.map(async (url) => {
+            const response = await fetch(url, requestOptions);
+            if (!response.ok) {
+              const text = await response.text();
+              console.warn(`[EventPage] ${url} -> ${response.status}: ${text}`);
+              throw new Error("Event source failed");
+            }
+            const json = await response.json();
+            return (json.events ?? []) as EventItem[];
+          }),
+        );
+
+        if (signal.aborted) return;
+
+        const fulfilled = responses.flatMap((response) =>
+          response.status === "fulfilled" ? response.value : [],
+        );
+        const allFailed = responses.every((response) => response.status === "rejected");
+
+        setEvents(sortEvents(fulfilled));
+        setErrorMessage(allFailed ? "Could not load events right now." : null);
+      } catch (error) {
+        if (signal.aborted || (error instanceof Error && error.name === "AbortError")) {
+          return;
+        }
+        setEvents([]);
+        setErrorMessage(
+          error instanceof Error ? error.message : "Could not load events right now.",
+        );
+      } finally {
+        if (!signal.aborted) {
+          setIsLoading(false);
+        }
       }
-
-      const responses = await Promise.allSettled([
-        loadSource(`${API_URL}/external/events${queryString}`),
-        loadSource(`${API_URL}/external/ticketmaster/events${queryString}`),
-      ]);
-      const failedSources = responses.filter((response) => response.status === "rejected");
-
-      setErrorMessage(
-        failedSources.length === responses.length ? "Could not load events right now." : null,
-      );
-    } catch (error) {
-      setEvents([]);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Could not load events right now.",
-      );
-    } finally {
-      setIsLoading(false);
-    }
-  }, [encodedParams, route.params?.accessToken]);
+    },
+    [encodedParams, route.params?.accessToken],
+  );
 
   useEffect(() => {
-    loadEvents();
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      loadEvents(controller.signal);
+    }, 150);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
   }, [loadEvents]);
 
   function submitSearch() {
@@ -172,17 +245,18 @@ export default function EventPageScreen() {
 
   return (
     <View style={styles.container}>
-      <BackButton
-        onPress={() =>
-          navigation.canGoBack()
-            ? navigation.goBack()
-            : navigation.navigate("Start")
-        }
-      />
-
-      <View style={styles.logoSection}>
+      <View style={[styles.logoSection, { marginTop: insets.top + 10 }]}>
         <Text style={styles.logo}>tsm</Text>
       </View>
+
+      <Pressable
+        accessibilityLabel="Liked events"
+        onPress={() => setSavedListOpen(true)}
+        hitSlop={10}
+        style={[styles.savedListButton, { top: insets.top + 20 }]}
+      >
+        <Ionicons name="bookmark-outline" size={26} color="#000000" />
+      </Pressable>
 
       <FlatList
         ref={listRef}
@@ -269,18 +343,45 @@ export default function EventPageScreen() {
             </View>
           ) : null
         }
-        renderItem={({ item }) => <EventCard event={item} />}
+        renderItem={({ item }) => (
+          <EventCard
+            event={item}
+            liked={isLiked(likedEvents, eventIdFor(item))}
+            onToggleLike={() => handleToggleLike(item)}
+          />
+        )}
       />
       <NavBar />
+
+      <LikedEventsSheet
+        visible={savedListOpen}
+        events={likedEvents}
+        onClose={() => setSavedListOpen(false)}
+        onRemove={(event) => {
+          if (!userId) return;
+          setLikedEvents((current) => {
+            const next = toggleLike(current, event);
+            saveLikedEvents(userId, next).catch(() => {});
+            return next;
+          });
+        }}
+      />
     </View>
   );
 }
 
-function EventCard({ event }: { event: EventItem }) {
+function EventCard({
+  event,
+  liked,
+  onToggleLike,
+}: {
+  event: EventItem;
+  liked: boolean;
+  onToggleLike: () => void;
+}) {
   const displayTitle = event.title ?? event.name ?? "Untitled event";
-  const meta = [event.date, event.city, event.venue ?? event.organizer]
-    .filter(Boolean)
-    .join(" • ");
+  const metaLines = [event.date, event.city, event.venue ?? event.organizer]
+    .filter((value): value is string => Boolean(value));
 
   return (
     <View style={styles.card}>
@@ -293,11 +394,34 @@ function EventCard({ event }: { event: EventItem }) {
       )}
 
       <View style={styles.cardBody}>
-        <View style={styles.sourceRow}>
-          <Text style={styles.sourceText}>{event.source}</Text>
+        <View style={styles.cardBodyText}>
+          <View style={styles.sourceRow}>
+            <Text style={styles.sourceText}>{event.source}</Text>
+          </View>
+          <Text style={styles.cardTitle}>{displayTitle}</Text>
+          {metaLines.map((line) => (
+            <Text key={line} style={styles.metaText}>
+              {line}
+            </Text>
+          ))}
         </View>
-        <Text style={styles.cardTitle}>{displayTitle}</Text>
-        {meta ? <Text style={styles.metaText}>{meta}</Text> : null}
+
+        <Pressable
+          accessibilityLabel={liked ? "Unlike event" : "Like event"}
+          onPress={onToggleLike}
+          hitSlop={10}
+          style={styles.heartButton}
+        >
+          {liked ? (
+            <Ionicons
+              name="heart"
+              size={26}
+              color="#6C5CE7"
+              style={styles.heartFill}
+            />
+          ) : null}
+          <Ionicons name="heart-outline" size={26} color="#000000" />
+        </Pressable>
       </View>
     </View>
   );
@@ -349,15 +473,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  logoSection: {
-    marginTop: 70,
-  },
+  logoSection: {},
 
   logo: {
     fontFamily: "Inter",
     fontSize: 44,
     fontWeight: "900",
     color: "#000000",
+  },
+
+  savedListButton: {
+    position: "absolute",
+    right: 22,
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   scroll: {
@@ -507,6 +638,18 @@ const styles = StyleSheet.create({
     backgroundColor: "#D7E0F3",
   },
 
+  heartButton: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 10,
+  },
+
+  heartFill: {
+    position: "absolute",
+  },
+
   imageFallback: {
     width: "100%",
     aspectRatio: 16 / 9,
@@ -524,6 +667,12 @@ const styles = StyleSheet.create({
 
   cardBody: {
     padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  cardBodyText: {
+    flex: 1,
   },
 
   sourceRow: {
