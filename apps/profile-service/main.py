@@ -69,6 +69,7 @@ class ProfileSetupRequest(BaseModel):
     age_range: list[int]
     events: list[str]
     songs: list[str]
+    albums: list[str] = []
     movies: list[str]
     shows: list[str]
     artists: list[str]
@@ -77,6 +78,61 @@ class ProfileSetupRequest(BaseModel):
     movie_genre: list[str]
     art: bool
     literature: list[str]
+    bio: str = ""
+    profile_image_uri: str | None = None
+
+
+def profile_setup_response(user: User) -> dict:
+    return {
+        "username": user.username,
+        "dob": user.dob.isoformat(),
+        "gender": user.gender,
+        "preferred_gender": user.preferred_gender,
+        "age_range": list(user.age_range),
+        "events": user.events,
+        "songs": user.songs,
+        "albums": user.albums,
+        "movies": user.movies,
+        "shows": user.shows,
+        "artists": user.artists,
+        "directors": user.directors,
+        "music_genre": user.music_genre,
+        "movie_genre": user.movie_genre,
+        "art": user.art,
+        "literature": user.literature,
+        "bio": user.bio,
+        "profile_image_uri": user.profile_image_uri,
+    }
+
+
+def apply_profile_setup_request(user: User, request: ProfileSetupRequest) -> User:
+    user.username = request.username
+    user.dob = date.fromisoformat(request.dob)
+    user.gender = request.gender
+    user.preferred_gender = request.preferred_gender
+    user.age_range = tuple(request.age_range)
+    user.events = request.events
+    user.songs = request.songs
+    user.albums = request.albums
+    user.movies = request.movies
+    user.shows = request.shows
+    user.artists = request.artists
+    user.directors = request.directors
+    user.music_genre = request.music_genre
+    user.movie_genre = request.movie_genre
+    user.art = request.art
+    user.literature = request.literature
+    user.bio = request.bio
+    user.profile_image_uri = request.profile_image_uri
+    return user
+
+
+@app.get("/profile/me")
+def profile_me(user_id: uuid.UUID = Depends(get_current_user)):
+    user = get_user(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    return profile_setup_response(user)
 
 
 @app.post("/profile/setup")
@@ -99,6 +155,7 @@ def profile_setup(
         age_range=tuple(request.age_range),
         events=request.events,
         songs=request.songs,
+        albums=request.albums,
         movies=request.movies,
         artists=request.artists,
         directors=request.directors,
@@ -107,6 +164,8 @@ def profile_setup(
         shows=request.shows,
         art=request.art,
         literature=request.literature,
+        bio=request.bio,
+        profile_image_uri=request.profile_image_uri,
     )
     create_profile(user)
     # be matching-service räkna om ranked list för den nya användaren
@@ -122,6 +181,7 @@ class UpdateProfileRequest(BaseModel):
     age_range: list[int]
     events: list[str]
     songs: list[str]
+    albums: list[str] = []
     movies: list[str]
     shows: list[str]
     artists: list[str]
@@ -130,6 +190,8 @@ class UpdateProfileRequest(BaseModel):
     movie_genre: list[str]
     art: bool
     literature: list[str]
+    bio: str = ""
+    profile_image_uri: str | None = None
 
 
 @app.put("/profile/update")
@@ -148,6 +210,7 @@ def profile_update(
     user.age_range = tuple(request.age_range)
     user.events = request.events
     user.songs = request.songs
+    user.albums = request.albums
     user.movies = request.movies
     user.shows = request.shows
     user.artists = request.artists
@@ -156,6 +219,8 @@ def profile_update(
     user.movie_genre = request.movie_genre
     user.art = request.art
     user.literature = request.literature
+    user.bio = request.bio
+    user.profile_image_uri = request.profile_image_uri
     update_profile(user)
     # uppdaterad profil → triggra omräkning hos matching-service
     trigger_recompute(user_id)

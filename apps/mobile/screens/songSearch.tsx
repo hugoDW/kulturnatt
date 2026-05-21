@@ -13,9 +13,14 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
 import BackButton from "../components/backButton";
+import SaveAndContinueButton from "../components/saveAndContinueButton";
 import { apiGetJson } from "../apiservices/apiClient";
+import { useProfileCreation } from "../lib/profileCreation";
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, "SongSearch">;
+type NavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "SongSearch"
+>;
 
 type CoverImage = {
   image_url?: string | null;
@@ -34,9 +39,12 @@ type SongResult = {
 
 export default function SongSearchScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { draft } = useProfileCreation();
+
   const [searchText, setSearchText] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [songs, setSongs] = useState<SongResult[]>([]);
+  const [selectedSongs, setSelectedSongs] = useState<string[]>(draft.songs);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -64,7 +72,9 @@ export default function SongSearchScreen() {
       setSongs(json.results ?? []);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Could not load songs right now.",
+        error instanceof Error
+          ? error.message
+          : "Could not load songs right now.",
       );
     } finally {
       setIsLoading(false);
@@ -82,15 +92,41 @@ export default function SongSearchScreen() {
     setErrorMessage(null);
   }
 
+  function getSongLabel(song: SongResult) {
+    const title = song.title?.trim();
+
+    if (!title) {
+      return null;
+    }
+
+    return song.artists ? `${title} - ${song.artists}` : title;
+  }
+
+  function toggleSong(song: SongResult) {
+    const label = getSongLabel(song);
+
+    if (!label) {
+      return;
+    }
+
+    setSelectedSongs((current) =>
+      current.includes(label)
+        ? current.filter((songName) => songName !== label)
+        : [...current, label],
+    );
+  }
+
+  function handleSkip() {
+    navigation.navigate("PreviewProfile");
+  }
+
   return (
     <View style={styles.container}>
-      <BackButton
-        onPress={() =>
-          navigation.canGoBack()
-            ? navigation.goBack()
-            : navigation.navigate("EventPage")
-        }
-      />
+      <BackButton onPress={() => navigation.goBack()} />
+
+      <Pressable style={styles.topSkipButton} onPress={handleSkip}>
+        <Text style={styles.topSkipButtonText}>Skip</Text>
+      </Pressable>
 
       <View style={styles.logoSection}>
         <Text style={styles.logo}>tsm</Text>
@@ -106,17 +142,19 @@ export default function SongSearchScreen() {
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <>
-            <Text style={styles.title}>Search songs</Text>
+            <Text style={styles.title}>What are your favorite songs?</Text>
+
             <View style={styles.searchRow}>
               <TextInput
                 value={searchText}
                 onChangeText={setSearchText}
                 onSubmitEditing={submitSearch}
-                placeholder="Song or artist"
+                placeholder="Enter song name"
                 placeholderTextColor="#6F7482"
                 returnKeyType="search"
                 style={styles.searchInput}
               />
+
               <Pressable
                 accessibilityLabel="Search songs"
                 style={styles.searchButton}
@@ -130,6 +168,28 @@ export default function SongSearchScreen() {
               <Pressable style={styles.clearButton} onPress={clearSearch}>
                 <Text style={styles.clearButtonText}>Clear search</Text>
               </Pressable>
+            ) : null}
+
+            {selectedSongs.length ? (
+              <View style={styles.selectedBlock}>
+                <Text style={styles.selectedTitle}>Selected songs</Text>
+
+                <View style={styles.selectedWrap}>
+                  {selectedSongs.map((song) => (
+                    <Pressable
+                      key={song}
+                      style={styles.selectedChip}
+                      onPress={() =>
+                        setSelectedSongs((current) =>
+                          current.filter((songName) => songName !== song),
+                        )
+                      }
+                    >
+                      <Text style={styles.selectedChipText}>{song}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
             ) : null}
 
             {isLoading ? (
@@ -155,20 +215,48 @@ export default function SongSearchScreen() {
             </View>
           ) : null
         }
-        renderItem={({ item }) => <SongCard song={item} />}
+        renderItem={({ item }) => (
+          <SongCard
+            song={item}
+            selected={selectedSongs.includes(getSongLabel(item) ?? "")}
+            onPress={() => toggleSong(item)}
+          />
+        )}
       />
+
+      <View style={styles.footer}>
+        <SaveAndContinueButton
+          selectedItems={selectedSongs}
+          getDraftPatch={() => ({ songs: selectedSongs })}
+          alertTitle="Choose a song"
+          alertMessage="Select at least one song to continue."
+          style={styles.continueButton}
+          textStyle={styles.continueButtonText}
+        />
+      </View>
     </View>
   );
 }
 
-function SongCard({ song }: { song: SongResult }) {
+function SongCard({
+  song,
+  selected,
+  onPress,
+}: {
+  song: SongResult;
+  selected: boolean;
+  onPress: () => void;
+}) {
   const imageUrl = song.cover?.thumb_250 ?? song.cover?.image_url;
   const meta = [song.artists, song.album, song.year, song.length]
     .filter(Boolean)
     .join(" - ");
 
   return (
-    <View style={styles.card}>
+    <Pressable
+      style={[styles.card, selected && styles.cardSelected]}
+      onPress={onPress}
+    >
       {imageUrl ? (
         <Image source={{ uri: imageUrl }} style={styles.cardImage} />
       ) : (
@@ -178,10 +266,14 @@ function SongCard({ song }: { song: SongResult }) {
       )}
 
       <View style={styles.cardBody}>
-        <Text style={styles.cardTitle}>{song.title ?? "Untitled song"}</Text>
+        <View style={styles.cardTitleRow}>
+          <Text style={styles.cardTitle}>{song.title ?? "Untitled song"}</Text>
+          {selected ? <Text style={styles.selectedMark}>Selected</Text> : null}
+        </View>
+
         {meta ? <Text style={styles.metaText}>{meta}</Text> : null}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -199,6 +291,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#ECF2FF",
     alignItems: "center",
+  },
+
+  topSkipButton: {
+    position: "absolute",
+    top: 40,
+    right: 22,
+    zIndex: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+
+  topSkipButtonText: {
+    fontFamily: "Inter",
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#000000",
   },
 
   logoSection: {
@@ -220,14 +328,14 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 22,
     paddingTop: 34,
-    paddingBottom: 44,
+    paddingBottom: 128,
   },
 
   title: {
     fontFamily: "Inter",
     fontSize: 24,
     fontWeight: "900",
-    color: "#000050",
+    color: "#000000",
   },
 
   searchRow: {
@@ -294,7 +402,7 @@ const styles = StyleSheet.create({
 
   clearButtonText: {
     fontFamily: "Inter",
-    color: "#000050",
+    color: "#000000",
     fontSize: 14,
     fontWeight: "700",
   },
@@ -320,6 +428,38 @@ const styles = StyleSheet.create({
     color: "#9F1239",
   },
 
+  selectedBlock: {
+    marginTop: 14,
+  },
+
+  selectedTitle: {
+    fontFamily: "Inter",
+    fontSize: 14,
+    fontWeight: "900",
+    color: "#6C5CE7",
+  },
+
+  selectedWrap: {
+    marginTop: 8,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+
+  selectedChip: {
+    borderRadius: 18,
+    backgroundColor: "#6C5CE7",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+
+  selectedChipText: {
+    fontFamily: "Inter",
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+
   card: {
     marginBottom: 12,
     borderRadius: 8,
@@ -327,6 +467,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#D7E0F3",
     overflow: "hidden",
+  },
+
+  cardSelected: {
+    borderColor: "#6C5CE7",
+    borderWidth: 2,
   },
 
   cardImage: {
@@ -347,18 +492,33 @@ const styles = StyleSheet.create({
     fontFamily: "Inter",
     fontSize: 15,
     fontWeight: "900",
-    color: "#000050",
+    color: "#6C5CE7",
   },
 
   cardBody: {
     padding: 14,
   },
 
+  cardTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
   cardTitle: {
+    flex: 1,
     fontFamily: "Inter",
     fontSize: 18,
     fontWeight: "900",
     color: "#111827",
+  },
+
+  selectedMark: {
+    fontFamily: "Inter",
+    fontSize: 12,
+    fontWeight: "900",
+    color: "#6C5CE7",
   },
 
   metaText: {
@@ -367,5 +527,30 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: "#4B5563",
+  },
+
+  footer: {
+    position: "absolute",
+    left: 22,
+    right: 22,
+    bottom: 24,
+    flexDirection: "row",
+    gap: 12,
+  },
+
+  continueButton: {
+    flex: 1,
+    height: 54,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#202124",
+  },
+
+  continueButtonText: {
+    fontFamily: "Inter",
+    fontSize: 14,
+    fontWeight: "900",
+    color: "#FFFFFF",
   },
 });

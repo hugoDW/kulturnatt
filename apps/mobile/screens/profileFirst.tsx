@@ -31,10 +31,12 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, "CreateProfi
 
 export default function CreateProfileScreen({ onBackPress: _onBackPress }: Props) {
   const navigation = useNavigation<NavigationProp>();
-  const { updateDraft } = useProfileCreation();
-  const [username, setUsername] = useState("");
-  const [gender, setGender] = useState("");
-  const [date, setDate] = useState<Date | null > (null);
+  const { draft, updateDraft } = useProfileCreation();
+  const [username, setUsername] = useState(draft.username);
+  const [gender, setGender] = useState(draft.gender);
+  const [date, setDate] = useState<Date | null>(
+    draft.dob ? new Date(draft.dob) : null,
+  );
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
 

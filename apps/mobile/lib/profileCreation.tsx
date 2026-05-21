@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useMemo, useState } from "react";
+import React, { createContext, useCallback, useContext, useMemo, useState } from "react";
 import {
+  getProfileSetup,
   ProfileSetupPayload,
   saveProfileSetup,
 } from "../apiservices/profileService";
@@ -14,6 +15,7 @@ const initialDraft: ProfileDraft = {
   age_range: [18, 99],
   events: [],
   songs: [],
+  albums: [],
   movies: [],
   shows: [],
   artists: [],
@@ -22,12 +24,19 @@ const initialDraft: ProfileDraft = {
   movie_genre: [],
   art: false,
   literature: [],
+  bio: "",
+  profile_image_uri: null,
 };
+
+function isInitialProfileDraft(draft: ProfileDraft) {
+  return JSON.stringify(draft) === JSON.stringify(initialDraft);
+}
 
 type ProfileCreationContextValue = {
   draft: ProfileDraft;
   updateDraft: (nextDraft: Partial<ProfileDraft>) => void;
   saveDraft: (nextDraft?: Partial<ProfileDraft>) => Promise<void>;
+  loadSavedDraft: () => Promise<void>;
   resetDraft: () => void;
 };
 
@@ -37,26 +46,51 @@ const ProfileCreationContext =
 export function ProfileCreationProvider({ children }: { children: React.ReactNode }) {
   const [draft, setDraft] = useState<ProfileDraft>(initialDraft);
 
+  const updateDraft = useCallback((nextDraft: Partial<ProfileDraft>) => {
+    setDraft((currentDraft) => ({
+      ...currentDraft,
+      ...nextDraft,
+    }));
+  }, []);
+
+  const saveDraft = useCallback(
+    async (nextDraft?: Partial<ProfileDraft>) => {
+      const nextSavedDraft = {
+        ...draft,
+        ...nextDraft,
+      };
+
+      await saveProfileSetup(nextSavedDraft);
+      setDraft(nextSavedDraft);
+    },
+    [draft],
+  );
+
+  const loadSavedDraft = useCallback(async () => {
+    if (!isInitialProfileDraft(draft)) {
+      return;
+    }
+
+    const savedDraft = await getProfileSetup();
+
+    if (savedDraft) {
+      setDraft(savedDraft);
+    }
+  }, [draft]);
+
+  const resetDraft = useCallback(() => {
+    setDraft(initialDraft);
+  }, []);
+
   const value = useMemo<ProfileCreationContextValue>(
     () => ({
       draft,
-      updateDraft: (nextDraft) => {
-        setDraft((currentDraft) => ({
-          ...currentDraft,
-          ...nextDraft,
-        }));
-      },
-      saveDraft: async (nextDraft) => {
-        await saveProfileSetup({
-          ...draft,
-          ...nextDraft,
-        });
-      },
-      resetDraft: () => {
-        setDraft(initialDraft);
-      },
+      updateDraft,
+      saveDraft,
+      loadSavedDraft,
+      resetDraft,
     }),
-    [draft],
+    [draft, loadSavedDraft, resetDraft, saveDraft, updateDraft],
   );
 
   return (

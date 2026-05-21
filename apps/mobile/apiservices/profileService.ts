@@ -10,6 +10,7 @@ export type ProfileSetupPayload = {
   age_range: [number, number];
   events: string[];
   songs: string[];
+  albums: string[];
   movies: string[];
   shows: string[];
   artists: string[];
@@ -18,13 +19,11 @@ export type ProfileSetupPayload = {
   movie_genre: string[];
   art: boolean;
   literature: string[];
+  bio: string;
+  profile_image_uri: string | null;
 };
 
-export async function saveProfileSetup(payload: ProfileSetupPayload) {
-  if (!API_URL) {
-    throw new Error("Missing EXPO_PUBLIC_API_URL");
-  }
-
+async function getAccessToken() {
   const {
     data: { session },
     error,
@@ -34,10 +33,20 @@ export async function saveProfileSetup(payload: ProfileSetupPayload) {
     throw new Error("Log in again to save your profile.");
   }
 
+  return session.access_token;
+}
+
+export async function saveProfileSetup(payload: ProfileSetupPayload) {
+  if (!API_URL) {
+    throw new Error("Missing EXPO_PUBLIC_API_URL");
+  }
+
+  const accessToken = await getAccessToken();
+
   const response = await fetch(`${API_URL}/profile/setup`, {
     method: "POST",
     headers: {
-      Authorization: `Bearer ${session.access_token}`,
+      Authorization: `Bearer ${accessToken}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(payload),
@@ -45,6 +54,30 @@ export async function saveProfileSetup(payload: ProfileSetupPayload) {
 
   if (!response.ok) {
     throw new Error("Could not save your profile right now.");
+  }
+
+  return response.json();
+}
+
+export async function getProfileSetup(): Promise<ProfileSetupPayload | null> {
+  if (!API_URL) {
+    throw new Error("Missing EXPO_PUBLIC_API_URL");
+  }
+
+  const accessToken = await getAccessToken();
+
+  const response = await fetch(`${API_URL}/profile/me`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  });
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw new Error("Could not load your profile right now.");
   }
 
   return response.json();

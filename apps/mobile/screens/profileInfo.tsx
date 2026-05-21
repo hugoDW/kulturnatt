@@ -1,23 +1,18 @@
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import { Ionicons } from '@react-native-vector-icons/ionicons';
 import { LinearGradient } from "expo-linear-gradient";
-import * as Linking from "expo-linking";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
-import { supabase } from "../lib/supabase";
 import BackButton from "../components/backButton";
 import type { RootStackParamList } from "../App";
 
@@ -25,14 +20,11 @@ type Props = {
   onBackPress?: () => void;
 };
 
-const AUTH_REDIRECT_SCHEME = "tsm";
-
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "ProfileCreationInfo">;
 
 export default function ProfileCreationInfo({ onBackPress: _onBackPress }: Props) {
   const navigation = useNavigation<NavigationProp>();
   const [loading, setLoading] = useState(false);
-  const [biography, setBiography] = useState("");
 
   function handleContinue() {
     navigation.navigate("InterestSelection");
@@ -61,10 +53,7 @@ export default function ProfileCreationInfo({ onBackPress: _onBackPress }: Props
           <Text style={styles.headerSubtitle}>who share your passions.</Text>
         </View>
 
-        <View style={styles.midSection}>
-          <Image style={styles.midImage}></Image>
-
-        </View>
+      
 
         <View style={styles.bottomSection}>
           <TouchableOpacity
@@ -112,23 +101,20 @@ export default function ProfileCreationInfo({ onBackPress: _onBackPress }: Props
             </View>
           </TouchableOpacity>
 
-          <View style={[styles.blurbBox, styles.bioBox]}>
+          <TouchableOpacity
+            activeOpacity={0.75}
+            onPress={() => navigation.navigate("ProfileBio")}
+            style={styles.blurbBox}
+          >
             <Ionicons style={styles.blurbIcon}
               name="pencil-outline"
               size={24}
               color="#6C5CE7"/>
             <View style={styles.blurbText}>
               <Text style={styles.blurbHeader}>Your Story</Text>
-              <TextInput
-                multiline
-                onChangeText={setBiography}
-                placeholder="Write a short biography..."
-                placeholderTextColor="#7F8C8D"
-                style={styles.bioInput}
-                value={biography}
-              />
+              <Text style={styles.blurbSubtitle}>Write a short biography</Text>
             </View>
-          </View>
+          </TouchableOpacity>
 
         </View>
 
@@ -160,7 +146,7 @@ const styles = StyleSheet.create({
 
   /*HEADER SECTION, AKA Upper Third + Header/Title Text*/
   HeaderSection: {
-    marginTop: 60,
+    marginTop: 80,
     marginLeft: 25
   },
 
@@ -186,14 +172,17 @@ const styles = StyleSheet.create({
 
   midImage: {
     borderRadius: 12,
-    height: 160,
+    height: 100,
     width: 255,
     backgroundColor: "#FFFFFF"
   },
 
   /*BOTTOM SECTION, AKA Bottom Third + Interest blurbs*/
   bottomSection: {
-    alignItems: "center"
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingBottom: 132,
   },
 
   blurbBox: {
@@ -208,7 +197,7 @@ const styles = StyleSheet.create({
 
   blurbIcon: {
     paddingLeft: 10,
-  },
+  }, 
 
   blurbText: {
     paddingLeft: 15
@@ -226,23 +215,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: 400,
     color: "#7F8C8D"
-  },
-
-  bioBox: {
-    alignItems: "flex-start",
-    paddingVertical: 10,
-  },
-
-  bioInput: {
-    width: 260,
-    minHeight: 46,
-    paddingTop: 4,
-    paddingRight: 10,
-    fontFamily: "Inter",
-    fontSize: 13,
-    fontWeight: "400",
-    color: "#2C3E50",
-    textAlignVertical: "top",
   },
 
   finalizeButton: {

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import {
-  Alert,
   View,
   Text,
   ScrollView,
@@ -12,6 +11,7 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
+import SaveAndContinueButton from "../components/saveAndContinueButton";
 import { useProfileCreation } from "../lib/profileCreation";
 
 // Definierar typer för genre-kategorier
@@ -35,9 +35,11 @@ export default function LiteratureInterestScreen({
   initialSelectedGenres = [] 
 }: Props) {
   const navigation = useNavigation<NavigationProp>();
-  const { updateDraft, saveDraft, resetDraft } = useProfileCreation();
-  const [selectedGenres, setSelectedGenres] = useState<string[]>(initialSelectedGenres);
-  const [previousGenres, setPreviousGenres] = useState<string[]>(initialSelectedGenres);
+  const { draft } = useProfileCreation();
+  const initialGenres =
+    draft.literature.length > 0 ? draft.literature : initialSelectedGenres;
+  const [selectedGenres, setSelectedGenres] = useState<string[]>(initialGenres);
+  const [previousGenres, setPreviousGenres] = useState<string[]>(initialGenres);
 
   // Alla tillgängliga genrer - kategoriserade
   const allGenres: GenreCategory[] = [
@@ -126,27 +128,6 @@ export default function LiteratureInterestScreen({
 
   const isSelected = (genre: string) => selectedGenres.includes(genre);
 
-  const handleSave = async () => {
-    console.log("=".repeat(50));
-    console.log("VALDA GENRER:");
-    console.log(selectedGenres);
-    console.log(`Antal: ${selectedGenres.length}`);
-    console.log("=".repeat(50));
-    try {
-      const nextDraft = { literature: selectedGenres };
-      updateDraft(nextDraft);
-      await saveDraft(nextDraft);
-      resetDraft();
-      onSave?.(selectedGenres);
-      navigation.navigate("EventPage");
-    } catch (error) {
-      Alert.alert(
-        "Profile save failed",
-        error instanceof Error ? error.message : "Could not save your profile right now.",
-      );
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
@@ -221,9 +202,14 @@ export default function LiteratureInterestScreen({
         ))}
 
         {/* Save knapp längst ned*/}
-        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Save Preferences</Text>
-        </TouchableOpacity>
+        <SaveAndContinueButton
+          selectedItems={selectedGenres}
+          getDraftPatch={() => ({ literature: selectedGenres })}
+          alertTitle="Choose a literature interest"
+          alertMessage="Select at least one literature genre to continue."
+          style={styles.saveButton}
+          textStyle={styles.saveButtonText}
+        />
       </ScrollView>
     </SafeAreaView>
   );

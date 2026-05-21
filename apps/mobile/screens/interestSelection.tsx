@@ -65,6 +65,11 @@ export default function InterestSelection({ onBackPress: _onBackPress }: Props) 
       return;
     }
 
+    if (visualArtsInterest || theaterInterest) {
+      navigation.navigate("PreviewProfile");
+      return;
+    }
+
     Alert.alert("Select an interest", "Choose at least one category to continue.");
   }
 

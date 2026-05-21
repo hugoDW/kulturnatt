@@ -27,17 +27,21 @@ def scoring_users(current_user: User, user_pool: list[User]) -> list[tuple[User,
     for user in user_pool:
         shared_events = len(set(current_user.events).intersection(set(user.events)))
         shared_songs = len(set(current_user.songs).intersection(set(user.songs)))
+        shared_albums = len(set(current_user.albums).intersection(set(user.albums)))
         shared_movies = len(set(current_user.movies).intersection(set(user.movies)))
         shared_artists = len(set(current_user.artists).intersection(set(user.artists)))
         shared_directors = len(set(current_user.directors).intersection(set(user.directors)))
         shared_music_genre = len(set(current_user.music_genre).intersection(set(user.music_genre)))
         shared_movie_genre = len(set(current_user.movie_genre).intersection(set(user.movie_genre)))
+        shared_shows = len(set(current_user.shows).intersection(set(user.shows)))
+        shared_literature = len(set(current_user.literature).intersection(set(user.literature)))
+        shared_art = int(current_user.art and user.art)
 
         # uträkning för score
         event_score = shared_events * EVENT_MULTIPLIER
-        song_movie_score = (shared_songs + shared_movies) * SONG_MOVIE_MULTIPLIER
+        song_movie_score = (shared_songs + shared_albums + shared_movies + shared_shows) * SONG_MOVIE_MULTIPLIER
         artist_director_score = (shared_artists + shared_directors) * ARTIST_DIRECTOR_MULTIPLIER
-        genre_score = (shared_music_genre + shared_movie_genre) * GENRE_MULTIPLIER
+        genre_score = (shared_music_genre + shared_movie_genre + shared_literature + shared_art) * GENRE_MULTIPLIER
 
         user_score = event_score + song_movie_score + artist_director_score + genre_score
         ranked_user_pool.append((user, user_score))

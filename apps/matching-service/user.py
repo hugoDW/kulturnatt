@@ -18,6 +18,7 @@ class User:
         age_range: tuple[int, int],
         events: list[str],
         songs: list[str],
+        albums: list[str],
         movies: list[str],
         artists: list[str],
         directors: list[str],
@@ -26,6 +27,8 @@ class User:
         shows: list[str],
         art: bool,
         literature: list[str],
+        bio: str = "",
+        profile_image_uri: str | None = None,
     ):
         self.user_id = user_id
         self.username = username
@@ -40,6 +43,7 @@ class User:
         self.age_range = age_range
         self.events = events
         self.songs = songs
+        self.albums = albums
         self.movies = movies
         self.artists = artists
         self.directors = directors
@@ -48,6 +52,8 @@ class User:
         self.shows = shows
         self.art = art
         self.literature = literature
+        self.bio = bio
+        self.profile_image_uri = profile_image_uri
 
     @property
     def age(self) -> int:
@@ -73,6 +79,7 @@ def user_from_dict(data: dict) -> User:
         age_range=tuple(data["age_range"]),
         events=data["events"],
         songs=data["songs"],
+        albums=data.get("albums", []),
         movies=data["movies"],
         artists=data["artists"],
         directors=data["directors"],
@@ -81,4 +88,6 @@ def user_from_dict(data: dict) -> User:
         shows=data["shows"],
         art=data["art"],
         literature=data["literature"],
+        bio=data.get("bio", ""),
+        profile_image_uri=data.get("profile_image_uri"),
     )

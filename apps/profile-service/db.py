@@ -26,6 +26,7 @@ def row_to_user(row: dict) -> User:
         age_range=tuple(row["age_range"] or [0, 99]),
         events=row["events"] or [],
         songs=row["songs"] or [],
+        albums=row.get("albums") or [],
         movies=row["movies"] or [],
         artists=row["artists"] or [],
         directors=row["directors"] or [],
@@ -34,6 +35,8 @@ def row_to_user(row: dict) -> User:
         shows=row["shows"] or [],
         art=row["art"] or False,
         literature=row["literature"] or [],
+        bio=row.get("bio") or "",
+        profile_image_uri=row.get("profile_image_uri"),
     )
 
 
@@ -63,6 +66,7 @@ def update_profile(user: User):
         "age_range": list(user.age_range),
         "events": user.events,
         "songs": user.songs,
+        "albums": user.albums,
         "movies": user.movies,
         "artists": user.artists,
         "directors": user.directors,
@@ -71,11 +75,13 @@ def update_profile(user: User):
         "shows": user.shows,
         "art": user.art,
         "literature": user.literature,
+        "bio": user.bio,
+        "profile_image_uri": user.profile_image_uri,
     }).eq("id_profile", str(user.user_id)).execute()
 
 
 def create_profile(user: User):
-    supabase.table("profile").insert({
+    supabase.table("profile").upsert({
         "id_profile": str(user.user_id),
         "username": user.username,
         "dob": user.dob.isoformat(),
@@ -89,6 +95,7 @@ def create_profile(user: User):
         "age_range": list(user.age_range),
         "events": user.events,
         "songs": user.songs,
+        "albums": user.albums,
         "movies": user.movies,
         "artists": user.artists,
         "directors": user.directors,
@@ -97,6 +104,8 @@ def create_profile(user: User):
         "shows": user.shows,
         "art": user.art,
         "literature": user.literature,
+        "bio": user.bio,
+        "profile_image_uri": user.profile_image_uri,
     }).execute()
 
 

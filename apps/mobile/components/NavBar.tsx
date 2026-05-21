@@ -25,7 +25,7 @@ type Props = {
 export default function NavBar({
   eventsRoute = "EventPage",
   swipeRoute = "Welcome",
-  userRoute = "CreateProfileFirst",
+  userRoute = "PreviewProfile",
 }: Props) {
   const navigation = useNavigation<NavigationProp>();
   const route = useRoute();

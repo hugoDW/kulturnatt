@@ -13,7 +13,7 @@ export default function BackButton({ onPress }: Props) {
     <TouchableOpacity
       hitSlop={{ top: 16, right: 16, bottom: 16, left: 16 }}
       onPress={onPress}
-      style={[styles.button, { top: insets.top }]}
+      style={[styles.button, { top: Math.max(0, insets.top - 10) }]}
     >
       <Text style={styles.text}>{"<"}</Text>
     </TouchableOpacity>

@@ -25,6 +25,7 @@ import SongSearchScreen from "./screens/songSearch";
 import AlbumSearchScreen from "./screens/albumSearch";
 import CreateProfileFirst from "./screens/profileFirst";
 import ProfileCreationInfo from "./screens/profileInfo";
+import { ProfileBioScreen } from "./screens/profileBio";
 import InterestSelection from "./screens/interestSelection";
 import GenreSelection from "./screens/genreSelection";
 import ArtistSelection from "./screens/artistSearch";
@@ -32,6 +33,7 @@ import MovieSelection from "./screens/movieSelection";
 import ActorDirectorSelection from "./screens/creativeSelection";
 import ShowSelection from "./screens/showSelection";
 import LiteratureInterestScreen from "./screens/literatureInterest";
+import PreviewProfileScreen from "./screens/previewProfile";
 
 export type RootStackParamList = {
   Start: undefined;
@@ -47,6 +49,7 @@ export type RootStackParamList = {
   AlbumSearch: undefined;
   CreateProfileFirst: undefined;
   ProfileCreationInfo: undefined;
+  ProfileBio: undefined;
   InterestSelection: undefined;
   GenreSelection: undefined;
   ArtistSelection: undefined;
@@ -54,6 +57,7 @@ export type RootStackParamList = {
   ActorDirectorSelection: undefined;
   ShowSelection: undefined;
   LiteratureInterest: undefined;
+  PreviewProfile: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -215,6 +219,7 @@ export default function App() {
             <Stack.Screen name="AlbumSearch" component={AlbumSearchScreen} />
             <Stack.Screen name="CreateProfileFirst" component={CreateProfileFirst} />
             <Stack.Screen name="ProfileCreationInfo" component={ProfileCreationInfo} />
+            <Stack.Screen name="ProfileBio" component={ProfileBioScreen} />
             <Stack.Screen name="InterestSelection" component={InterestSelection} />
             <Stack.Screen name="GenreSelection" component={GenreSelection} />
             <Stack.Screen name="ArtistSelection" component={ArtistSelection} />
@@ -222,6 +227,7 @@ export default function App() {
             <Stack.Screen name="ActorDirectorSelection" component={ActorDirectorSelection} />
             <Stack.Screen name="ShowSelection" component={ShowSelection} />
             <Stack.Screen name="LiteratureInterest" component={LiteratureInterestScreen} />
+            <Stack.Screen name="PreviewProfile" component={PreviewProfileScreen} />
           </Stack.Navigator>
         </ProfileCreationProvider>
       </NavigationContainer>

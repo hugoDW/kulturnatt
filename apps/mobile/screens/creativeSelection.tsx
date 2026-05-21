@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -20,6 +19,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import CreativeDisplay from "../components/CreativeDisplay";
 import BackButton from "../components/backButton";
+import SaveAndContinueButton from "../components/saveAndContinueButton";
 import type { RootStackParamList } from "../App";
 import { searchTmdb } from "../apiservices/tmdbservice";
 import { useProfileCreation } from "../lib/profileCreation";
@@ -39,12 +39,14 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, "ActorDirect
 
 export default function CreativeSelection({ onBackPress: _onBackPress }: Props) {
   const navigation = useNavigation<NavigationProp>();
-  const { updateDraft, saveDraft, resetDraft } = useProfileCreation();
+  const { draft } = useProfileCreation();
   const [creativeModalVisible, setCreativeModalVisible] = useState(false);
   const [creativeSearch, setCreativeSearch] = useState("");
   const [creativeResults, setCreativeResults] = useState<Creative[]>([]);
   const [favoriteActors, setFavoriteActors] = useState<Creative[]>([]);
-  const [favoriteDirectors, setFavoriteDirectors] = useState<Creative[]>([]);
+  const [favoriteDirectors, setFavoriteDirectors] = useState<Creative[]>(
+    draft.directors.map((name, index) => ({ id: -(index + 1), name })),
+  );
   const [searchType, setSearchType] = useState<"actor" | "director" | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -63,8 +65,6 @@ export default function CreativeSelection({ onBackPress: _onBackPress }: Props) 
     setCreativeModalVisible(false);
     setCreativeResults([])
   }
-  const [loading, setLoading] = useState(false);
-
   const mockActors = [
     {
       id: 1,
@@ -189,26 +189,6 @@ export default function CreativeSelection({ onBackPress: _onBackPress }: Props) 
     }
   }
 
-  async function handleContinue() {
-    setLoading(true);
-
-    try {
-      const nextDraft = {
-        directors: favoriteDirectors.map((director) => director.name),
-      };
-      updateDraft(nextDraft);
-      await saveDraft(nextDraft);
-      resetDraft();
-      navigation.navigate("EventPage");
-    } catch (error) {
-      Alert.alert(
-        "Profile save failed",
-        error instanceof Error ? error.message : "Could not save your profile right now.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
     
     /*try {
       const data = await searchMovies(creativeSearch);
@@ -423,17 +403,16 @@ export default function CreativeSelection({ onBackPress: _onBackPress }: Props) 
 
           </Modal>
 
-        <TouchableOpacity
-            disabled={loading}
-            onPress={handleContinue}
-            style={[styles.finalizeButton, loading && styles.finalizeButtonDisabled]}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.finalizeButtonText}>Continue</Text>
-            )}
-          </TouchableOpacity>
+        <SaveAndContinueButton
+          selectedItems={[...favoriteActors, ...favoriteDirectors]}
+          getDraftPatch={() => ({
+            directors: favoriteDirectors.map((director) => director.name),
+          })}
+          alertTitle="Choose a creative"
+          alertMessage="Select at least one actor or director to continue."
+          style={styles.finalizeButton}
+          textStyle={styles.finalizeButtonText}
+        />
       </View>
     </KeyboardAvoidingView>
   );

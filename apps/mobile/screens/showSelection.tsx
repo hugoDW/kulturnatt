@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   FlatList,
   KeyboardAvoidingView,
   Modal,
@@ -19,6 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import BackButton from "../components/backButton";
+import SaveAndContinueButton from "../components/saveAndContinueButton";
 import type { RootStackParamList } from "../App";
 import { searchTmdb } from "../apiservices/tmdbservice";
 import { useProfileCreation } from "../lib/profileCreation";
@@ -39,11 +39,13 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, "ShowSelecti
 
 export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
   const navigation = useNavigation<NavigationProp>();
-  const { updateDraft, saveDraft, resetDraft } = useProfileCreation();
+  const { draft } = useProfileCreation();
   const [movieModalVisible, setMovieModalVisible] = useState(false);
   const [showSearch, setShowSearch] = useState("");
   const [showResults, setShowResults] = useState<Show[]>([]);
-  const [favoriteShows, setFavoriteShows] = useState<Show[]>([]);
+  const [favoriteShows, setFavoriteShows] = useState<Show[]>(
+    draft.shows.map((name, index) => ({ id: -(index + 1), name })),
+  );
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const handleGoBack = () => {
@@ -56,8 +58,6 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
     setMovieModalVisible(false);
     setShowResults([])
   }
-  const [loading, setLoading] = useState(false);
-
   const mockShows = [
     {
       id: 30991,
@@ -158,27 +158,6 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
       );
     } finally {
       setIsSearching(false);
-    }
-  }
-
-  async function handleContinue() {
-    setLoading(true);
-
-    try {
-      const nextDraft = {
-        shows: favoriteShows.map((show) => show.name),
-      };
-      updateDraft(nextDraft);
-      await saveDraft(nextDraft);
-      resetDraft();
-      navigation.navigate("EventPage");
-    } catch (error) {
-      Alert.alert(
-        "Profile save failed",
-        error instanceof Error ? error.message : "Could not save your profile right now.",
-      );
-    } finally {
-      setLoading(false);
     }
   }
 
@@ -316,17 +295,16 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
 
           </Modal>
 
-        <TouchableOpacity
-            disabled={loading}
-            onPress={handleContinue}
-            style={[styles.finalizeButton, loading && styles.finalizeButtonDisabled]}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.finalizeButtonText}>Continue</Text>
-            )}
-          </TouchableOpacity>
+        <SaveAndContinueButton
+          selectedItems={favoriteShows}
+          getDraftPatch={() => ({
+            shows: favoriteShows.map((show) => show.name),
+          })}
+          alertTitle="Choose a show"
+          alertMessage="Select at least one show to continue."
+          style={styles.finalizeButton}
+          textStyle={styles.finalizeButtonText}
+        />
       </View>
     </KeyboardAvoidingView>
   );

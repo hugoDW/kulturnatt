@@ -18,6 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import BackButton from "../components/backButton";
+import SaveAndContinueButton from "../components/saveAndContinueButton";
 import type { RootStackParamList } from "../App";
 import { searchTmdb } from "../apiservices/tmdbservice";
 import { useProfileCreation } from "../lib/profileCreation";
@@ -38,12 +39,14 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, "MovieSelect
 
 export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
   const navigation = useNavigation<NavigationProp>();
-  const { updateDraft } = useProfileCreation();
+  const { draft } = useProfileCreation();
   const [movieModalVisible, setMovieModalVisible] = useState(false);
   const [movieSearch, setMovieSearch] = useState("");
   /*const [movieResults, setMovieResults] = useState([]);*/
   const [movieResults, setMovieResults] = useState<Movie[]>([]);
-  const [favoriteMovies, setFavoriteMovies] = useState<Movie[]>([]);
+  const [favoriteMovies, setFavoriteMovies] = useState<Movie[]>(
+    draft.movies.map((title, index) => ({ id: -(index + 1), title })),
+  );
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const handleGoBack = () => {
@@ -56,8 +59,6 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
     setMovieModalVisible(false);
     setMovieResults([])
   }
-  const [loading, setLoading] = useState(false);
-
   const mockMovies = [
     {
       id: 1,
@@ -291,22 +292,16 @@ export default function MovieSelection({ onBackPress: _onBackPress }: Props) {
 
           </Modal>
 
-        <TouchableOpacity
-            disabled={loading}
-            onPress={() => {
-              updateDraft({
-                movies: favoriteMovies.map((movie) => movie.title),
-              });
-              navigation.navigate("ActorDirectorSelection");
-            }}
-            style={[styles.finalizeButton, loading && styles.finalizeButtonDisabled]}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.finalizeButtonText}>Continue</Text>
-            )}
-          </TouchableOpacity>
+        <SaveAndContinueButton
+          selectedItems={favoriteMovies}
+          getDraftPatch={() => ({
+            movies: favoriteMovies.map((movie) => movie.title),
+          })}
+          alertTitle="Choose a movie"
+          alertMessage="Select at least one movie to continue."
+          style={styles.finalizeButton}
+          textStyle={styles.finalizeButtonText}
+        />
       </View>
     </KeyboardAvoidingView>
   );

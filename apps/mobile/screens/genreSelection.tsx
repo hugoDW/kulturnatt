@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,6 +16,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import { supabase } from "../lib/supabase";
 import BackButton from "../components/backButton";
+import SaveAndContinueButton from "../components/saveAndContinueButton";
 import type { RootStackParamList } from "../App";
 import { useProfileCreation } from "../lib/profileCreation";
 
@@ -31,8 +30,8 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList, "GenreSelect
 
 export default function GenreSelection({ onBackPress: _onBackPress }: Props) {
   const navigation = useNavigation<NavigationProp>();
-  const { updateDraft } = useProfileCreation();
-  const [favoriteGenres, setFavoriteGenres] = useState<string[]>([]);
+  const { draft } = useProfileCreation();
+  const [favoriteGenres, setFavoriteGenres] = useState<string[]>(draft.music_genre);
   const MUSIC_GENRES = [
     "Ambient",
     "Blues",
@@ -52,8 +51,6 @@ export default function GenreSelection({ onBackPress: _onBackPress }: Props) {
     "Rock",
     "Singer-Songwriter"
   ]
-  const [loading, setLoading] = useState(false);
-
   function genreToggle(genre: string) {
     if( favoriteGenres.includes( genre )) {
       setFavoriteGenres(
@@ -67,12 +64,6 @@ export default function GenreSelection({ onBackPress: _onBackPress }: Props) {
         genre,
       ]);
     }
-  }
-
-
-  async function handleContinue() {
-    updateDraft({ music_genre: favoriteGenres });
-    navigation.navigate("ArtistSelection");
   }
 
   return (
@@ -131,17 +122,14 @@ export default function GenreSelection({ onBackPress: _onBackPress }: Props) {
 
         </ScrollView>
 
-        <TouchableOpacity
-            disabled={loading}
-            onPress={handleContinue}
-            style={[styles.finalizeButton, loading && styles.finalizeButtonDisabled]}
-          >
-            {loading ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.finalizeButtonText}>Continue</Text>
-            )}
-          </TouchableOpacity>
+        <SaveAndContinueButton
+          selectedItems={favoriteGenres}
+          getDraftPatch={() => ({ music_genre: favoriteGenres })}
+          alertTitle="Choose a genre"
+          alertMessage="Select at least one music genre to continue."
+          style={styles.finalizeButton}
+          textStyle={styles.finalizeButtonText}
+        />
       </View>
     </KeyboardAvoidingView>
   );

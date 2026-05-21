@@ -30,6 +30,7 @@ def make_user(**overrides) -> User:
         age_range=[20, 30],
         events=[],
         songs=[],
+        albums=[],
         movies=[],
         artists=[],
         directors=[],

@@ -13,7 +13,9 @@ import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
 import BackButton from "../components/backButton";
+import SaveAndContinueButton from "../components/saveAndContinueButton";
 import { apiGetJson } from "../apiservices/apiClient";
+import { useProfileCreation } from "../lib/profileCreation";
 
 type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -38,9 +40,12 @@ type AlbumResult = {
 
 export default function AlbumSearchScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const { draft } = useProfileCreation();
+
   const [searchText, setSearchText] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [albums, setAlbums] = useState<AlbumResult[]>([]);
+  const [selectedAlbums, setSelectedAlbums] = useState<string[]>(draft.albums);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -68,7 +73,9 @@ export default function AlbumSearchScreen() {
       setAlbums(json.results ?? []);
     } catch (error) {
       setErrorMessage(
-        error instanceof Error ? error.message : "Could not load albums right now.",
+        error instanceof Error
+          ? error.message
+          : "Could not load albums right now.",
       );
     } finally {
       setIsLoading(false);
@@ -86,15 +93,41 @@ export default function AlbumSearchScreen() {
     setErrorMessage(null);
   }
 
+  function getAlbumLabel(album: AlbumResult) {
+    const title = album.title?.trim();
+
+    if (!title) {
+      return null;
+    }
+
+    return album.artists ? `${title} - ${album.artists}` : title;
+  }
+
+  function toggleAlbum(album: AlbumResult) {
+    const label = getAlbumLabel(album);
+
+    if (!label) {
+      return;
+    }
+
+    setSelectedAlbums((current) =>
+      current.includes(label)
+        ? current.filter((albumName) => albumName !== label)
+        : [...current, label],
+    );
+  }
+
+  function handleSkip() {
+    navigation.navigate("PreviewProfile");
+  }
+
   return (
     <View style={styles.container}>
-      <BackButton
-        onPress={() =>
-          navigation.canGoBack()
-            ? navigation.goBack()
-            : navigation.navigate("EventPage")
-        }
-      />
+      <BackButton onPress={() => navigation.goBack()} />
+
+      <Pressable style={styles.topSkipButton} onPress={handleSkip}>
+        <Text style={styles.topSkipButtonText}>Skip</Text>
+      </Pressable>
 
       <View style={styles.logoSection}>
         <Text style={styles.logo}>tsm</Text>
@@ -110,17 +143,19 @@ export default function AlbumSearchScreen() {
         keyboardShouldPersistTaps="handled"
         ListHeaderComponent={
           <>
-            <Text style={styles.title}>Search albums</Text>
+            <Text style={styles.title}>What are your favorite albums?</Text>
+
             <View style={styles.searchRow}>
               <TextInput
                 value={searchText}
                 onChangeText={setSearchText}
                 onSubmitEditing={submitSearch}
-                placeholder="Album or artist"
+                placeholder="Enter album name"
                 placeholderTextColor="#6F7482"
                 returnKeyType="search"
                 style={styles.searchInput}
               />
+
               <Pressable
                 accessibilityLabel="Search albums"
                 style={styles.searchButton}
@@ -134,6 +169,28 @@ export default function AlbumSearchScreen() {
               <Pressable style={styles.clearButton} onPress={clearSearch}>
                 <Text style={styles.clearButtonText}>Clear search</Text>
               </Pressable>
+            ) : null}
+
+            {selectedAlbums.length ? (
+              <View style={styles.selectedBlock}>
+                <Text style={styles.selectedTitle}>Selected albums</Text>
+
+                <View style={styles.selectedWrap}>
+                  {selectedAlbums.map((album) => (
+                    <Pressable
+                      key={album}
+                      style={styles.selectedChip}
+                      onPress={() =>
+                        setSelectedAlbums((current) =>
+                          current.filter((albumName) => albumName !== album),
+                        )
+                      }
+                    >
+                      <Text style={styles.selectedChipText}>{album}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
             ) : null}
 
             {isLoading ? (
@@ -159,21 +216,50 @@ export default function AlbumSearchScreen() {
             </View>
           ) : null
         }
-        renderItem={({ item }) => <AlbumCard album={item} />}
+        renderItem={({ item }) => (
+          <AlbumCard
+            album={item}
+            selected={selectedAlbums.includes(getAlbumLabel(item) ?? "")}
+            onPress={() => toggleAlbum(item)}
+          />
+        )}
       />
+
+      <View style={styles.footer}>
+        <SaveAndContinueButton
+          selectedItems={selectedAlbums}
+          getDraftPatch={() => ({ albums: selectedAlbums })}
+          alertTitle="Choose an album"
+          alertMessage="Select at least one album to continue."
+          style={styles.continueButton}
+          textStyle={styles.continueButtonText}
+        />
+      </View>
     </View>
   );
 }
 
-function AlbumCard({ album }: { album: AlbumResult }) {
+function AlbumCard({
+  album,
+  selected,
+  onPress,
+}: {
+  album: AlbumResult;
+  selected: boolean;
+  onPress: () => void;
+}) {
   const imageUrl = album.cover?.thumb_250 ?? album.cover?.image_url;
   const trackCount = album.total_tracks ? `${album.total_tracks} tracks` : null;
+
   const meta = [album.artists, album.year, album.type, trackCount]
     .filter(Boolean)
     .join(" - ");
 
   return (
-    <View style={styles.card}>
+    <Pressable
+      style={[styles.card, selected && styles.cardSelected]}
+      onPress={onPress}
+    >
       {imageUrl ? (
         <Image source={{ uri: imageUrl }} style={styles.cardImage} />
       ) : (
@@ -183,10 +269,14 @@ function AlbumCard({ album }: { album: AlbumResult }) {
       )}
 
       <View style={styles.cardBody}>
-        <Text style={styles.cardTitle}>{album.title ?? "Untitled album"}</Text>
+        <View style={styles.cardTitleRow}>
+          <Text style={styles.cardTitle}>{album.title ?? "Untitled album"}</Text>
+          {selected ? <Text style={styles.selectedMark}>Selected</Text> : null}
+        </View>
+
         {meta ? <Text style={styles.metaText}>{meta}</Text> : null}
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -204,6 +294,22 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#ECF2FF",
     alignItems: "center",
+  },
+
+  topSkipButton: {
+    position: "absolute",
+    top: 40,
+    right: 22,
+    zIndex: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+
+  topSkipButtonText: {
+    fontFamily: "Inter",
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#000000",
   },
 
   logoSection: {
@@ -225,14 +331,14 @@ const styles = StyleSheet.create({
   content: {
     paddingHorizontal: 22,
     paddingTop: 34,
-    paddingBottom: 44,
+    paddingBottom: 128,
   },
 
   title: {
     fontFamily: "Inter",
     fontSize: 24,
     fontWeight: "900",
-    color: "#000050",
+    color: "#000000",
   },
 
   searchRow: {
@@ -299,7 +405,7 @@ const styles = StyleSheet.create({
 
   clearButtonText: {
     fontFamily: "Inter",
-    color: "#000050",
+    color: "#000000",
     fontSize: 14,
     fontWeight: "700",
   },
@@ -325,6 +431,38 @@ const styles = StyleSheet.create({
     color: "#9F1239",
   },
 
+  selectedBlock: {
+    marginTop: 14,
+  },
+
+  selectedTitle: {
+    fontFamily: "Inter",
+    fontSize: 14,
+    fontWeight: "900",
+    color: "#6C5CE7",
+  },
+
+  selectedWrap: {
+    marginTop: 8,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+  },
+
+  selectedChip: {
+    borderRadius: 18,
+    backgroundColor: "#6C5CE7",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+
+  selectedChipText: {
+    fontFamily: "Inter",
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+
   card: {
     marginBottom: 12,
     borderRadius: 8,
@@ -332,6 +470,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#D7E0F3",
     overflow: "hidden",
+  },
+
+  cardSelected: {
+    borderColor: "#6C5CE7",
+    borderWidth: 2,
   },
 
   cardImage: {
@@ -352,18 +495,33 @@ const styles = StyleSheet.create({
     fontFamily: "Inter",
     fontSize: 15,
     fontWeight: "900",
-    color: "#000050",
+    color: "#6C5CE7",
   },
 
   cardBody: {
     padding: 14,
   },
 
+  cardTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+
   cardTitle: {
+    flex: 1,
     fontFamily: "Inter",
     fontSize: 18,
     fontWeight: "900",
     color: "#111827",
+  },
+
+  selectedMark: {
+    fontFamily: "Inter",
+    fontSize: 12,
+    fontWeight: "900",
+    color: "#6C5CE7",
   },
 
   metaText: {
@@ -372,5 +530,30 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 18,
     color: "#4B5563",
+  },
+
+  footer: {
+    position: "absolute",
+    left: 22,
+    right: 22,
+    bottom: 24,
+    flexDirection: "row",
+    gap: 12,
+  },
+
+  continueButton: {
+    flex: 1,
+    height: 54,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#202124",
+  },
+
+  continueButtonText: {
+    fontFamily: "Inter",
+    fontSize: 14,
+    fontWeight: "900",
+    color: "#FFFFFF",
   },
 });
