@@ -20,20 +20,9 @@ import WelcomeScreen from "./screens/welcome";
 import ForgotPasswordScreen from "./screens/forgotPassword";
 import ResetPasswordScreen from "./screens/resetPassword";
 import EventPageScreen from "./screens/eventPage";
-import ArtistSearchScreen from "./screens/artistSearch";
-import SongSearchScreen from "./screens/songSearch";
-import AlbumSearchScreen from "./screens/albumSearch";
-import CreateProfileFirst from "./screens/profileFirst";
-import ProfileCreationInfo from "./screens/profileInfo";
-import { ProfileBioScreen } from "./screens/profileBio";
-import InterestSelection from "./screens/interestSelection";
-import GenreSelection from "./screens/genreSelection";
-import ArtistSelection from "./screens/artistSearch";
-import MovieSelection from "./screens/movieSelection";
-import ActorDirectorSelection from "./screens/creativeSelection";
-import ShowSelection from "./screens/showSelection";
-import LiteratureInterestScreen from "./screens/literatureInterest";
 import PreviewProfileScreen from "./screens/previewProfile";
+import ProfileWizard from "./screens/profileWizard";
+import SwipeScreen from "./screens/swipe";
 
 export type RootStackParamList = {
   Start: undefined;
@@ -44,20 +33,9 @@ export type RootStackParamList = {
   ForgotPassword: undefined;
   ResetPassword: undefined;
   EventPage: { accessToken?: string } | undefined;
-  ArtistSearch: undefined;
-  SongSearch: undefined;
-  AlbumSearch: undefined;
-  CreateProfileFirst: undefined;
-  ProfileCreationInfo: undefined;
-  ProfileBio: undefined;
-  InterestSelection: undefined;
-  GenreSelection: undefined;
-  ArtistSelection: undefined;
-  MovieSelection: undefined;
-  ActorDirectorSelection: undefined;
-  ShowSelection: undefined;
-  LiteratureInterest: undefined;
   PreviewProfile: undefined;
+  ProfileWizard: undefined;
+  Swipe: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -214,20 +192,9 @@ export default function App() {
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
             <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
             <Stack.Screen name="EventPage" component={EventPageScreen} />
-            <Stack.Screen name="ArtistSearch" component={ArtistSearchScreen} />
-            <Stack.Screen name="SongSearch" component={SongSearchScreen} />
-            <Stack.Screen name="AlbumSearch" component={AlbumSearchScreen} />
-            <Stack.Screen name="CreateProfileFirst" component={CreateProfileFirst} />
-            <Stack.Screen name="ProfileCreationInfo" component={ProfileCreationInfo} />
-            <Stack.Screen name="ProfileBio" component={ProfileBioScreen} />
-            <Stack.Screen name="InterestSelection" component={InterestSelection} />
-            <Stack.Screen name="GenreSelection" component={GenreSelection} />
-            <Stack.Screen name="ArtistSelection" component={ArtistSelection} />
-            <Stack.Screen name="MovieSelection" component={MovieSelection} />
-            <Stack.Screen name="ActorDirectorSelection" component={ActorDirectorSelection} />
-            <Stack.Screen name="ShowSelection" component={ShowSelection} />
-            <Stack.Screen name="LiteratureInterest" component={LiteratureInterestScreen} />
             <Stack.Screen name="PreviewProfile" component={PreviewProfileScreen} />
+            <Stack.Screen name="ProfileWizard" component={ProfileWizard} />
+            <Stack.Screen name="Swipe" component={SwipeScreen} />
           </Stack.Navigator>
         </ProfileCreationProvider>
       </NavigationContainer>

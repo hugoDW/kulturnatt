@@ -1,9 +1,11 @@
-import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
 import BackButton from "../components/backButton";
+import { getProfileSetup } from "../apiservices/profileService";
+import { supabase } from "../lib/supabase";
 
 type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -12,6 +14,45 @@ type NavigationProp = NativeStackNavigationProp<
 
 export default function WelcomeScreen() {
   const navigation = useNavigation<NavigationProp>();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (cancelled) return;
+
+      if (!session?.access_token) {
+        // No active session — send them to login
+        navigation.reset({ index: 0, routes: [{ name: "Start" }] });
+        return;
+      }
+
+      try {
+        const profile = await getProfileSetup();
+        if (cancelled) return;
+        if (profile) {
+          navigation.reset({ index: 0, routes: [{ name: "EventPage" }] });
+          return;
+        }
+      } catch {
+        // Profile fetch failed; show the create-profile path
+      }
+
+      if (!cancelled) setChecking(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [navigation]);
+
+  if (checking) {
+    return (
+      <View style={[styles.container, styles.loadingContainer]}>
+        <ActivityIndicator color="#000050" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -33,7 +74,7 @@ export default function WelcomeScreen() {
 
       <TouchableOpacity
         style={styles.button}
-        onPress={() => navigation.navigate("CreateProfileFirst")}
+        onPress={() => navigation.navigate("ProfileWizard")}
       >
         <Text style={styles.buttonText}>Continue to create profile</Text>
       </TouchableOpacity>
@@ -46,6 +87,10 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#ECF2FF",
     alignItems: "center",
+  },
+
+  loadingContainer: {
+    justifyContent: "center",
   },
 
   logoSection: {
