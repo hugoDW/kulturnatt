@@ -1,13 +1,32 @@
 # bestämmer vilka personer som visas för användaren, baserat på deras preferenser och tidigare swipes
 from user import User
 
+GENDER_TO_PREFERENCE = {
+    "woman": "women",
+    "man": "men",
+    "female": "women",
+    "male": "men",
+    "non-binary": "non-binary",
+}
+
+
+def gender_is_preferred(profile_gender: str, preferred_genders: list[str]) -> bool:
+    if profile_gender in preferred_genders:
+        return True
+    mapped = GENDER_TO_PREFERENCE.get(profile_gender)
+    return mapped in preferred_genders if mapped else False
+
+
 # skapa en lista med filtrerade användare som används för scoring
 def filter_users(current_user: User, all_users: list[User]) -> list[User]:
     user_pool = []
     for user in all_users:
         not_self = (user.user_id != current_user.user_id)
         age_ok = (user.age_range[0] <= current_user.age <= user.age_range[1] and current_user.age_range[0] <= user.age <= current_user.age_range[1])
-        gender_ok = (user.gender in current_user.preferred_gender and current_user.gender in user.preferred_gender)
+        gender_ok = (
+            gender_is_preferred(user.gender, current_user.preferred_gender)
+            and gender_is_preferred(current_user.gender, user.preferred_gender)
+        )
         not_blocked = (user.user_id not in current_user.blocked_users and current_user.user_id not in user.blocked_users)
         not_rejected = (user.user_id not in current_user.rejected_users)
         if not_self and age_ok and gender_ok and not_blocked and not_rejected:

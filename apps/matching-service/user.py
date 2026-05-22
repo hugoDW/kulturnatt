@@ -29,6 +29,7 @@ class User:
         literature: list[str],
         bio: str = "",
         profile_image_uri: str | None = None,
+        actors: list[str] | None = None,
     ):
         self.user_id = user_id
         self.username = username
@@ -54,6 +55,7 @@ class User:
         self.literature = literature
         self.bio = bio
         self.profile_image_uri = profile_image_uri
+        self.actors = actors or []
 
     @property
     def age(self) -> int:
@@ -90,4 +92,5 @@ def user_from_dict(data: dict) -> User:
         literature=data["literature"],
         bio=data.get("bio", ""),
         profile_image_uri=data.get("profile_image_uri"),
+        actors=data.get("actors", []),
     )

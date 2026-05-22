@@ -20,7 +20,9 @@ def get_all_users() -> list[User]:
     response = requests.get(
         f"{PROFILE_SERVICE_URL}/internal/users",
         headers={"X-Internal-Secret": INTERNAL_SECRET},
+        timeout=30,
     )
+    response.raise_for_status()
     return [user_from_dict(item) for item in response.json()]
 
 
@@ -29,19 +31,23 @@ def get_user(user_id: uuid.UUID) -> User | None:
     response = requests.get(
         f"{PROFILE_SERVICE_URL}/internal/users/{user_id}",
         headers={"X-Internal-Secret": INTERNAL_SECRET},
+        timeout=30,
     )
     if response.status_code == 404:
         return None
+    response.raise_for_status()
     return user_from_dict(response.json())
 
 
 # sparar ny ranked list för en användare
 def save_ranked_list(user_id: uuid.UUID, ranked_list: list[dict]):
-    requests.put(
+    response = requests.put(
         f"{PROFILE_SERVICE_URL}/internal/users/{user_id}/ranked_list",
         headers={"X-Internal-Secret": INTERNAL_SECRET},
         json={"ranked_list": ranked_list},
+        timeout=30,
     )
+    response.raise_for_status()
 
 
 # sparar liked_users för en användare

@@ -32,7 +32,7 @@ def perform_match(user_a: User, user_b: User) -> dict | None:
     return create_match(user_a, user_b)
 
 
-# räknar om ranked list för en uppdaterad användare och alla andra som hade hen i sin ranked list
+# räknar om ranked list för alla användare när en profil har sparats eller uppdaterats
 # kallas av matching-service /internal/recompute när profile-service har sparat en ändring
 def recompute_for_user(updated_user_id: uuid.UUID):
     all_users = get_all_users()
@@ -40,13 +40,8 @@ def recompute_for_user(updated_user_id: uuid.UUID):
     if updated_user is None:
         return
 
-    _compute_and_save(updated_user, all_users)
-
-    # uppdatera även andras ranked list om de redan hade den uppdaterade användaren med
     for user in all_users:
-        already_ranked = any(entry["user_id"] == str(updated_user_id) for entry in user.user_ranked_list)
-        if already_ranked and user.user_id != updated_user_id:
-            _compute_and_save(user, all_users)
+        _compute_and_save(user, all_users)
 
 
 def perform_swipe(current_user: User, target_user: User, action: str) -> dict:

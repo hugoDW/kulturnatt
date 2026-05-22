@@ -1,6 +1,7 @@
 import uuid
 from typing import Literal
 
+import logging
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel
 
@@ -10,6 +11,7 @@ from profile_client import get_user
 from services import perform_swipe, recompute_for_user
 
 app = FastAPI()
+logger = logging.getLogger(__name__)
 
 
 @app.get("/health")
@@ -38,5 +40,9 @@ def swipe(
 # intern route — kallas av profile-service efter att en profil har sparats eller uppdaterats
 @app.post("/internal/recompute/{user_id}", dependencies=[Depends(require_internal_secret)])
 def internal_recompute(user_id: uuid.UUID):
-    recompute_for_user(user_id)
+    try:
+        recompute_for_user(user_id)
+    except Exception as error:
+        logger.exception("Recompute failed for %s", user_id)
+        raise HTTPException(status_code=500, detail=str(error)) from error
     return {"status": "ok"}
