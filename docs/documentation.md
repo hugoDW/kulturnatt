@@ -213,8 +213,8 @@ Authorization: Bearer <token>
 - `id_profile` (UUID, FK → `auth.users.id`) — kopplar profilen till auth-användaren
 - `username` (text)
 - `dob` (date, ISO `YYYY-MM-DD`) — **lagras som födelsedatum, inte ålder**
-- `gender`, `preferred_gender`, `age_range`
-- `events`, `songs`, `movies`, `shows`, `artists`, `directors`
+- `gender`, `preferred_gender`, `age_range`, `location`
+- `events`, `songs`, `movies`, `shows`, `artists`, `directors`, `actors`, `albums`
 - `music_genre`, `movie_genre`, `art`, `literature`
 - `liked_users`, `rejected_users`, `blocked_users`, `matched_users` — listor med UUIDs
 - `user_ranked_list` — förberäknad lista med sorterade matchkandidater (JSON)
@@ -258,6 +258,7 @@ Skapar profil för den inloggade. Anropas en gång efter registrering.
   "shows": ["Succession"],
   "artists": ["The Weeknd"],
   "directors": ["Christopher Nolan"],
+  "actors": ["Timothée Chalamet"],
   "music_genre": ["pop", "r&b"],
   "movie_genre": ["thriller"],
   "art": false,

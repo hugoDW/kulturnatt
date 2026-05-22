@@ -1,2 +1,2 @@
-user_id,username,age,gender,preferred_gender,blocked_users,rejected_users,liked_users,matched_users,user_ranked_list,age_range,events,songs,movies,artists,directors,music_genre,movie_genre
+user_id,username,age,gender,preferred_gender,blocked_users,rejected_users,liked_users,matched_users,user_ranked_list,age_range,events,songs,movies,artists,directors,actors,music_genre,movie_genre
 1,testuser,25,male,both,"{}","{}","{}","{}","{}","{20,30}","{}","{}","{}","{}","{}","{}","{}"
