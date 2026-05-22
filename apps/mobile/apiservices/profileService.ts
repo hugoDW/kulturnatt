@@ -15,12 +15,14 @@ export type ProfileSetupPayload = {
   shows: string[];
   artists: string[];
   directors: string[];
+  actors: string[];
   music_genre: string[];
   movie_genre: string[];
   art: boolean;
   literature: string[];
   bio: string;
   profile_image_uri: string | null;
+  location: string;
 };
 
 async function getAccessToken() {
@@ -53,7 +55,16 @@ export async function saveProfileSetup(payload: ProfileSetupPayload) {
   });
 
   if (!response.ok) {
-    throw new Error("Could not save your profile right now.");
+    let detail = "Could not save your profile right now.";
+    try {
+      const payload = await response.json();
+      if (typeof payload?.detail === "string") {
+        detail = payload.detail;
+      }
+    } catch {
+      // keep default message
+    }
+    throw new Error(detail);
   }
 
   return response.json();
@@ -76,7 +87,16 @@ export async function updateProfile(payload: ProfileSetupPayload) {
   });
 
   if (!response.ok) {
-    throw new Error("Could not update your profile right now.");
+    let detail = "Could not update your profile right now.";
+    try {
+      const payload = await response.json();
+      if (typeof payload?.detail === "string") {
+        detail = payload.detail;
+      }
+    } catch {
+      // keep default message
+    }
+    throw new Error(detail);
   }
 
   return response.json();

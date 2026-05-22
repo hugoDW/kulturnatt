@@ -82,3 +82,24 @@ export async function apiGetJson<T>(
 
   return (await response.json()) as T;
 }
+
+export async function apiPostJson<T>(
+  path: string,
+  body: unknown,
+  fallbackMessage = "Request failed.",
+  authErrorMessage = "Log in again to continue.",
+) {
+  const response = await apiFetch(path, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  }, authErrorMessage);
+
+  if (!response.ok) {
+    throw new Error(await getResponseError(response, fallbackMessage));
+  }
+
+  return (await response.json()) as T;
+}
