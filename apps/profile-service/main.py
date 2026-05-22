@@ -1,3 +1,4 @@
+import logging
 import os
 import uuid
 from datetime import date
@@ -41,6 +42,7 @@ load_dotenv()
 MATCHING_SERVICE_URL = os.environ.get("MATCHING_SERVICE_URL", "http://matching-service:8002")
 
 app = FastAPI()
+logger = logging.getLogger(__name__)
 
 
 @app.get("/health")
@@ -51,14 +53,24 @@ def health():
 # triggar matching-service att räkna om ranked list när en profil ändras eller skapas
 def trigger_recompute(user_id: uuid.UUID):
     try:
-        requests.post(
+        response = requests.post(
             f"{MATCHING_SERVICE_URL}/internal/recompute/{user_id}",
             headers={"X-Internal-Secret": INTERNAL_SECRET},
-            timeout=10,
+            timeout=30,
         )
-    except requests.RequestException:
-        # om matching-service är nere ska profil-sparandet ändå lyckas
-        pass
+        if response.status_code != 200:
+            logger.warning(
+                "Matching recompute failed for %s: %s %s",
+                user_id,
+                response.status_code,
+                response.text,
+            )
+    except requests.RequestException as error:
+        logger.warning(
+            "Matching recompute request failed for %s: %s",
+            user_id,
+            error,
+        )
 
 
 class ProfileSetupRequest(BaseModel):
@@ -74,12 +86,14 @@ class ProfileSetupRequest(BaseModel):
     shows: list[str]
     artists: list[str]
     directors: list[str]
+    actors: list[str] = []
     music_genre: list[str]
     movie_genre: list[str]
     art: bool
     literature: list[str]
     bio: str = ""
     profile_image_uri: str | None = None
+    location: str = ""
 
 
 def profile_setup_response(user: User) -> dict:
@@ -96,12 +110,22 @@ def profile_setup_response(user: User) -> dict:
         "shows": user.shows,
         "artists": user.artists,
         "directors": user.directors,
+        "actors": user.actors,
         "music_genre": user.music_genre,
         "movie_genre": user.movie_genre,
         "art": user.art,
         "literature": user.literature,
         "bio": user.bio,
         "profile_image_uri": user.profile_image_uri,
+        "location": user.location,
+    }
+
+
+def swipe_profile_response(user: User, score: int) -> dict:
+    return {
+        **profile_setup_response(user),
+        "user_id": str(user.user_id),
+        "score": score,
     }
 
 
@@ -118,12 +142,14 @@ def apply_profile_setup_request(user: User, request: ProfileSetupRequest) -> Use
     user.shows = request.shows
     user.artists = request.artists
     user.directors = request.directors
+    user.actors = request.actors
     user.music_genre = request.music_genre
     user.movie_genre = request.movie_genre
     user.art = request.art
     user.literature = request.literature
     user.bio = request.bio
     user.profile_image_uri = request.profile_image_uri
+    user.location = request.location
     return user
 
 
@@ -159,6 +185,7 @@ def profile_setup(
         movies=request.movies,
         artists=request.artists,
         directors=request.directors,
+        actors=request.actors,
         music_genre=request.music_genre,
         movie_genre=request.movie_genre,
         shows=request.shows,
@@ -166,9 +193,12 @@ def profile_setup(
         literature=request.literature,
         bio=request.bio,
         profile_image_uri=request.profile_image_uri,
+        location=request.location,
     )
-    create_profile(user)
-    # be matching-service räkna om ranked list för den nya användaren
+    try:
+        create_profile(user)
+    except RuntimeError as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
     trigger_recompute(user_id)
     return {"status": "ok"}
 
@@ -186,12 +216,14 @@ class UpdateProfileRequest(BaseModel):
     shows: list[str]
     artists: list[str]
     directors: list[str]
+    actors: list[str] = []
     music_genre: list[str]
     movie_genre: list[str]
     art: bool
     literature: list[str]
     bio: str = ""
     profile_image_uri: str | None = None
+    location: str = ""
 
 
 @app.put("/profile/update")
@@ -199,7 +231,6 @@ def profile_update(
     request: UpdateProfileRequest,
     user_id: uuid.UUID = Depends(get_current_user),
 ):
-    # hämta användaren, uppdatera fälten och spara
     user = get_user(user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="Profile not found")
@@ -215,25 +246,48 @@ def profile_update(
     user.shows = request.shows
     user.artists = request.artists
     user.directors = request.directors
+    user.actors = request.actors
     user.music_genre = request.music_genre
     user.movie_genre = request.movie_genre
     user.art = request.art
     user.literature = request.literature
     user.bio = request.bio
     user.profile_image_uri = request.profile_image_uri
-    update_profile(user)
-    # uppdaterad profil → triggra omräkning hos matching-service
+    user.location = request.location
+    try:
+        update_profile(user)
+    except RuntimeError as error:
+        raise HTTPException(status_code=500, detail=str(error)) from error
     trigger_recompute(user_id)
     return {"status": "ok"}
 
 
 @app.get("/profile/swipes")
-def get_swipes(user_id: uuid.UUID = Depends(get_current_user)):
-    # hämta användaren och returnera deras ranked list
+def profile_swipes(user_id: uuid.UUID = Depends(get_current_user)):
     user = get_user(user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="Profile not found")
-    return {"user_ranked_list": user.user_ranked_list}
+
+    profiles_by_id = {str(other.user_id): other for other in get_all_users()}
+    already_seen = {
+        *{str(other_id) for other_id in user.liked_users},
+        *{str(other_id) for other_id in user.rejected_users},
+        *{str(other_id) for other_id in user.matched_users},
+    }
+    enriched = []
+
+    for entry in user.user_ranked_list:
+        other_id = entry.get("user_id", "")
+        if other_id in already_seen:
+            continue
+        other = profiles_by_id.get(other_id)
+        if other is None:
+            continue
+        enriched.append(
+            swipe_profile_response(other, entry.get("score", 0)),
+        )
+
+    return {"user_ranked_list": enriched}
 
 
 def raise_external_api_error(error: ExternalApiError):

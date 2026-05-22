@@ -22,6 +22,7 @@ class User:
         movies: list[str],
         artists: list[str],
         directors: list[str],
+        actors: list[str],
         music_genre: list[str],
         movie_genre: list[str],
         shows: list[str],
@@ -29,6 +30,7 @@ class User:
         literature: list[str],
         bio: str = "",
         profile_image_uri: str | None = None,
+        location: str = "",
     ):
         self.user_id = user_id
         self.username = username
@@ -47,6 +49,7 @@ class User:
         self.movies = movies
         self.artists = artists
         self.directors = directors
+        self.actors = actors
         self.music_genre = music_genre
         self.movie_genre = movie_genre
         self.shows = shows
@@ -54,6 +57,7 @@ class User:
         self.literature = literature
         self.bio = bio
         self.profile_image_uri = profile_image_uri
+        self.location = location
 
     @property
     def age(self) -> int:
@@ -83,6 +87,7 @@ def user_to_dict(user: User) -> dict:
         "movies": user.movies,
         "artists": user.artists,
         "directors": user.directors,
+        "actors": user.actors,
         "music_genre": user.music_genre,
         "movie_genre": user.movie_genre,
         "shows": user.shows,
@@ -90,6 +95,7 @@ def user_to_dict(user: User) -> dict:
         "literature": user.literature,
         "bio": user.bio,
         "profile_image_uri": user.profile_image_uri,
+        "location": user.location,
     }
 
 
@@ -113,6 +119,7 @@ def user_from_dict(data: dict) -> User:
         movies=data["movies"],
         artists=data["artists"],
         directors=data["directors"],
+        actors=data.get("actors", []),
         music_genre=data["music_genre"],
         movie_genre=data["movie_genre"],
         shows=data["shows"],
@@ -120,4 +127,5 @@ def user_from_dict(data: dict) -> User:
         literature=data["literature"],
         bio=data.get("bio", ""),
         profile_image_uri=data.get("profile_image_uri"),
+        location=data.get("location", ""),
     )

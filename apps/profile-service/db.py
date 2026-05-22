@@ -1,3 +1,4 @@
+import logging
 import uuid
 import os
 from datetime import date
@@ -6,9 +7,18 @@ from supabase import create_client, Client
 from user import User
 
 load_dotenv()
+logger = logging.getLogger(__name__)
 url = os.environ.get("SUPABASE_URL")
 key = os.environ.get("SUPABASE_KEY")
 supabase: Client = create_client(url, key)
+
+
+def _execute(query, action: str):
+    try:
+        return query.execute()
+    except Exception as error:
+        logger.exception("Supabase %s failed", action)
+        raise RuntimeError(f"Database {action} failed: {error}") from error
 
 
 def row_to_user(row: dict) -> User:
@@ -30,6 +40,7 @@ def row_to_user(row: dict) -> User:
         movies=row["movies"] or [],
         artists=row["artists"] or [],
         directors=row["directors"] or [],
+        actors=row.get("actors") or [],
         music_genre=row["music_genre"] or [],
         movie_genre=row["movie_genre"] or [],
         shows=row["shows"] or [],
@@ -37,6 +48,7 @@ def row_to_user(row: dict) -> User:
         literature=row["literature"] or [],
         bio=row.get("bio") or "",
         profile_image_uri=row.get("profile_image_uri"),
+        location=row.get("location") or "",
     )
 
 
@@ -54,30 +66,40 @@ def get_user(user_id: uuid.UUID) -> User | None:
 
 
 def save_ranked_list(user_id: uuid.UUID, ranked_list: list[dict]):
-    supabase.table("profile").update({"user_ranked_list": ranked_list}).eq("id_profile", str(user_id)).execute()
+    _execute(
+        supabase.table("profile")
+        .update({"user_ranked_list": ranked_list})
+        .eq("id_profile", str(user_id)),
+        "ranked list update",
+    )
 
 
 def update_profile(user: User):
-    supabase.table("profile").update({
-        "username": user.username,
-        "dob": user.dob.isoformat(),
-        "gender": user.gender,
-        "preferred_gender": user.preferred_gender,
-        "age_range": list(user.age_range),
-        "events": user.events,
-        "songs": user.songs,
-        "albums": user.albums,
-        "movies": user.movies,
-        "artists": user.artists,
-        "directors": user.directors,
-        "music_genre": user.music_genre,
-        "movie_genre": user.movie_genre,
-        "shows": user.shows,
-        "art": user.art,
-        "literature": user.literature,
-        "bio": user.bio,
-        "profile_image_uri": user.profile_image_uri,
-    }).eq("id_profile", str(user.user_id)).execute()
+    _execute(
+        supabase.table("profile").update({
+            "username": user.username,
+            "dob": user.dob.isoformat(),
+            "gender": user.gender,
+            "preferred_gender": user.preferred_gender,
+            "age_range": list(user.age_range),
+            "events": user.events,
+            "songs": user.songs,
+            "albums": user.albums,
+            "movies": user.movies,
+            "artists": user.artists,
+            "directors": user.directors,
+            "actors": user.actors,
+            "music_genre": user.music_genre,
+            "movie_genre": user.movie_genre,
+            "shows": user.shows,
+            "art": user.art,
+            "literature": user.literature,
+            "bio": user.bio,
+            "profile_image_uri": user.profile_image_uri,
+            "location": user.location,
+        }).eq("id_profile", str(user.user_id)),
+        "profile update",
+    )
 
 
 def create_profile(user: User):
@@ -94,32 +116,37 @@ def create_profile(user: User):
         update_profile(user)
         return
 
-    supabase.table("profile").insert({
-        "id_profile": str(user.user_id),
-        "username": user.username,
-        "dob": user.dob.isoformat(),
-        "gender": user.gender,
-        "preferred_gender": user.preferred_gender,
-        "user_ranked_list": [],
-        "blocked_users": [],
-        "rejected_users": [],
-        "liked_users": [],
-        "matched_users": [],
-        "age_range": list(user.age_range),
-        "events": user.events,
-        "songs": user.songs,
-        "albums": user.albums,
-        "movies": user.movies,
-        "artists": user.artists,
-        "directors": user.directors,
-        "music_genre": user.music_genre,
-        "movie_genre": user.movie_genre,
-        "shows": user.shows,
-        "art": user.art,
-        "literature": user.literature,
-        "bio": user.bio,
-        "profile_image_uri": user.profile_image_uri,
-    }).execute()
+    _execute(
+        supabase.table("profile").insert({
+            "id_profile": str(user.user_id),
+            "username": user.username,
+            "dob": user.dob.isoformat(),
+            "gender": user.gender,
+            "preferred_gender": user.preferred_gender,
+            "user_ranked_list": [],
+            "blocked_users": [],
+            "rejected_users": [],
+            "liked_users": [],
+            "matched_users": [],
+            "age_range": list(user.age_range),
+            "events": user.events,
+            "songs": user.songs,
+            "albums": user.albums,
+            "movies": user.movies,
+            "artists": user.artists,
+            "directors": user.directors,
+            "actors": user.actors,
+            "music_genre": user.music_genre,
+            "movie_genre": user.movie_genre,
+            "shows": user.shows,
+            "art": user.art,
+            "literature": user.literature,
+            "bio": user.bio,
+            "profile_image_uri": user.profile_image_uri,
+            "location": user.location,
+        }),
+        "profile insert",
+    )
 
 
 def save_match(
