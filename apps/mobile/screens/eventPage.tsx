@@ -31,6 +31,7 @@ import {
   type LikedEvent,
 } from "../lib/likedEvents";
 import { supabase } from "../lib/supabase";
+import { selectionChipColors, selectionChipStyles } from "../lib/selectionChipStyles";
 
 type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -245,23 +246,16 @@ export default function EventPageScreen() {
 
   return (
     <View style={styles.container}>
-      <View style={[styles.logoSection, { marginTop: insets.top + 10 }]}>
-        <Text style={styles.logo}>tsm</Text>
-      </View>
-
-      <Pressable
-        accessibilityLabel="Liked events"
-        onPress={() => setSavedListOpen(true)}
-        hitSlop={10}
-        style={[styles.savedListButton, { top: insets.top + 20 }]}
-      >
-        <Ionicons name="bookmark-outline" size={26} color="#000000" />
-      </Pressable>
-
       <FlatList
         ref={listRef}
         style={styles.scroll}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[
+          styles.content,
+          {
+            paddingTop: insets.top + 8,
+            paddingBottom: insets.bottom + 116,
+          },
+        ]}
         data={events}
         keyExtractor={(event, index) =>
           `${event.source}-${event.id ?? event.title ?? event.name}-${index}`
@@ -272,22 +266,26 @@ export default function EventPageScreen() {
         {...webWheelProps}
         ListHeaderComponent={
           <>
-            <View style={styles.searchRow}>
-              <TextInput
-                value={searchText}
-                onChangeText={setSearchText}
-                onSubmitEditing={submitSearch}
-                placeholder="Search activities"
-                placeholderTextColor="#6F7482"
-                returnKeyType="search"
-                style={styles.searchInput}
-              />
+            <View style={styles.searchToolbar}>
+              <View style={styles.searchRow}>
+                <TextInput
+                  value={searchText}
+                  onChangeText={setSearchText}
+                  onSubmitEditing={submitSearch}
+                  placeholder="Search activities"
+                  placeholderTextColor="#A8A3BC"
+                  returnKeyType="search"
+                  style={styles.searchInput}
+                />
+              </View>
+
               <Pressable
-                accessibilityLabel="Search"
-                style={styles.searchButton}
-                onPress={submitSearch}
+                accessibilityLabel="Liked events"
+                onPress={() => setSavedListOpen(true)}
+                hitSlop={10}
+                style={styles.savedListButton}
               >
-                <SearchIcon />
+                <Ionicons name="bookmark-outline" size={24} color="#9890C4" />
               </Pressable>
             </View>
 
@@ -309,12 +307,17 @@ export default function EventPageScreen() {
                   <Pressable
                     key={city}
                     onPress={() => setSelectedCity(isSelected ? null : city)}
-                    style={[styles.cityButton, isSelected && styles.cityButtonSelected]}
+                    style={[
+                      styles.cityButton,
+                      selectionChipStyles.chip,
+                      isSelected && selectionChipStyles.chipSelected,
+                    ]}
                   >
                     <Text
                       style={[
                         styles.cityButtonText,
-                        isSelected && styles.cityButtonTextSelected,
+                        selectionChipStyles.chipText,
+                        isSelected && selectionChipStyles.chipTextSelected,
                       ]}
                     >
                       {city}
@@ -326,7 +329,7 @@ export default function EventPageScreen() {
 
             {isLoading ? (
               <View style={styles.stateBlock}>
-                <ActivityIndicator color="#000050" />
+                <ActivityIndicator color="#6C5CE7" />
                 <Text style={styles.stateText}>Loading events</Text>
               </View>
             ) : null}
@@ -416,22 +419,21 @@ function EventCard({
             <Ionicons
               name="heart"
               size={26}
-              color="#6C5CE7"
+              color={selectionChipColors.textSelected}
               style={styles.heartFill}
             />
           ) : null}
-          <Ionicons name="heart-outline" size={26} color="#000000" />
+          <Ionicons
+            name="heart-outline"
+            size={26}
+            color={
+              liked
+                ? selectionChipColors.textSelected
+                : selectionChipColors.text
+            }
+          />
         </Pressable>
       </View>
-    </View>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <View style={styles.searchIcon}>
-      <View style={styles.searchIconCircle} />
-      <View style={styles.searchIconHandle} />
     </View>
   );
 }
@@ -473,22 +475,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  logoSection: {},
-
-  logo: {
-    fontFamily: "Inter",
-    fontSize: 44,
-    fontWeight: "900",
-    color: "#000000",
-  },
-
   savedListButton: {
-    position: "absolute",
-    right: 22,
-    width: 36,
-    height: 36,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#FAFAFE",
+    borderWidth: 1,
+    borderColor: "#DDD6F3",
   },
 
   scroll: {
@@ -498,63 +493,32 @@ const styles = StyleSheet.create({
 
   content: {
     paddingHorizontal: 22,
-    paddingTop: 34,
-    paddingBottom: 116,
+  },
+
+  searchToolbar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
 
   searchRow: {
-    marginTop: 24,
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     minHeight: 48,
     borderRadius: 24,
-    backgroundColor: "#EFE8F1",
-    paddingLeft: 18,
-    paddingRight: 8,
+    backgroundColor: "#FAFAFE",
+    borderWidth: 1,
+    borderColor: "#DDD6F3",
+    paddingHorizontal: 18,
   },
 
   searchInput: {
     flex: 1,
     minHeight: 46,
-    paddingRight: 10,
     fontFamily: "Inter",
     fontSize: 15,
-    color: "#111827",
-  },
-
-  searchButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  searchIcon: {
-    width: 19,
-    height: 19,
-  },
-
-  searchIconCircle: {
-    position: "absolute",
-    left: 1,
-    top: 1,
-    width: 12,
-    height: 12,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: "#3E3E46",
-  },
-
-  searchIconHandle: {
-    position: "absolute",
-    right: 1,
-    bottom: 2,
-    width: 8,
-    height: 2,
-    borderRadius: 1,
-    backgroundColor: "#3E3E46",
-    transform: [{ rotate: "45deg" }],
+    color: "#25364A",
   },
 
   clearButton: {
@@ -566,7 +530,7 @@ const styles = StyleSheet.create({
 
   clearButtonText: {
     fontFamily: "Inter",
-    color: "#000050",
+    color: "#9890C4",
     fontSize: 14,
     fontWeight: "700",
   },
@@ -578,29 +542,14 @@ const styles = StyleSheet.create({
 
   cityButton: {
     minHeight: 38,
-    borderRadius: 19,
-    borderWidth: 1,
-    borderColor: "#B9C7E5",
-    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 14,
-  },
-
-  cityButtonSelected: {
-    backgroundColor: "#4444ca",
-    borderColor: "#000050",
   },
 
   cityButtonText: {
     fontFamily: "Inter",
     fontSize: 14,
     fontWeight: "700",
-    color: "#000050",
-  },
-
-  cityButtonTextSelected: {
-    color: "#FFFFFF",
   },
 
   stateBlock: {
