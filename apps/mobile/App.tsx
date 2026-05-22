@@ -40,6 +40,10 @@ export type RootStackParamList = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
+const mainTabScreenOptions = {
+  animation: "none" as const,
+};
+
 const navigationRef = createNavigationContainerRef<RootStackParamList>();
 
 export default function App() {
@@ -191,10 +195,22 @@ export default function App() {
             <Stack.Screen name="Welcome" component={WelcomeScreen} />
             <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
             <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-            <Stack.Screen name="EventPage" component={EventPageScreen} />
-            <Stack.Screen name="PreviewProfile" component={PreviewProfileScreen} />
+            <Stack.Screen
+              name="EventPage"
+              component={EventPageScreen}
+              options={mainTabScreenOptions}
+            />
+            <Stack.Screen
+              name="PreviewProfile"
+              component={PreviewProfileScreen}
+              options={mainTabScreenOptions}
+            />
             <Stack.Screen name="ProfileWizard" component={ProfileWizard} />
-            <Stack.Screen name="Swipe" component={SwipeScreen} />
+            <Stack.Screen
+              name="Swipe"
+              component={SwipeScreen}
+              options={mainTabScreenOptions}
+            />
           </Stack.Navigator>
         </ProfileCreationProvider>
       </NavigationContainer>

@@ -1,5 +1,5 @@
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -8,12 +8,13 @@ import type { RootStackParamList } from "../App";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-type NavRoute = keyof RootStackParamList;
+type NavRoute = "EventPage" | "Swipe" | "PreviewProfile";
 
 type NavItem = {
-  label: string;
   icon: React.ComponentProps<typeof Ionicons>["name"];
+  activeIcon: React.ComponentProps<typeof Ionicons>["name"];
   route: NavRoute;
+  accessibilityLabel: string;
 };
 
 type Props = {
@@ -32,10 +33,33 @@ export default function NavBar({
   const insets = useSafeAreaInsets();
 
   const items: NavItem[] = [
-    { label: "Events", icon: "calendar-outline", route: eventsRoute },
-    { label: "Swipe", icon: "swap-horizontal-outline", route: swipeRoute },
-    { label: "User", icon: "person-circle-outline", route: userRoute },
+    {
+      icon: "calendar-outline",
+      activeIcon: "calendar",
+      route: eventsRoute,
+      accessibilityLabel: "Events",
+    },
+    {
+      icon: "people-outline",
+      activeIcon: "people",
+      route: swipeRoute,
+      accessibilityLabel: "Discover people",
+    },
+    {
+      icon: "person-circle-outline",
+      activeIcon: "person-circle",
+      route: userRoute,
+      accessibilityLabel: "Profile",
+    },
   ];
+
+  function handleTabPress(item: NavItem) {
+    if (route.name === item.route) {
+      return;
+    }
+
+    navigation.replace(item.route);
+  }
 
   return (
     <View style={[styles.wrapper, { paddingBottom: Math.max(insets.bottom, 10) }]}>
@@ -44,19 +68,17 @@ export default function NavBar({
 
         return (
           <TouchableOpacity
-            key={item.label}
+            key={item.route}
+            accessibilityLabel={item.accessibilityLabel}
             activeOpacity={0.75}
-            onPress={() => navigation.navigate(item.route as never)}
+            onPress={() => handleTabPress(item)}
             style={styles.item}
           >
             <Ionicons
-              name={item.icon}
-              size={24}
+              name={active ? item.activeIcon : item.icon}
+              size={26}
               color={active ? "#000000" : "#777777"}
             />
-            <Text style={[styles.label, active && styles.labelActive]}>
-              {item.label}
-            </Text>
           </TouchableOpacity>
         );
       })}
@@ -70,8 +92,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    minHeight: 72,
-    paddingTop: 10,
+    minHeight: 64,
+    paddingTop: 8,
     paddingHorizontal: 18,
     backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
@@ -89,20 +111,8 @@ const styles = StyleSheet.create({
 
   item: {
     flex: 1,
-    minHeight: 48,
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
-    gap: 3,
-  },
-
-  label: {
-    color: "#777777",
-    fontFamily: "Inter",
-    fontSize: 12,
-    fontWeight: "700",
-  },
-
-  labelActive: {
-    color: "#000000",
   },
 });
