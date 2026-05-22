@@ -1,25 +1,15 @@
 import React from "react";
 
 import SearchableSelectorSheet from "./SearchableSelectorSheet";
-import { apiGetJson } from "../../apiservices/apiClient";
+import { searchTmdb } from "../../apiservices/tmdbservice";
 
-type SongResult = {
-  title?: string | null;
-  artists?: string | null;
-  album?: string | null;
-  year?: string | null;
-  cover?: { image_url?: string | null; thumb_250?: string | null } | null;
+type ActorResult = {
+  id?: number;
+  name?: string | null;
+  known_for?: string | null;
+  date_of_birth?: string | null;
+  profile_path?: string | null;
 };
-
-async function searchSongs(query: string) {
-  const json = await apiGetJson<{ results?: SongResult[] }>(
-    "/external/music/search",
-    { query, category: "recording", limit: 10 },
-    "Could not load songs right now.",
-    "Log in again to search songs.",
-  );
-  return json.results ?? [];
-}
 
 type Props = {
   visible: boolean;
@@ -32,7 +22,7 @@ type Props = {
   onSlotDone?: (slotIndex: number, nextValue: string | null) => void;
 };
 
-export default function SongsSheet({
+export default function ActorsSheet({
   visible,
   initialValues,
   slotValues,
@@ -43,24 +33,23 @@ export default function SongsSheet({
   onSlotDone,
 }: Props) {
   return (
-    <SearchableSelectorSheet<SongResult>
+    <SearchableSelectorSheet<ActorResult>
       visible={visible}
-      title="Favorite Songs"
-      placeholder="Search songs"
+      title="Favorite Actors"
+      placeholder="Search actors"
       initialValues={initialValues}
       slotValues={slotValues}
       slotIndex={slotIndex}
       maxItems={maxItems}
       selectionMode={slotIndex === undefined ? "multiple" : "single-slot"}
-      searchFn={searchSongs}
-      toItem={(song) => {
-        const name = song.title?.trim();
+      searchFn={(query) => searchTmdb<ActorResult>(query, "actor")}
+      toItem={(person) => {
+        const name = person.name?.trim();
         if (!name) return null;
-        const subtitle = [song.artists, song.year].filter(Boolean).join(" • ");
         return {
           name,
-          imageUrl: song.cover?.thumb_250 ?? song.cover?.image_url ?? null,
-          subtitle: subtitle || null,
+          imageUrl: person.profile_path ?? null,
+          subtitle: person.known_for ?? person.date_of_birth ?? null,
         };
       }}
       onClose={onClose}

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -12,7 +12,7 @@ import {
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 
 import BottomSheet from "./BottomSheet";
-import { decodeAll, encodeTag } from "../../lib/profileTags";
+import { decodeAll, decodeTag, encodeTag } from "../../lib/profileTags";
 
 export type SelectableItem = {
   name: string;
@@ -25,27 +25,70 @@ type Props<T> = {
   title: string;
   placeholder: string;
   initialValues: string[];
+  slotValues?: Array<string | null>;
+  slotIndex?: number | null;
+  maxItems?: number;
+  selectionMode?: "multiple" | "single-slot";
   searchFn: (query: string) => Promise<T[]>;
   toItem: (raw: T) => SelectableItem | null;
   onClose: () => void;
   onDone: (next: string[]) => void;
+  onSlotDone?: (slotIndex: number, nextValue: string | null) => void;
 };
 
-type SelectedEntry = { name: string; image: string | null };
+type SelectedEntry = {
+  name: string;
+  image: string | null;
+  subtitle?: string | null;
+};
+
+function itemNameKey(name: string) {
+  return name.trim().toLowerCase();
+}
+
+function decodeSlotValues(
+  initialValues: string[],
+  slotValues: Array<string | null> | undefined,
+  maxItems: number,
+) {
+  if (slotValues) {
+    return Array.from({ length: maxItems }, (_, index) => {
+      const value = slotValues[index];
+      return value ? decodeTag(value) : null;
+    });
+  }
+
+  const decoded = decodeAll(initialValues);
+  return Array.from({ length: maxItems }, (_, index) => decoded[index] ?? null);
+}
 
 export default function SearchableSelectorSheet<T>({
   visible,
   title,
   placeholder,
   initialValues,
+  slotValues,
+  slotIndex,
+  maxItems = 3,
+  selectionMode = "multiple",
   searchFn,
   toItem,
   onClose,
   onDone,
+  onSlotDone,
 }: Props<T>) {
+  const isSingleSlot = selectionMode === "single-slot";
+  const selectedSlotIndex =
+    slotIndex !== null &&
+    slotIndex !== undefined &&
+    slotIndex >= 0 &&
+    slotIndex < maxItems
+      ? slotIndex
+      : null;
   const [selected, setSelected] = useState<SelectedEntry[]>(
     decodeAll(initialValues),
   );
+  const [slotSelected, setSlotSelected] = useState<SelectedEntry | null>(null);
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
   const [results, setResults] = useState<SelectableItem[]>([]);
@@ -54,13 +97,50 @@ export default function SearchableSelectorSheet<T>({
 
   useEffect(() => {
     if (visible) {
-      setSelected(decodeAll(initialValues));
+      const nextSelected = decodeAll(initialValues);
+      setSelected(nextSelected);
+      if (isSingleSlot) {
+        const slots = decodeSlotValues(initialValues, slotValues, maxItems);
+        setSlotSelected(
+          selectedSlotIndex === null ? null : slots[selectedSlotIndex],
+        );
+      }
       setQuery("");
       setSubmittedQuery("");
       setResults([]);
       setError(null);
     }
-  }, [visible, initialValues]);
+  }, [
+    visible,
+    initialValues,
+    isSingleSlot,
+    maxItems,
+    selectedSlotIndex,
+    slotValues,
+  ]);
+
+  const blockedResultNames = useMemo(() => {
+    if (!isSingleSlot) return new Set<string>();
+    const slots = decodeSlotValues(initialValues, slotValues, maxItems);
+    return new Set(
+      slots
+        .filter(
+          (entry, index) =>
+            index !== selectedSlotIndex && Boolean(entry?.name.trim()),
+        )
+        .map((entry) => itemNameKey(entry?.name ?? "")),
+    );
+  }, [initialValues, isSingleSlot, maxItems, selectedSlotIndex, slotValues]);
+
+  const visibleResults = isSingleSlot
+    ? results.filter((item) => !blockedResultNames.has(itemNameKey(item.name)))
+    : results;
+
+  const selectedEntries = isSingleSlot
+    ? slotSelected
+      ? [slotSelected]
+      : []
+    : selected;
 
   async function runSearch() {
     const trimmed = query.trim();
@@ -90,6 +170,15 @@ export default function SearchableSelectorSheet<T>({
   }
 
   function toggle(item: SelectableItem) {
+    if (isSingleSlot) {
+      setSlotSelected({
+        name: item.name,
+        image: item.imageUrl ?? null,
+        subtitle: item.subtitle ?? null,
+      });
+      return;
+    }
+
     setSelected((current) =>
       current.some((existing) => existing.name === item.name)
         ? current.filter((existing) => existing.name !== item.name)
@@ -98,12 +187,33 @@ export default function SearchableSelectorSheet<T>({
   }
 
   function remove(name: string) {
+    if (isSingleSlot) {
+      setSlotSelected(null);
+      return;
+    }
+
     setSelected((current) =>
       current.filter((existing) => existing.name !== name),
     );
   }
 
   function handleDone() {
+    if (isSingleSlot) {
+      if (selectedSlotIndex === null) {
+        onClose();
+        return;
+      }
+
+      const nextValue = slotSelected
+        ? encodeTag(slotSelected.name, slotSelected.image)
+        : null;
+
+      if (onSlotDone) {
+        onSlotDone(selectedSlotIndex, nextValue);
+        return;
+      }
+    }
+
     onDone(selected.map((entry) => encodeTag(entry.name, entry.image)));
   }
 
@@ -131,11 +241,28 @@ export default function SearchableSelectorSheet<T>({
           </TouchableOpacity>
         </View>
 
-        {selected.length > 0 && (
+        {isSingleSlot && slotSelected ? (
+          <View style={[styles.resultRow, styles.resultRowSelected, styles.slotSelectedRow]}>
+            {slotSelected.image ? (
+              <Image source={{ uri: slotSelected.image }} style={styles.thumb} />
+            ) : (
+              <View style={styles.thumbFallback}>
+                <Ionicons name="image-outline" size={20} color="#6C5CE7" />
+              </View>
+            )}
+            <View style={styles.resultText}>
+              <Text style={styles.resultName}>{slotSelected.name}</Text>
+              {slotSelected.subtitle ? (
+                <Text style={styles.resultSubtitle}>{slotSelected.subtitle}</Text>
+              ) : null}
+            </View>
+            <Ionicons name="checkmark-circle" size={24} color="#6C5CE7" />
+          </View>
+        ) : selectedEntries.length > 0 ? (
           <View style={styles.selectedBlock}>
             <Text style={styles.selectedLabel}>Selected</Text>
             <View style={styles.selectedWrap}>
-              {selected.map((entry) => (
+              {selectedEntries.map((entry) => (
                 <View key={entry.name} style={styles.selectedChip}>
                   {entry.image ? (
                     <Image
@@ -151,13 +278,13 @@ export default function SearchableSelectorSheet<T>({
               ))}
             </View>
           </View>
-        )}
+        ) : null}
 
         <FlatList
           style={styles.list}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
-          data={loading ? [] : results}
+          data={loading ? [] : visibleResults}
           keyExtractor={(item, index) => `${item.name}-${index}`}
           ListHeaderComponent={
             loading ? (
@@ -176,9 +303,9 @@ export default function SearchableSelectorSheet<T>({
             ) : null
           }
           renderItem={({ item }) => {
-            const isSelected = selected.some(
-              (entry) => entry.name === item.name,
-            );
+            const isSelected = isSingleSlot
+              ? slotSelected?.name === item.name
+              : selected.some((entry) => entry.name === item.name);
             return (
               <TouchableOpacity
                 style={[styles.resultRow, isSelected && styles.resultRowSelected]}
@@ -267,6 +394,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FFFFFF",
     paddingHorizontal: 4,
+  },
+  slotSelectedRow: {
+    marginTop: 14,
+    marginBottom: 0,
   },
   list: { flex: 1, marginTop: 14 },
   listContent: { paddingBottom: 24 },

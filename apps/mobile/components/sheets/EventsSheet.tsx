@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   FlatList,
   Image,
@@ -15,25 +15,34 @@ import {
   loadLikedEvents,
   type LikedEvent,
 } from "../../lib/likedEvents";
-import { decodeAll, encodeTag } from "../../lib/profileTags";
+import { decodeAll } from "../../lib/profileTags";
 import { useProfileCreation } from "../../lib/profileCreation";
 
 type Props = {
   visible: boolean;
   onClose: () => void;
+  maxItems?: number;
+  slotIndex: number | null;
+  onSelect: (slotIndex: number, event: LikedEvent) => void;
 };
 
-type Entry = { name: string; image: string | null };
+function eventNameKey(name: string) {
+  return name.trim().toLowerCase();
+}
 
-export default function EventsSheet({ visible, onClose }: Props) {
-  const { draft, updateDraft } = useProfileCreation();
+export default function EventsSheet({
+  visible,
+  onClose,
+  maxItems = 3,
+  slotIndex,
+  onSelect,
+}: Props) {
+  const { draft } = useProfileCreation();
   const [likedEvents, setLikedEvents] = useState<LikedEvent[]>([]);
-  const [selected, setSelected] = useState<Entry[]>(decodeAll(draft.events));
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!visible) return;
-    setSelected(decodeAll(draft.events));
     setLoading(true);
     (async () => {
       const userId = await getCurrentUserId();
@@ -47,27 +56,50 @@ export default function EventsSheet({ visible, onClose }: Props) {
     })();
   }, [visible]);
 
-  function toggle(event: LikedEvent) {
-    setSelected((current) =>
-      current.some((entry) => entry.name === event.name)
-        ? current.filter((entry) => entry.name !== event.name)
-        : [...current, { name: event.name, image: event.image }],
-    );
-  }
+  const profileEvents = useMemo(() => decodeAll(draft.events), [draft.events]);
+  const selectedSlotIndex =
+    slotIndex !== null && slotIndex >= 0 && slotIndex < maxItems
+      ? slotIndex
+      : null;
 
-  function handleDone() {
-    updateDraft({
-      events: selected.map((entry) => encodeTag(entry.name, entry.image)),
-    });
+  const existingEventNames = useMemo(
+    () =>
+      new Set(
+        profileEvents
+          .filter((entry) => entry.name.trim().length > 0)
+          .map((entry) => eventNameKey(entry.name)),
+      ),
+    [profileEvents],
+  );
+
+  const availableEvents = useMemo(() => {
+    return likedEvents.filter(
+      (event) => !existingEventNames.has(eventNameKey(event.name)),
+    );
+  }, [existingEventNames, likedEvents]);
+
+  function handlePick(event: LikedEvent) {
+    if (
+      selectedSlotIndex === null ||
+      existingEventNames.has(eventNameKey(event.name))
+    ) {
+      return;
+    }
+
+    onSelect(selectedSlotIndex, event);
     onClose();
   }
+
+  const emptyMessage =
+    likedEvents.length === 0
+      ? "No liked events yet. Tap the heart on any event in the Events tab to add it here."
+      : "You've already added every liked event to your profile.";
 
   return (
     <BottomSheet
       visible={visible}
-      title="Events"
+      title="Select event"
       onClose={onClose}
-      onDone={handleDone}
       height="90%"
     >
       <View style={styles.body}>
@@ -78,49 +110,37 @@ export default function EventsSheet({ visible, onClose }: Props) {
         <FlatList
           style={styles.list}
           contentContainerStyle={styles.listContent}
-          data={loading ? [] : likedEvents}
+          data={loading ? [] : availableEvents}
           keyExtractor={(event) => event.id}
           ListEmptyComponent={
             !loading ? (
               <View style={styles.emptyBlock}>
                 <Ionicons name="heart-outline" size={40} color="#C4C4C4" />
-                <Text style={styles.emptyText}>
-                  No liked events yet. Tap the heart on any event in the Events
-                  tab to add it here.
-                </Text>
+                <Text style={styles.emptyText}>{emptyMessage}</Text>
               </View>
             ) : null
           }
-          renderItem={({ item }) => {
-            const isSelected = selected.some(
-              (entry) => entry.name === item.name,
-            );
-            return (
-              <TouchableOpacity
-                style={[styles.row, isSelected && styles.rowSelected]}
-                onPress={() => toggle(item)}
-              >
-                {item.image ? (
-                  <Image source={{ uri: item.image }} style={styles.thumb} />
-                ) : (
-                  <View style={styles.thumbFallback}>
-                    <Ionicons name="calendar-outline" size={20} color="#6C5CE7" />
-                  </View>
-                )}
-                <View style={styles.rowText}>
-                  <Text style={styles.rowName}>{item.name}</Text>
-                  {item.subtitle ? (
-                    <Text style={styles.rowSubtitle}>{item.subtitle}</Text>
-                  ) : null}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.row}
+              onPress={() => handlePick(item)}
+            >
+              {item.image ? (
+                <Image source={{ uri: item.image }} style={styles.thumb} />
+              ) : (
+                <View style={styles.thumbFallback}>
+                  <Ionicons name="calendar-outline" size={20} color="#6C5CE7" />
                 </View>
-                <Ionicons
-                  name={isSelected ? "checkmark-circle" : "ellipse-outline"}
-                  size={22}
-                  color={isSelected ? "#6C5CE7" : "#C4C4C4"}
-                />
-              </TouchableOpacity>
-            );
-          }}
+              )}
+              <View style={styles.rowText}>
+                <Text style={styles.rowName}>{item.name}</Text>
+                {item.subtitle ? (
+                  <Text style={styles.rowSubtitle}>{item.subtitle}</Text>
+                ) : null}
+              </View>
+              <Ionicons name="add-circle-outline" size={22} color="#6C5CE7" />
+            </TouchableOpacity>
+          )}
         />
       </View>
     </BottomSheet>
@@ -148,10 +168,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E6E6E6",
-  },
-  rowSelected: {
-    borderColor: "#6C5CE7",
-    backgroundColor: "#F8F5FF",
   },
   thumb: { width: 56, height: 42, borderRadius: 6, backgroundColor: "#F2EEFF" },
   thumbFallback: {

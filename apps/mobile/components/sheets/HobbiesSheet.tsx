@@ -14,6 +14,7 @@ import BottomSheet from "./BottomSheet";
 import DirectorsSheet from "./DirectorsSheet";
 import ShowsSheet from "./ShowsSheet";
 import SongsSheet from "./SongsSheet";
+import { selectionChipStyles } from "../../lib/selectionChipStyles";
 import { tagName } from "../../lib/profileTags";
 import { useProfileCreation } from "../../lib/profileCreation";
 
@@ -119,19 +120,22 @@ export default function HobbiesSheet({ visible, onClose }: Props) {
         </View>
 
         <Text style={styles.subLabel}>Movie genres</Text>
-        <View style={styles.chipWrap}>
+        <View style={selectionChipStyles.wrap}>
           {MOVIE_GENRES.map((genre) => {
             const selected = movieGenre.includes(genre);
             return (
               <TouchableOpacity
                 key={genre}
-                style={[styles.presetChip, selected && styles.presetChipSelected]}
+                style={[
+                  selectionChipStyles.chip,
+                  selected && selectionChipStyles.chipSelected,
+                ]}
                 onPress={() => togglePreset(movieGenre, genre, setMovieGenre)}
               >
                 <Text
                   style={[
-                    styles.presetChipText,
-                    selected && styles.presetChipTextSelected,
+                    selectionChipStyles.chipText,
+                    selected && selectionChipStyles.chipTextSelected,
                   ]}
                 >
                   {genre}
@@ -142,19 +146,22 @@ export default function HobbiesSheet({ visible, onClose }: Props) {
         </View>
 
         <Text style={[styles.subLabel, { marginTop: 18 }]}>Literature</Text>
-        <View style={styles.chipWrap}>
+        <View style={selectionChipStyles.wrap}>
           {LITERATURE_GENRES.map((genre) => {
             const selected = literature.includes(genre);
             return (
               <TouchableOpacity
                 key={genre}
-                style={[styles.presetChip, selected && styles.presetChipSelected]}
+                style={[
+                  selectionChipStyles.chip,
+                  selected && selectionChipStyles.chipSelected,
+                ]}
                 onPress={() => togglePreset(literature, genre, setLiterature)}
               >
                 <Text
                   style={[
-                    styles.presetChipText,
-                    selected && styles.presetChipTextSelected,
+                    selectionChipStyles.chipText,
+                    selected && selectionChipStyles.chipTextSelected,
                   ]}
                 >
                   {genre}
@@ -178,10 +185,23 @@ export default function HobbiesSheet({ visible, onClose }: Props) {
             <Ionicons name="chevron-forward" size={18} color="#6C5CE7" />
           </TouchableOpacity>
           {shows.length > 0 && (
-            <View style={styles.chipWrap}>
+            <View style={selectionChipStyles.wrap}>
               {shows.map((value) => (
-                <View key={value} style={styles.chip}>
-                  <Text style={styles.chipText}>{value}</Text>
+                <View
+                  key={value}
+                  style={[
+                    selectionChipStyles.chip,
+                    selectionChipStyles.chipSelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      selectionChipStyles.chipText,
+                      selectionChipStyles.chipTextSelected,
+                    ]}
+                  >
+                    {value}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -202,10 +222,23 @@ export default function HobbiesSheet({ visible, onClose }: Props) {
             <Ionicons name="chevron-forward" size={18} color="#6C5CE7" />
           </TouchableOpacity>
           {directors.length > 0 && (
-            <View style={styles.chipWrap}>
+            <View style={selectionChipStyles.wrap}>
               {directors.map((value) => (
-                <View key={value} style={styles.chip}>
-                  <Text style={styles.chipText}>{value}</Text>
+                <View
+                  key={value}
+                  style={[
+                    selectionChipStyles.chip,
+                    selectionChipStyles.chipSelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      selectionChipStyles.chipText,
+                      selectionChipStyles.chipTextSelected,
+                    ]}
+                  >
+                    {value}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -226,10 +259,23 @@ export default function HobbiesSheet({ visible, onClose }: Props) {
             <Ionicons name="chevron-forward" size={18} color="#6C5CE7" />
           </TouchableOpacity>
           {songs.length > 0 && (
-            <View style={styles.chipWrap}>
+            <View style={selectionChipStyles.wrap}>
               {songs.map((value) => (
-                <View key={value} style={styles.chip}>
-                  <Text style={styles.chipText}>{tagName(value)}</Text>
+                <View
+                  key={value}
+                  style={[
+                    selectionChipStyles.chip,
+                    selectionChipStyles.chipSelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      selectionChipStyles.chipText,
+                      selectionChipStyles.chipTextSelected,
+                    ]}
+                  >
+                    {tagName(value)}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -250,10 +296,23 @@ export default function HobbiesSheet({ visible, onClose }: Props) {
             <Ionicons name="chevron-forward" size={18} color="#6C5CE7" />
           </TouchableOpacity>
           {albums.length > 0 && (
-            <View style={styles.chipWrap}>
+            <View style={selectionChipStyles.wrap}>
               {albums.map((value) => (
-                <View key={value} style={styles.chip}>
-                  <Text style={styles.chipText}>{tagName(value)}</Text>
+                <View
+                  key={value}
+                  style={[
+                    selectionChipStyles.chip,
+                    selectionChipStyles.chipSelected,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      selectionChipStyles.chipText,
+                      selectionChipStyles.chipTextSelected,
+                    ]}
+                  >
+                    {tagName(value)}
+                  </Text>
                 </View>
               ))}
             </View>
@@ -323,16 +382,6 @@ const styles = StyleSheet.create({
     color: "#6C5CE7",
     marginBottom: 8,
   },
-  chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 8 },
-  presetChip: {
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: "#F2EEFF",
-  },
-  presetChipSelected: { backgroundColor: "#6C5CE7" },
-  presetChipText: { fontFamily: "Inter", fontSize: 14, color: "#6C5CE7" },
-  presetChipTextSelected: { color: "#FFFFFF" },
 
   linkBlock: { marginTop: 18 },
   linkButton: {
@@ -375,15 +424,4 @@ const styles = StyleSheet.create({
     backgroundColor: "#6C5CE7",
   },
   disabled: { opacity: 0.4 },
-  chip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    borderRadius: 18,
-    paddingLeft: 14,
-    paddingRight: 14,
-    paddingVertical: 8,
-    backgroundColor: "#F2EEFF",
-  },
-  chipText: { fontFamily: "Inter", fontSize: 14, color: "#6C5CE7" },
 });

@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-nati
 
 import AgeRangeSlider from "../AgeRangeSlider";
 import BottomSheet from "./BottomSheet";
+import { selectionChipStyles } from "../../lib/selectionChipStyles";
 import { useProfileCreation } from "../../lib/profileCreation";
 
 const GENDER_OPTIONS = ["women", "men", "non-binary"];
@@ -58,19 +59,22 @@ export default function MatchingPrefsSheet({ visible, onClose }: Props) {
         </Text>
 
         <Text style={styles.label}>Interested in</Text>
-        <View style={styles.chipWrap}>
+        <View style={selectionChipStyles.wrap}>
           {GENDER_OPTIONS.map((option) => {
             const selected = preferred.includes(option);
             return (
               <TouchableOpacity
                 key={option}
                 onPress={() => toggleGender(option)}
-                style={[styles.chip, selected && styles.chipSelected]}
+                style={[
+                  selectionChipStyles.chip,
+                  selected && selectionChipStyles.chipSelected,
+                ]}
               >
                 <Text
                   style={[
-                    styles.chipText,
-                    selected && styles.chipTextSelected,
+                    selectionChipStyles.chipText,
+                    selected && selectionChipStyles.chipTextSelected,
                   ]}
                 >
                   {option}
@@ -111,16 +115,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#6C5CE7",
   },
-  chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: {
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: "#F2EEFF",
-  },
-  chipSelected: { backgroundColor: "#6C5CE7" },
-  chipText: { fontFamily: "Inter", fontSize: 14, color: "#6C5CE7" },
-  chipTextSelected: { color: "#FFFFFF" },
   ageRow: { flexDirection: "row", gap: 14, marginTop: 6 },
   ageBox: {
     flex: 1,

@@ -21,12 +21,14 @@ const initialDraft: ProfileDraft = {
   shows: [],
   artists: [],
   directors: [],
+  actors: [],
   music_genre: [],
   movie_genre: [],
   art: false,
   literature: [],
   bio: "",
   profile_image_uri: null,
+  location: "",
 };
 
 function isInitialProfileDraft(draft: ProfileDraft) {
@@ -39,6 +41,8 @@ type ProfileCreationContextValue = {
   saveDraft: (nextDraft?: Partial<ProfileDraft>) => Promise<void>;
   loadSavedDraft: () => Promise<void>;
   resetDraft: () => void;
+  discardChanges: () => void;
+  hasUnsavedChanges: boolean;
 };
 
 const ProfileCreationContext =
@@ -46,6 +50,7 @@ const ProfileCreationContext =
 
 export function ProfileCreationProvider({ children }: { children: React.ReactNode }) {
   const [draft, setDraft] = useState<ProfileDraft>(initialDraft);
+  const [savedSnapshot, setSavedSnapshot] = useState<ProfileDraft>(initialDraft);
   const [profileExists, setProfileExists] = useState(false);
 
   const updateDraft = useCallback((nextDraft: Partial<ProfileDraft>) => {
@@ -69,6 +74,7 @@ export function ProfileCreationProvider({ children }: { children: React.ReactNod
         setProfileExists(true);
       }
       setDraft(nextSavedDraft);
+      setSavedSnapshot(nextSavedDraft);
     },
     [draft, profileExists],
   );
@@ -94,21 +100,25 @@ export function ProfileCreationProvider({ children }: { children: React.ReactNod
         shows: savedDraft.shows ?? [],
         artists: savedDraft.artists ?? [],
         directors: savedDraft.directors ?? [],
+        actors: savedDraft.actors ?? [],
         music_genre: savedDraft.music_genre ?? [],
         movie_genre: savedDraft.movie_genre ?? [],
         literature: savedDraft.literature ?? [],
         bio: savedDraft.bio ?? "",
         art: savedDraft.art ?? false,
         profile_image_uri: savedDraft.profile_image_uri ?? null,
+        location: savedDraft.location ?? "",
       };
       console.log("[ProfileCreation] loaded profile:", {
         username: normalized.username,
         bio: normalized.bio,
         artists: normalized.artists.length,
+        actors: normalized.actors.length,
         songs: normalized.songs.length,
         events: normalized.events.length,
       });
       setDraft(normalized);
+      setSavedSnapshot(normalized);
       setProfileExists(true);
     } else {
       console.log("[ProfileCreation] /profile/me returned null (no profile yet)");
@@ -117,8 +127,18 @@ export function ProfileCreationProvider({ children }: { children: React.ReactNod
 
   const resetDraft = useCallback(() => {
     setDraft(initialDraft);
+    setSavedSnapshot(initialDraft);
     setProfileExists(false);
   }, []);
+
+  const discardChanges = useCallback(() => {
+    setDraft(savedSnapshot);
+  }, [savedSnapshot]);
+
+  const hasUnsavedChanges = useMemo(
+    () => JSON.stringify(draft) !== JSON.stringify(savedSnapshot),
+    [draft, savedSnapshot],
+  );
 
   const value = useMemo<ProfileCreationContextValue>(
     () => ({
@@ -127,8 +147,18 @@ export function ProfileCreationProvider({ children }: { children: React.ReactNod
       saveDraft,
       loadSavedDraft,
       resetDraft,
+      discardChanges,
+      hasUnsavedChanges,
     }),
-    [draft, loadSavedDraft, resetDraft, saveDraft, updateDraft],
+    [
+      draft,
+      discardChanges,
+      hasUnsavedChanges,
+      loadSavedDraft,
+      resetDraft,
+      saveDraft,
+      updateDraft,
+    ],
   );
 
   return (

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -13,7 +13,7 @@ import { Ionicons } from "@react-native-vector-icons/ionicons";
 
 import BottomSheet from "./BottomSheet";
 import { searchTmdb } from "../../apiservices/tmdbservice";
-import { decodeAll, encodeTag } from "../../lib/profileTags";
+import { decodeAll, decodeTag, encodeTag } from "../../lib/profileTags";
 import { useProfileCreation } from "../../lib/profileCreation";
 
 type MovieResult = {
@@ -28,6 +28,7 @@ type ShowResult = {
   id?: number;
   name?: string | null;
   first_air_date?: string | null;
+  "first aired"?: string | null;
   poster_path?: string | null;
 };
 
@@ -35,18 +36,65 @@ type Entry = { name: string; image: string | null };
 
 type Mode = "movie" | "tv";
 
-type Item = { name: string; imageUrl: string | null; subtitle: string | null };
+type Item = {
+  name: string;
+  imageUrl: string | null;
+  subtitle: string | null;
+  category: Mode;
+};
+
+type SlotValue = { category: Mode; value: string } | null;
 
 type Props = {
   visible: boolean;
   onClose: () => void;
+  slotValues?: SlotValue[];
+  slotIndex?: number | null;
+  maxItems?: number;
+  onSlotDone?: (
+    slotIndex: number,
+    category: Mode,
+    nextValue: string | null,
+  ) => void;
 };
 
-export default function MoviesAndSeriesSheet({ visible, onClose }: Props) {
+function itemNameKey(name: string) {
+  return name.trim().toLowerCase();
+}
+
+function itemFromSlot(slot: SlotValue): Item | null {
+  if (!slot) return null;
+  const decoded = decodeTag(slot.value);
+  if (!decoded.name.trim()) return null;
+  return {
+    name: decoded.name,
+    imageUrl: decoded.image,
+    subtitle: null,
+    category: slot.category,
+  };
+}
+
+export default function MoviesAndSeriesSheet({
+  visible,
+  onClose,
+  slotValues,
+  slotIndex,
+  maxItems = 3,
+  onSlotDone,
+}: Props) {
   const { draft, updateDraft } = useProfileCreation();
+  const isSingleSlot = slotIndex !== undefined;
+  const selectedSlotIndex =
+    slotIndex !== null &&
+    slotIndex !== undefined &&
+    slotIndex >= 0 &&
+    slotIndex < maxItems
+      ? slotIndex
+      : null;
   const [mode, setMode] = useState<Mode>("movie");
   const [movies, setMovies] = useState<Entry[]>(decodeAll(draft.movies));
   const [shows, setShows] = useState<Entry[]>(decodeAll(draft.shows));
+  const [slotSelected, setSlotSelected] = useState<Item | null>(null);
 
   const [query, setQuery] = useState("");
   const [submittedQuery, setSubmittedQuery] = useState("");
@@ -59,12 +107,22 @@ export default function MoviesAndSeriesSheet({ visible, onClose }: Props) {
       setMode("movie");
       setMovies(decodeAll(draft.movies));
       setShows(decodeAll(draft.shows));
+      if (isSingleSlot) {
+        const nextSelected =
+          selectedSlotIndex === null
+            ? null
+            : itemFromSlot(slotValues?.[selectedSlotIndex] ?? null);
+        setSlotSelected(nextSelected);
+        if (nextSelected) {
+          setMode(nextSelected.category);
+        }
+      }
       setQuery("");
       setSubmittedQuery("");
       setResults([]);
       setError(null);
     }
-  }, [visible]);
+  }, [isSingleSlot, selectedSlotIndex, slotValues, visible]);
 
   useEffect(() => {
     setQuery("");
@@ -94,6 +152,7 @@ export default function MoviesAndSeriesSheet({ visible, onClose }: Props) {
               subtitle:
                 [movie.year, movie.director].filter(Boolean).join(" • ") ||
                 null,
+              category: "movie",
             })),
         );
       } else {
@@ -104,7 +163,10 @@ export default function MoviesAndSeriesSheet({ visible, onClose }: Props) {
             .map<Item>((show) => ({
               name: show.name!.trim(),
               imageUrl: show.poster_path ?? null,
-              subtitle: show.first_air_date?.slice(0, 4) ?? null,
+              subtitle:
+                (show.first_air_date ?? show["first aired"])?.slice(0, 4) ??
+                null,
+              category: "tv",
             })),
         );
       }
@@ -119,7 +181,25 @@ export default function MoviesAndSeriesSheet({ visible, onClose }: Props) {
   const selectedList = mode === "movie" ? movies : shows;
   const setSelectedList = mode === "movie" ? setMovies : setShows;
 
+  const blockedResultNames = useMemo(() => {
+    if (!isSingleSlot) return new Set<string>();
+    return new Set(
+      (slotValues ?? [])
+        .filter((slot, index) => index !== selectedSlotIndex && slot)
+        .map((slot) => itemNameKey(decodeTag(slot!.value).name)),
+    );
+  }, [isSingleSlot, selectedSlotIndex, slotValues]);
+
+  const visibleResults = isSingleSlot
+    ? results.filter((item) => !blockedResultNames.has(itemNameKey(item.name)))
+    : results;
+
   function toggle(item: Item) {
+    if (isSingleSlot) {
+      setSlotSelected(item);
+      return;
+    }
+
     setSelectedList((current) =>
       current.some((entry) => entry.name === item.name)
         ? current.filter((entry) => entry.name !== item.name)
@@ -128,10 +208,29 @@ export default function MoviesAndSeriesSheet({ visible, onClose }: Props) {
   }
 
   function remove(name: string) {
+    if (isSingleSlot) {
+      setSlotSelected(null);
+      return;
+    }
+
     setSelectedList((current) => current.filter((entry) => entry.name !== name));
   }
 
   function handleDone() {
+    if (isSingleSlot) {
+      if (selectedSlotIndex === null) {
+        onClose();
+        return;
+      }
+
+      onSlotDone?.(
+        selectedSlotIndex,
+        slotSelected?.category ?? mode,
+        slotSelected ? encodeTag(slotSelected.name, slotSelected.imageUrl) : null,
+      );
+      return;
+    }
+
     updateDraft({
       movies: movies.map((entry) => encodeTag(entry.name, entry.image)),
       shows: shows.map((entry) => encodeTag(entry.name, entry.image)),
@@ -189,7 +288,32 @@ export default function MoviesAndSeriesSheet({ visible, onClose }: Props) {
           </TouchableOpacity>
         </View>
 
-        {selectedList.length > 0 && (
+        {isSingleSlot && slotSelected ? (
+          <View
+            style={[
+              styles.resultRow,
+              styles.resultRowSelected,
+              styles.slotSelectedRow,
+            ]}
+          >
+            {slotSelected.imageUrl ? (
+              <Image source={{ uri: slotSelected.imageUrl }} style={styles.thumb} />
+            ) : (
+              <View style={styles.thumbFallback}>
+                <Ionicons name="image-outline" size={20} color="#6C5CE7" />
+              </View>
+            )}
+            <View style={styles.resultText}>
+              <Text style={styles.resultName}>{slotSelected.name}</Text>
+              {slotSelected.subtitle ? (
+                <Text style={styles.resultSubtitle}>
+                  {slotSelected.subtitle}
+                </Text>
+              ) : null}
+            </View>
+            <Ionicons name="checkmark-circle" size={24} color="#6C5CE7" />
+          </View>
+        ) : !isSingleSlot && selectedList.length > 0 ? (
           <View style={styles.selectedBlock}>
             <Text style={styles.selectedLabel}>
               Selected {mode === "movie" ? "movies" : "series"}
@@ -211,13 +335,13 @@ export default function MoviesAndSeriesSheet({ visible, onClose }: Props) {
               ))}
             </View>
           </View>
-        )}
+        ) : null}
 
         <FlatList
           style={styles.list}
           contentContainerStyle={styles.listContent}
           keyboardShouldPersistTaps="handled"
-          data={loading ? [] : results}
+          data={loading ? [] : visibleResults}
           keyExtractor={(item, index) => `${item.name}-${index}`}
           ListHeaderComponent={
             loading ? (
@@ -236,9 +360,10 @@ export default function MoviesAndSeriesSheet({ visible, onClose }: Props) {
             ) : null
           }
           renderItem={({ item }) => {
-            const isSelected = selectedList.some(
-              (entry) => entry.name === item.name,
-            );
+            const isSelected = isSingleSlot
+              ? slotSelected?.category === item.category &&
+                slotSelected?.name === item.name
+              : selectedList.some((entry) => entry.name === item.name);
             return (
               <TouchableOpacity
                 style={[styles.resultRow, isSelected && styles.resultRowSelected]}
@@ -342,6 +467,10 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FFFFFF",
     paddingHorizontal: 4,
+  },
+  slotSelectedRow: {
+    marginTop: 14,
+    marginBottom: 0,
   },
   list: { flex: 1, marginTop: 14 },
   listContent: { paddingBottom: 24 },

@@ -25,18 +25,38 @@ async function searchArtists(query: string) {
 
 type Props = {
   visible: boolean;
+  initialValues?: string[];
+  slotValues?: Array<string | null>;
+  slotIndex?: number | null;
+  maxItems?: number;
   onClose: () => void;
+  onDone?: (next: string[]) => void;
+  onSlotDone?: (slotIndex: number, nextValue: string | null) => void;
 };
 
-export default function ArtistsSheet({ visible, onClose }: Props) {
+export default function ArtistsSheet({
+  visible,
+  initialValues,
+  slotValues,
+  slotIndex,
+  maxItems,
+  onClose,
+  onDone,
+  onSlotDone,
+}: Props) {
   const { draft, updateDraft } = useProfileCreation();
+  const values = initialValues ?? draft.artists;
 
   return (
     <SearchableSelectorSheet<ArtistResult>
       visible={visible}
       title="Favorite Artists"
       placeholder="Search artists"
-      initialValues={draft.artists}
+      initialValues={values}
+      slotValues={slotValues}
+      slotIndex={slotIndex}
+      maxItems={maxItems}
+      selectionMode={slotIndex === undefined ? "multiple" : "single-slot"}
       searchFn={searchArtists}
       toItem={(artist) => {
         const name = artist.name?.trim();
@@ -52,7 +72,15 @@ export default function ArtistsSheet({ visible, onClose }: Props) {
       }}
       onClose={onClose}
       onDone={(next) => {
+        if (onDone) {
+          onDone(next);
+          return;
+        }
         updateDraft({ artists: next });
+        onClose();
+      }}
+      onSlotDone={(nextSlotIndex, nextValue) => {
+        onSlotDone?.(nextSlotIndex, nextValue);
         onClose();
       }}
     />

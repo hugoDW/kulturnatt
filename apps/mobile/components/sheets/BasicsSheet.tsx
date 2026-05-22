@@ -11,6 +11,7 @@ import {
 import DateTimePicker from "@react-native-community/datetimepicker";
 
 import BottomSheet from "./BottomSheet";
+import { selectionChipStyles } from "../../lib/selectionChipStyles";
 import { useProfileCreation } from "../../lib/profileCreation";
 
 const GENDER_OPTIONS = ["woman", "man", "non-binary"];
@@ -24,6 +25,7 @@ export default function BasicsSheet({ visible, onClose }: Props) {
   const { draft, updateDraft } = useProfileCreation();
   const [username, setUsername] = useState(draft.username);
   const [gender, setGender] = useState(draft.gender);
+  const [location, setLocation] = useState(draft.location);
   const [date, setDate] = useState<Date | null>(
     draft.dob ? new Date(draft.dob) : null,
   );
@@ -33,14 +35,16 @@ export default function BasicsSheet({ visible, onClose }: Props) {
     if (visible) {
       setUsername(draft.username);
       setGender(draft.gender);
+      setLocation(draft.location);
       setDate(draft.dob ? new Date(draft.dob) : null);
     }
-  }, [visible, draft.username, draft.gender, draft.dob]);
+  }, [visible, draft.username, draft.gender, draft.location, draft.dob]);
 
   function handleDone() {
     updateDraft({
       username: username.trim().toLowerCase(),
       gender,
+      location: location.trim(),
       dob: date ? date.toISOString().slice(0, 10) : "",
     });
     onClose();
@@ -92,20 +96,34 @@ export default function BasicsSheet({ visible, onClose }: Props) {
           />
         )}
 
+        <Text style={styles.label}>Location</Text>
+        <TextInput
+          style={styles.input}
+          autoCapitalize="words"
+          autoCorrect={false}
+          maxLength={64}
+          value={location}
+          onChangeText={setLocation}
+          placeholder="e.g. Stockholm"
+        />
+
         <Text style={styles.label}>Gender</Text>
-        <View style={styles.chipRow}>
+        <View style={selectionChipStyles.wrap}>
           {GENDER_OPTIONS.map((option) => {
             const selected = gender === option;
             return (
               <TouchableOpacity
                 key={option}
-                style={[styles.chip, selected && styles.chipSelected]}
+                style={[
+                  selectionChipStyles.chip,
+                  selected && selectionChipStyles.chipSelected,
+                ]}
                 onPress={() => setGender(option)}
               >
                 <Text
                   style={[
-                    styles.chipText,
-                    selected && styles.chipTextSelected,
+                    selectionChipStyles.chipText,
+                    selected && selectionChipStyles.chipTextSelected,
                   ]}
                 >
                   {option}
@@ -142,14 +160,4 @@ const styles = StyleSheet.create({
   },
   dateText: { fontFamily: "Inter", fontSize: 15, color: "#25364A" },
   placeholder: { color: "#9AA1AA" },
-  chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginTop: 6 },
-  chip: {
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: "#F2EEFF",
-  },
-  chipSelected: { backgroundColor: "#6C5CE7" },
-  chipText: { fontFamily: "Inter", fontSize: 14, color: "#6C5CE7" },
-  chipTextSelected: { color: "#FFFFFF" },
 });

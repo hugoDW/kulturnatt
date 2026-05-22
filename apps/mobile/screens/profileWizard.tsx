@@ -17,6 +17,7 @@ import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import AgeRangeSlider from "../components/AgeRangeSlider";
 import BackButton from "../components/backButton";
 import type { RootStackParamList } from "../App";
+import { selectionChipStyles } from "../lib/selectionChipStyles";
 import { useProfileCreation } from "../lib/profileCreation";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "ProfileWizard">;
@@ -173,19 +174,22 @@ export default function ProfileWizard() {
             )}
 
             <Text style={styles.label}>Gender</Text>
-            <View style={styles.chipWrap}>
+            <View style={selectionChipStyles.wrap}>
               {GENDER_OPTIONS.map((option) => {
                 const selected = gender === option;
                 return (
                   <TouchableOpacity
                     key={option}
                     onPress={() => setGender(option)}
-                    style={[styles.chip, selected && styles.chipSelected]}
+                    style={[
+                      selectionChipStyles.chip,
+                      selected && selectionChipStyles.chipSelected,
+                    ]}
                   >
                     <Text
                       style={[
-                        styles.chipText,
-                        selected && styles.chipTextSelected,
+                        selectionChipStyles.chipText,
+                        selected && selectionChipStyles.chipTextSelected,
                       ]}
                     >
                       {option}
@@ -198,19 +202,22 @@ export default function ProfileWizard() {
         ) : (
           <ScrollView contentContainerStyle={styles.body}>
             <Text style={styles.label}>Interested in</Text>
-            <View style={styles.chipWrap}>
+            <View style={selectionChipStyles.wrap}>
               {PREFERRED_OPTIONS.map((option) => {
                 const selected = preferred.includes(option);
                 return (
                   <TouchableOpacity
                     key={option}
                     onPress={() => togglePreferred(option)}
-                    style={[styles.chip, selected && styles.chipSelected]}
+                    style={[
+                      selectionChipStyles.chip,
+                      selected && selectionChipStyles.chipSelected,
+                    ]}
                   >
                     <Text
                       style={[
-                        styles.chipText,
-                        selected && styles.chipTextSelected,
+                        selectionChipStyles.chipText,
+                        selected && selectionChipStyles.chipTextSelected,
                       ]}
                     >
                       {option}
@@ -293,16 +300,6 @@ const styles = StyleSheet.create({
   },
   dateText: { fontFamily: "Inter", fontSize: 15, color: "#25364A" },
   placeholder: { color: "#9AA1AA" },
-  chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: {
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: "#F2EEFF",
-  },
-  chipSelected: { backgroundColor: "#6C5CE7" },
-  chipText: { fontFamily: "Inter", fontSize: 14, color: "#6C5CE7" },
-  chipTextSelected: { color: "#FFFFFF" },
   ageRow: { flexDirection: "row", gap: 14, marginTop: 4 },
   ageBox: {
     flex: 1,

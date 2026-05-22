@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import BottomSheet from "./BottomSheet";
+import { selectionChipStyles } from "../../lib/selectionChipStyles";
 import { useProfileCreation } from "../../lib/profileCreation";
 
 const MUSIC_GENRES = [
@@ -66,19 +67,22 @@ export default function MusicGenreSheet({ visible, onClose }: Props) {
         <Text style={styles.helper}>
           Pick the genres that define your taste.
         </Text>
-        <View style={styles.chipWrap}>
+        <View style={selectionChipStyles.wrap}>
           {MUSIC_GENRES.map((genre) => {
             const isSelected = selected.includes(genre);
             return (
               <TouchableOpacity
                 key={genre}
                 onPress={() => toggle(genre)}
-                style={[styles.chip, isSelected && styles.chipSelected]}
+                style={[
+                  selectionChipStyles.chip,
+                  isSelected && selectionChipStyles.chipSelected,
+                ]}
               >
                 <Text
                   style={[
-                    styles.chipText,
-                    isSelected && styles.chipTextSelected,
+                    selectionChipStyles.chipText,
+                    isSelected && selectionChipStyles.chipTextSelected,
                   ]}
                 >
                   {genre}
@@ -100,14 +104,4 @@ const styles = StyleSheet.create({
     color: "#7F8C8D",
     marginBottom: 16,
   },
-  chipWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  chip: {
-    borderRadius: 18,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: "#F2EEFF",
-  },
-  chipSelected: { backgroundColor: "#6C5CE7" },
-  chipText: { fontFamily: "Inter", fontSize: 14, color: "#6C5CE7" },
-  chipTextSelected: { color: "#FFFFFF" },
 });
