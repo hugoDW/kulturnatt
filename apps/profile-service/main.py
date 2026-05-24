@@ -13,6 +13,7 @@ from db import (
     create_profile,
     get_all_users,
     get_user,
+    reset_user_swipes,
     save_like,
     save_match,
     save_ranked_list,
@@ -260,6 +261,49 @@ def profile_update(
         raise HTTPException(status_code=500, detail=str(error)) from error
     trigger_recompute(user_id)
     return {"status": "ok"}
+
+
+@app.post("/profile/reset_swipes")
+def profile_reset_swipes(user_id: uuid.UUID = Depends(get_current_user)):
+    user = get_user(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    partner_updates: list[tuple[uuid.UUID, list, list]] = []
+    for matched_id in user.matched_users:
+        other = get_user(matched_id)
+        if other is None:
+            continue
+        next_liked = other.liked_users + (
+            [user_id] if user_id not in other.liked_users else []
+        )
+        next_matched = [
+            partner for partner in other.matched_users if partner != user_id
+        ]
+        partner_updates.append((other.user_id, next_liked, next_matched))
+
+    reset_user_swipes(user_id, partner_updates)
+    trigger_recompute(user_id)
+    return {"status": "ok"}
+
+
+@app.get("/profile/matches")
+def profile_matches(user_id: uuid.UUID = Depends(get_current_user)):
+    user = get_user(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    profiles_by_id = {str(other.user_id): other for other in get_all_users()}
+    matches = []
+    for matched_id in user.matched_users:
+        other = profiles_by_id.get(str(matched_id))
+        if other is None:
+            continue
+        matches.append({
+            **profile_setup_response(other),
+            "user_id": str(other.user_id),
+        })
+    return {"matches": matches}
 
 
 @app.get("/profile/swipes")

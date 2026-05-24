@@ -1,10 +1,20 @@
 import React, { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { Ionicons } from "@react-native-vector-icons/ionicons";
 
 import AgeRangeSlider from "../AgeRangeSlider";
 import BottomSheet from "./BottomSheet";
 import { selectionChipStyles } from "../../lib/selectionChipStyles";
 import { useProfileCreation } from "../../lib/profileCreation";
+import { resetSwipes } from "../../apiservices/swipeService";
 
 const GENDER_OPTIONS = ["women", "men", "non-binary"];
 
@@ -20,6 +30,7 @@ export default function MatchingPrefsSheet({ visible, onClose }: Props) {
   const [preferred, setPreferred] = useState<string[]>(draft.preferred_gender);
   const [minAge, setMinAge] = useState<number>(draft.age_range[0]);
   const [maxAge, setMaxAge] = useState<number>(draft.age_range[1]);
+  const [resetting, setResetting] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -43,6 +54,37 @@ export default function MatchingPrefsSheet({ visible, onClose }: Props) {
       age_range: [minAge, maxAge],
     });
     onClose();
+  }
+
+  function confirmReset() {
+    Alert.alert(
+      "Reset matches",
+      "Everyone you liked, rejected, or matched with will come back to Discover. People who liked you will still have you in their list.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Reset",
+          style: "destructive",
+          onPress: async () => {
+            setResetting(true);
+            try {
+              await resetSwipes();
+              Alert.alert("Matches reset", "Profiles will reappear in Discover.");
+              onClose();
+            } catch (error) {
+              Alert.alert(
+                "Reset failed",
+                error instanceof Error
+                  ? error.message
+                  : "Could not reset matches right now.",
+              );
+            } finally {
+              setResetting(false);
+            }
+          },
+        },
+      ],
+    );
   }
 
   return (
@@ -94,6 +136,25 @@ export default function MatchingPrefsSheet({ visible, onClose }: Props) {
             setMaxAge(nextMax);
           }}
         />
+
+        <TouchableOpacity
+          activeOpacity={0.8}
+          disabled={resetting}
+          onPress={confirmReset}
+          style={[styles.resetButton, resetting && styles.resetButtonDisabled]}
+        >
+          {resetting ? (
+            <ActivityIndicator color="#E84A82" />
+          ) : (
+            <>
+              <Ionicons name="refresh-outline" size={18} color="#E84A82" />
+              <Text style={styles.resetButtonText}>Reset matches</Text>
+            </>
+          )}
+        </TouchableOpacity>
+        <Text style={styles.resetHint}>
+          Brings every liked, rejected, or matched profile back to Discover.
+        </Text>
       </ScrollView>
     </BottomSheet>
   );
@@ -157,5 +218,31 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "800",
     color: "#25364A",
+  },
+  resetButton: {
+    marginTop: 28,
+    minHeight: 48,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#E84A82",
+  },
+  resetButtonDisabled: { opacity: 0.6 },
+  resetButtonText: {
+    fontFamily: "Inter",
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#E84A82",
+  },
+  resetHint: {
+    marginTop: 8,
+    fontFamily: "Inter",
+    fontSize: 12,
+    color: "#7F8C8D",
+    textAlign: "center",
   },
 });

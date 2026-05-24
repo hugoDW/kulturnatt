@@ -20,6 +20,7 @@ import WelcomeScreen from "./screens/welcome";
 import ForgotPasswordScreen from "./screens/forgotPassword";
 import ResetPasswordScreen from "./screens/resetPassword";
 import EventPageScreen from "./screens/eventPage";
+import MatchesScreen from "./screens/matches";
 import PreviewProfileScreen from "./screens/previewProfile";
 import ProfileWizard from "./screens/profileWizard";
 import SwipeScreen from "./screens/swipe";
@@ -36,6 +37,7 @@ export type RootStackParamList = {
   PreviewProfile: undefined;
   ProfileWizard: undefined;
   Swipe: undefined;
+  Matches: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -209,6 +211,11 @@ export default function App() {
             <Stack.Screen
               name="Swipe"
               component={SwipeScreen}
+              options={mainTabScreenOptions}
+            />
+            <Stack.Screen
+              name="Matches"
+              component={MatchesScreen}
               options={mainTabScreenOptions}
             />
           </Stack.Navigator>

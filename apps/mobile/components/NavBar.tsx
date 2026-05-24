@@ -8,7 +8,7 @@ import type { RootStackParamList } from "../App";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
-type NavRoute = "EventPage" | "Swipe" | "PreviewProfile";
+type NavRoute = "EventPage" | "Swipe" | "Matches" | "PreviewProfile";
 
 type NavItem = {
   icon: React.ComponentProps<typeof Ionicons>["name"];
@@ -20,12 +20,14 @@ type NavItem = {
 type Props = {
   eventsRoute?: NavRoute;
   swipeRoute?: NavRoute;
+  matchesRoute?: NavRoute;
   userRoute?: NavRoute;
 };
 
 export default function NavBar({
   eventsRoute = "EventPage",
   swipeRoute = "Swipe",
+  matchesRoute = "Matches",
   userRoute = "PreviewProfile",
 }: Props) {
   const navigation = useNavigation<NavigationProp>();
@@ -44,6 +46,12 @@ export default function NavBar({
       activeIcon: "people",
       route: swipeRoute,
       accessibilityLabel: "Discover people",
+    },
+    {
+      icon: "list-outline",
+      activeIcon: "list",
+      route: matchesRoute,
+      accessibilityLabel: "Matches",
     },
     {
       icon: "person-circle-outline",

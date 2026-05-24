@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 
-import type { RankedProfile } from "../apiservices/swipeService";
+import type { MatchedProfile, RankedProfile } from "../apiservices/swipeService";
 import { getSelectedInterests } from "../lib/interestOptions";
 import { selectionChipStyles } from "../lib/selectionChipStyles";
 import { decodeAll } from "../lib/profileTags";
@@ -106,7 +106,12 @@ function MediaRow({
   );
 }
 
-export default function SwipeProfileCard({ profile }: { profile: RankedProfile }) {
+export default function SwipeProfileCard({
+  profile,
+}: {
+  profile: RankedProfile | MatchedProfile;
+}) {
+  const score = "score" in profile ? profile.score : null;
   const age = useMemo(() => getAge(profile.dob), [profile.dob]);
   const badge = useMemo(() => genderIcon(profile.gender), [profile.gender]);
   const interests = useMemo(() => getSelectedInterests(profile), [profile]);
@@ -151,7 +156,9 @@ export default function SwipeProfileCard({ profile }: { profile: RankedProfile }
           {profile.location ? (
             <Text style={styles.meta}>{profile.location}</Text>
           ) : null}
-          <Text style={styles.score}>Match score {profile.score}</Text>
+          {score !== null ? (
+            <Text style={styles.score}>Match score {score}</Text>
+          ) : null}
         </View>
 
         {profile.profile_image_uri ? (
