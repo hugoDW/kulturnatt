@@ -173,3 +173,19 @@ def save_reject(user_id: uuid.UUID, rejected_users: list):
     supabase.table("profile").update({
         "rejected_users": [str(user) for user in rejected_users],
     }).eq("id_profile", str(user_id)).execute()
+
+
+def reset_user_swipes(
+    user_id: uuid.UUID,
+    partner_updates: list[tuple[uuid.UUID, list, list]],
+):
+    for partner_id, partner_liked, partner_matched in partner_updates:
+        supabase.table("profile").update({
+            "liked_users": [str(user) for user in partner_liked],
+            "matched_users": [str(user) for user in partner_matched],
+        }).eq("id_profile", str(partner_id)).execute()
+    supabase.table("profile").update({
+        "liked_users": [],
+        "rejected_users": [],
+        "matched_users": [],
+    }).eq("id_profile", str(user_id)).execute()

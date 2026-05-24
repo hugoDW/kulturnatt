@@ -33,6 +33,7 @@ export default function SwipeScreen() {
   const [error, setError] = useState<string | null>(null);
   const [matchModal, setMatchModal] = useState<{
     username: string;
+    avatarUri: string | null;
     shared: SharedInterests;
   } | null>(null);
 
@@ -78,6 +79,7 @@ export default function SwipeScreen() {
       if (result.status === "match") {
         setMatchModal({
           username: currentProfile.username,
+          avatarUri: currentProfile.profile_image_uri ?? null,
           shared: result.shared,
         });
       }
@@ -197,6 +199,7 @@ export default function SwipeScreen() {
       <MatchModal
         visible={matchModal !== null}
         username={matchModal?.username ?? ""}
+        avatarUri={matchModal?.avatarUri ?? null}
         shared={matchModal?.shared ?? null}
         onClose={() => setMatchModal(null)}
       />

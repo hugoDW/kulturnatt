@@ -39,6 +39,30 @@ export async function getRankedProfiles(): Promise<RankedProfile[]> {
   return json.user_ranked_list ?? [];
 }
 
+export type MatchedProfile = ProfileSetupPayload & {
+  user_id: string;
+};
+
+export async function getMatches(): Promise<MatchedProfile[]> {
+  const json = await apiGetJson<{ matches: MatchedProfile[] }>(
+    "/profile/matches",
+    undefined,
+    "Could not load matches right now.",
+    "Log in again to view matches.",
+  );
+
+  return json.matches ?? [];
+}
+
+export async function resetSwipes(): Promise<void> {
+  await apiPostJson<{ status: string }>(
+    "/profile/reset_swipes",
+    {},
+    "Could not reset matches right now.",
+    "Log in again to reset matches.",
+  );
+}
+
 export async function postSwipe(
   targetUserId: string,
   action: SwipeAction,

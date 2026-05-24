@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.frontend"
+      "bundleIdentifier": "com.hugowennberg.frontend"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +24,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.anonymous.frontend"
+      "package": "com.hugowennberg.frontend"
     },
     "web": {
       "favicon": "./assets/favicon.png"
