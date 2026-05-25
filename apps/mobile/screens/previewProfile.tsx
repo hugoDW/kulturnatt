@@ -4,6 +4,8 @@ import {
   Alert,
   Animated,
   Image,
+  NativeScrollEvent,
+  NativeSyntheticEvent,
   ScrollView,
   StyleSheet,
   Text,
@@ -174,7 +176,7 @@ export default function PreviewProfileScreen() {
     [{ nativeEvent: { contentOffset: { y: scrollY } } }],
     {
       useNativeDriver: true,
-      listener: (event) => {
+      listener: (event: NativeSyntheticEvent<NativeScrollEvent>) => {
         const offsetY = event.nativeEvent.contentOffset.y;
         setHeaderInteractive(offsetY < HEADER_HIDE_SCROLL_DISTANCE * 0.6);
       },

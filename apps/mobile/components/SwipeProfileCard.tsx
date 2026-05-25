@@ -114,7 +114,6 @@ export default function SwipeProfileCard({
 }: {
   profile: RankedProfile | MatchedProfile;
 }) {
-  const score = "score" in profile ? profile.score : null;
   const age = useMemo(() => getAge(profile.dob), [profile.dob]);
   const badge = useMemo(() => genderIcon(profile.gender), [profile.gender]);
   // Backend only sends social_media for matched profiles, so this is
@@ -173,9 +172,6 @@ export default function SwipeProfileCard({
               <Ionicons name="logo-instagram" size={15} color="#6C5CE7" />
               <Text style={styles.instagramText}>{instagram.handle}</Text>
             </TouchableOpacity>
-          ) : null}
-          {score !== null ? (
-            <Text style={styles.score}>Match score {score}</Text>
           ) : null}
         </View>
 
@@ -316,13 +312,6 @@ const styles = StyleSheet.create({
   instagramText: {
     fontFamily: "Inter",
     fontSize: 14,
-    fontWeight: "700",
-    color: "#6C5CE7",
-  },
-  score: {
-    marginTop: 6,
-    fontFamily: "Inter",
-    fontSize: 12,
     fontWeight: "700",
     color: "#6C5CE7",
   },

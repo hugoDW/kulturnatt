@@ -19,6 +19,22 @@ type Props = {
 const THUMB_SIZE = 28;
 const TRACK_HEIGHT = 6;
 
+export function clampMinAgeRange(
+  current: [number, number],
+  nextMin: number,
+): [number, number] {
+  const [, currentMax] = current;
+  return [Math.min(currentMax, nextMin), currentMax];
+}
+
+export function clampMaxAgeRange(
+  current: [number, number],
+  nextMax: number,
+): [number, number] {
+  const [currentMin] = current;
+  return [currentMin, Math.max(currentMin, nextMax)];
+}
+
 export default function AgeRangeSlider({ min, max, value, onChange }: Props) {
   const [width, setWidth] = useState(0);
   const widthRef = useRef(0);
@@ -57,10 +73,10 @@ export default function AgeRangeSlider({ min, max, value, onChange }: Props) {
         const [, currentMax] = valueRef.current;
         const startPosition = valueToPosition(valueRef.current[0]);
         const nextPosition = startPosition + gesture.dx;
-        const nextValue = Math.min(
-          currentMax,
+        const nextValue = clampMinAgeRange(
+          valueRef.current,
           positionToValue(nextPosition),
-        );
+        )[0];
         if (nextValue !== valueRef.current[0]) {
           onChange([nextValue, currentMax]);
         }
@@ -79,10 +95,10 @@ export default function AgeRangeSlider({ min, max, value, onChange }: Props) {
         const [currentMin] = valueRef.current;
         const startPosition = valueToPosition(valueRef.current[1]);
         const nextPosition = startPosition + gesture.dx;
-        const nextValue = Math.max(
-          currentMin,
+        const nextValue = clampMaxAgeRange(
+          valueRef.current,
           positionToValue(nextPosition),
-        );
+        )[1];
         if (nextValue !== valueRef.current[1]) {
           onChange([currentMin, nextValue]);
         }

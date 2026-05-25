@@ -138,6 +138,13 @@ export default function SwipeScreen() {
             <Text style={styles.retryButtonText}>Refresh</Text>
           </TouchableOpacity>
         </View>
+        <MatchModal
+          visible={matchModal !== null}
+          username={matchModal?.username ?? ""}
+          avatarUri={matchModal?.avatarUri ?? null}
+          shared={matchModal?.shared ?? null}
+          onClose={() => setMatchModal(null)}
+        />
         <NavBar />
       </View>
     );
