@@ -95,6 +95,7 @@ class ProfileSetupRequest(BaseModel):
     bio: str = ""
     profile_image_uri: str | None = None
     location: str = ""
+    social_media: str = ""
 
 
 def profile_setup_response(user: User) -> dict:
@@ -151,6 +152,7 @@ def apply_profile_setup_request(user: User, request: ProfileSetupRequest) -> Use
     user.bio = request.bio
     user.profile_image_uri = request.profile_image_uri
     user.location = request.location
+    user.social_media = request.social_media
     return user
 
 
@@ -159,7 +161,8 @@ def profile_me(user_id: uuid.UUID = Depends(get_current_user)):
     user = get_user(user_id)
     if user is None:
         raise HTTPException(status_code=404, detail="Profile not found")
-    return profile_setup_response(user)
+    # Own profile — include social_media so the user can view/edit it.
+    return {**profile_setup_response(user), "social_media": user.social_media}
 
 
 @app.post("/profile/setup")
@@ -195,6 +198,7 @@ def profile_setup(
         bio=request.bio,
         profile_image_uri=request.profile_image_uri,
         location=request.location,
+        social_media=request.social_media,
     )
     try:
         create_profile(user)
@@ -225,6 +229,7 @@ class UpdateProfileRequest(BaseModel):
     bio: str = ""
     profile_image_uri: str | None = None
     location: str = ""
+    social_media: str = ""
 
 
 @app.put("/profile/update")
@@ -255,6 +260,7 @@ def profile_update(
     user.bio = request.bio
     user.profile_image_uri = request.profile_image_uri
     user.location = request.location
+    user.social_media = request.social_media
     try:
         update_profile(user)
     except RuntimeError as error:
@@ -302,6 +308,8 @@ def profile_matches(user_id: uuid.UUID = Depends(get_current_user)):
         matches.append({
             **profile_setup_response(other),
             "user_id": str(other.user_id),
+            # social_media is only shared with matched users.
+            "social_media": other.social_media,
         })
     return {"matches": matches}
 

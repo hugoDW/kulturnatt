@@ -13,7 +13,7 @@ import { Ionicons } from "@react-native-vector-icons/ionicons";
 
 import BottomSheet from "./BottomSheet";
 import { searchTmdb } from "../../apiservices/tmdbservice";
-import { decodeAll, decodeTag, encodeTag } from "../../lib/profileTags";
+import { decodeAll, decodeTag, encodeTag, tagKey } from "../../lib/profileTags";
 import { useProfileCreation } from "../../lib/profileCreation";
 
 type MovieResult = {
@@ -58,8 +58,11 @@ type Props = {
   ) => void;
 };
 
-function itemNameKey(name: string) {
-  return name.trim().toLowerCase();
+// Slots can hold both movies and series, so the selection identity carries the
+// category alongside the shared name+image key — otherwise a movie and a series
+// that share a title would be treated as the same pick.
+function slotKey(category: Mode, name: string, image: string | null): string {
+  return `${category}::${tagKey(name, image)}`;
 }
 
 function itemFromSlot(slot: SlotValue): Item | null {
@@ -181,17 +184,25 @@ export default function MoviesAndSeriesSheet({
   const selectedList = mode === "movie" ? movies : shows;
   const setSelectedList = mode === "movie" ? setMovies : setShows;
 
-  const blockedResultNames = useMemo(() => {
+  const blockedResultKeys = useMemo(() => {
     if (!isSingleSlot) return new Set<string>();
     return new Set(
       (slotValues ?? [])
         .filter((slot, index) => index !== selectedSlotIndex && slot)
-        .map((slot) => itemNameKey(decodeTag(slot!.value).name)),
+        .map((slot) => {
+          const decoded = decodeTag(slot!.value);
+          return slotKey(slot!.category, decoded.name, decoded.image);
+        }),
     );
   }, [isSingleSlot, selectedSlotIndex, slotValues]);
 
   const visibleResults = isSingleSlot
-    ? results.filter((item) => !blockedResultNames.has(itemNameKey(item.name)))
+    ? results.filter(
+        (item) =>
+          !blockedResultKeys.has(
+            slotKey(item.category, item.name, item.imageUrl),
+          ),
+      )
     : results;
 
   function toggle(item: Item) {
@@ -200,20 +211,24 @@ export default function MoviesAndSeriesSheet({
       return;
     }
 
+    const key = tagKey(item.name, item.imageUrl);
     setSelectedList((current) =>
-      current.some((entry) => entry.name === item.name)
-        ? current.filter((entry) => entry.name !== item.name)
+      current.some((entry) => tagKey(entry.name, entry.image) === key)
+        ? current.filter((entry) => tagKey(entry.name, entry.image) !== key)
         : [...current, { name: item.name, image: item.imageUrl }],
     );
   }
 
-  function remove(name: string) {
+  function remove(entry: Entry) {
     if (isSingleSlot) {
       setSlotSelected(null);
       return;
     }
 
-    setSelectedList((current) => current.filter((entry) => entry.name !== name));
+    const key = tagKey(entry.name, entry.image);
+    setSelectedList((current) =>
+      current.filter((existing) => tagKey(existing.name, existing.image) !== key),
+    );
   }
 
   function handleDone() {
@@ -320,7 +335,10 @@ export default function MoviesAndSeriesSheet({
             </Text>
             <View style={styles.selectedWrap}>
               {selectedList.map((entry) => (
-                <View key={entry.name} style={styles.selectedChip}>
+                <View
+                  key={tagKey(entry.name, entry.image)}
+                  style={styles.selectedChip}
+                >
                   {entry.image ? (
                     <Image
                       source={{ uri: entry.image }}
@@ -328,7 +346,7 @@ export default function MoviesAndSeriesSheet({
                     />
                   ) : null}
                   <Text style={styles.selectedChipText}>{entry.name}</Text>
-                  <TouchableOpacity onPress={() => remove(entry.name)} hitSlop={8}>
+                  <TouchableOpacity onPress={() => remove(entry)} hitSlop={8}>
                     <Ionicons name="close" size={14} color="#FFFFFF" />
                   </TouchableOpacity>
                 </View>
@@ -360,10 +378,17 @@ export default function MoviesAndSeriesSheet({
             ) : null
           }
           renderItem={({ item }) => {
+            const key = tagKey(item.name, item.imageUrl);
             const isSelected = isSingleSlot
-              ? slotSelected?.category === item.category &&
-                slotSelected?.name === item.name
-              : selectedList.some((entry) => entry.name === item.name);
+              ? slotSelected != null &&
+                slotKey(
+                  slotSelected.category,
+                  slotSelected.name,
+                  slotSelected.imageUrl,
+                ) === slotKey(item.category, item.name, item.imageUrl)
+              : selectedList.some(
+                  (entry) => tagKey(entry.name, entry.image) === key,
+                );
             return (
               <TouchableOpacity
                 style={[styles.resultRow, isSelected && styles.resultRowSelected]}

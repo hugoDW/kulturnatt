@@ -33,6 +33,7 @@ import { useProfileCreation } from "../lib/profileCreation";
 import { getSelectedInterests } from "../lib/interestOptions";
 import { selectionChipStyles } from "../lib/selectionChipStyles";
 import { decodeAll, decodeTag, encodeTag } from "../lib/profileTags";
+import { parseInstagram } from "../lib/socialMedia";
 
 type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -214,6 +215,11 @@ export default function PreviewProfileScreen() {
         return null;
     }
   }, [draft.gender]);
+
+  const instagram = useMemo(
+    () => parseInstagram(draft.social_media),
+    [draft.social_media],
+  );
 
   const eventCards = useMemo(
     () => decodeAll(draft.events).filter((item) => item.name.trim()),
@@ -434,6 +440,12 @@ export default function PreviewProfileScreen() {
               </View>
               {draft.location ? (
                 <Text style={styles.meta}>{draft.location}</Text>
+              ) : null}
+              {instagram ? (
+                <View style={styles.instagramRow}>
+                  <Ionicons name="logo-instagram" size={15} color="#6C5CE7" />
+                  <Text style={styles.instagramText}>{instagram.handle}</Text>
+                </View>
               ) : null}
               {!draft.gender && (
                 <Text style={styles.meta}>Add basic info</Text>
@@ -906,7 +918,19 @@ const styles = StyleSheet.create({
     gap: 14,
     marginBottom: 10,
   },
-  identityText: { flex: 1 },
+  identityText: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#ECE7FF",
+    shadowColor: "#6C5CE7",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
+  },
   usernameRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -923,6 +947,18 @@ const styles = StyleSheet.create({
     fontFamily: "Inter",
     fontSize: 14,
     color: "#7F8C8D",
+  },
+  instagramRow: {
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  instagramText: {
+    fontFamily: "Inter",
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#6C5CE7",
   },
   avatarTap: {},
   avatar: {
