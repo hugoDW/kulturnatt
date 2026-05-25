@@ -49,6 +49,7 @@ def row_to_user(row: dict) -> User:
         bio=row.get("bio") or "",
         profile_image_uri=row.get("profile_image_uri"),
         location=row.get("location") or "",
+        social_media=row.get("social_media") or "",
     )
 
 
@@ -97,6 +98,7 @@ def update_profile(user: User):
             "bio": user.bio,
             "profile_image_uri": user.profile_image_uri,
             "location": user.location,
+            "social_media": user.social_media,
         }).eq("id_profile", str(user.user_id)),
         "profile update",
     )
@@ -144,6 +146,7 @@ def create_profile(user: User):
             "bio": user.bio,
             "profile_image_uri": user.profile_image_uri,
             "location": user.location,
+            "social_media": user.social_media,
         }),
         "profile insert",
     )

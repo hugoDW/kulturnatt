@@ -12,7 +12,7 @@ import {
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 
 import BottomSheet from "./BottomSheet";
-import { decodeAll, decodeTag, encodeTag } from "../../lib/profileTags";
+import { decodeAll, decodeTag, encodeTag, tagKey } from "../../lib/profileTags";
 
 export type SelectableItem = {
   name: string;
@@ -41,10 +41,6 @@ type SelectedEntry = {
   image: string | null;
   subtitle?: string | null;
 };
-
-function itemNameKey(name: string) {
-  return name.trim().toLowerCase();
-}
 
 function decodeSlotValues(
   initialValues: string[],
@@ -119,7 +115,7 @@ export default function SearchableSelectorSheet<T>({
     slotValues,
   ]);
 
-  const blockedResultNames = useMemo(() => {
+  const blockedResultKeys = useMemo(() => {
     if (!isSingleSlot) return new Set<string>();
     const slots = decodeSlotValues(initialValues, slotValues, maxItems);
     return new Set(
@@ -128,12 +124,14 @@ export default function SearchableSelectorSheet<T>({
           (entry, index) =>
             index !== selectedSlotIndex && Boolean(entry?.name.trim()),
         )
-        .map((entry) => itemNameKey(entry?.name ?? "")),
+        .map((entry) => tagKey(entry?.name ?? "", entry?.image ?? null)),
     );
   }, [initialValues, isSingleSlot, maxItems, selectedSlotIndex, slotValues]);
 
   const visibleResults = isSingleSlot
-    ? results.filter((item) => !blockedResultNames.has(itemNameKey(item.name)))
+    ? results.filter(
+        (item) => !blockedResultKeys.has(tagKey(item.name, item.imageUrl)),
+      )
     : results;
 
   const selectedEntries = isSingleSlot
@@ -179,21 +177,25 @@ export default function SearchableSelectorSheet<T>({
       return;
     }
 
+    const key = tagKey(item.name, item.imageUrl);
     setSelected((current) =>
-      current.some((existing) => existing.name === item.name)
-        ? current.filter((existing) => existing.name !== item.name)
+      current.some((existing) => tagKey(existing.name, existing.image) === key)
+        ? current.filter(
+            (existing) => tagKey(existing.name, existing.image) !== key,
+          )
         : [...current, { name: item.name, image: item.imageUrl ?? null }],
     );
   }
 
-  function remove(name: string) {
+  function remove(entry: SelectedEntry) {
     if (isSingleSlot) {
       setSlotSelected(null);
       return;
     }
 
+    const key = tagKey(entry.name, entry.image);
     setSelected((current) =>
-      current.filter((existing) => existing.name !== name),
+      current.filter((existing) => tagKey(existing.name, existing.image) !== key),
     );
   }
 
@@ -263,7 +265,10 @@ export default function SearchableSelectorSheet<T>({
             <Text style={styles.selectedLabel}>Selected</Text>
             <View style={styles.selectedWrap}>
               {selectedEntries.map((entry) => (
-                <View key={entry.name} style={styles.selectedChip}>
+                <View
+                  key={tagKey(entry.name, entry.image)}
+                  style={styles.selectedChip}
+                >
                   {entry.image ? (
                     <Image
                       source={{ uri: entry.image }}
@@ -271,7 +276,7 @@ export default function SearchableSelectorSheet<T>({
                     />
                   ) : null}
                   <Text style={styles.selectedChipText}>{entry.name}</Text>
-                  <TouchableOpacity onPress={() => remove(entry.name)} hitSlop={8}>
+                  <TouchableOpacity onPress={() => remove(entry)} hitSlop={8}>
                     <Ionicons name="close" size={14} color="#FFFFFF" />
                   </TouchableOpacity>
                 </View>
@@ -303,9 +308,13 @@ export default function SearchableSelectorSheet<T>({
             ) : null
           }
           renderItem={({ item }) => {
+            const itemKey = tagKey(item.name, item.imageUrl);
             const isSelected = isSingleSlot
-              ? slotSelected?.name === item.name
-              : selected.some((entry) => entry.name === item.name);
+              ? slotSelected != null &&
+                tagKey(slotSelected.name, slotSelected.image) === itemKey
+              : selected.some(
+                  (entry) => tagKey(entry.name, entry.image) === itemKey,
+                );
             return (
               <TouchableOpacity
                 style={[styles.resultRow, isSelected && styles.resultRowSelected]}

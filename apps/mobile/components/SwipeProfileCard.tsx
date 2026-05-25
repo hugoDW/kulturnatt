@@ -1,9 +1,11 @@
 import React, { useMemo } from "react";
 import {
   Image,
+  Linking,
   ScrollView,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from "react-native";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
@@ -12,6 +14,7 @@ import type { MatchedProfile, RankedProfile } from "../apiservices/swipeService"
 import { getSelectedInterests } from "../lib/interestOptions";
 import { selectionChipStyles } from "../lib/selectionChipStyles";
 import { decodeAll } from "../lib/profileTags";
+import { parseInstagram } from "../lib/socialMedia";
 
 const MAX_ITEMS = 3;
 
@@ -114,6 +117,12 @@ export default function SwipeProfileCard({
   const score = "score" in profile ? profile.score : null;
   const age = useMemo(() => getAge(profile.dob), [profile.dob]);
   const badge = useMemo(() => genderIcon(profile.gender), [profile.gender]);
+  // Backend only sends social_media for matched profiles, so this is
+  // automatically hidden for people you haven't matched with.
+  const instagram = useMemo(
+    () => parseInstagram(profile.social_media),
+    [profile.social_media],
+  );
   const interests = useMemo(() => getSelectedInterests(profile), [profile]);
 
   const eventItems = useMemo(
@@ -155,6 +164,15 @@ export default function SwipeProfileCard({
           </View>
           {profile.location ? (
             <Text style={styles.meta}>{profile.location}</Text>
+          ) : null}
+          {instagram ? (
+            <TouchableOpacity
+              style={styles.instagramRow}
+              onPress={() => Linking.openURL(instagram.url)}
+            >
+              <Ionicons name="logo-instagram" size={15} color="#6C5CE7" />
+              <Text style={styles.instagramText}>{instagram.handle}</Text>
+            </TouchableOpacity>
           ) : null}
           {score !== null ? (
             <Text style={styles.score}>Match score {score}</Text>
@@ -259,7 +277,19 @@ const styles = StyleSheet.create({
     gap: 14,
     marginBottom: 10,
   },
-  identityText: { flex: 1 },
+  identityText: {
+    flex: 1,
+    padding: 14,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#ECE7FF",
+    shadowColor: "#6C5CE7",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
+  },
   usernameRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -276,6 +306,18 @@ const styles = StyleSheet.create({
     fontFamily: "Inter",
     fontSize: 14,
     color: "#7F8C8D",
+  },
+  instagramRow: {
+    marginTop: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  instagramText: {
+    fontFamily: "Inter",
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#6C5CE7",
   },
   score: {
     marginTop: 6,

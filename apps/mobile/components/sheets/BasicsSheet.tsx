@@ -26,6 +26,7 @@ export default function BasicsSheet({ visible, onClose }: Props) {
   const [username, setUsername] = useState(draft.username);
   const [gender, setGender] = useState(draft.gender);
   const [location, setLocation] = useState(draft.location);
+  const [socialMedia, setSocialMedia] = useState(draft.social_media ?? "");
   const [date, setDate] = useState<Date | null>(
     draft.dob ? new Date(draft.dob) : null,
   );
@@ -36,15 +37,24 @@ export default function BasicsSheet({ visible, onClose }: Props) {
       setUsername(draft.username);
       setGender(draft.gender);
       setLocation(draft.location);
+      setSocialMedia(draft.social_media ?? "");
       setDate(draft.dob ? new Date(draft.dob) : null);
     }
-  }, [visible, draft.username, draft.gender, draft.location, draft.dob]);
+  }, [
+    visible,
+    draft.username,
+    draft.gender,
+    draft.location,
+    draft.social_media,
+    draft.dob,
+  ]);
 
   function handleDone() {
     updateDraft({
       username: username.trim().toLowerCase(),
       gender,
       location: location.trim(),
+      social_media: socialMedia.trim(),
       dob: date ? date.toISOString().slice(0, 10) : "",
     });
     onClose();
@@ -107,6 +117,20 @@ export default function BasicsSheet({ visible, onClose }: Props) {
           placeholder="e.g. Stockholm"
         />
 
+        <Text style={styles.label}>Instagram</Text>
+        <TextInput
+          style={styles.input}
+          autoCapitalize="none"
+          autoCorrect={false}
+          maxLength={120}
+          value={socialMedia}
+          onChangeText={setSocialMedia}
+          placeholder="e.g. @yourhandle"
+        />
+        <Text style={styles.hint}>
+          Only people you match with can see this.
+        </Text>
+
         <Text style={styles.label}>Gender</Text>
         <View style={selectionChipStyles.wrap}>
           {GENDER_OPTIONS.map((option) => {
@@ -160,4 +184,10 @@ const styles = StyleSheet.create({
   },
   dateText: { fontFamily: "Inter", fontSize: 15, color: "#25364A" },
   placeholder: { color: "#9AA1AA" },
+  hint: {
+    marginTop: 6,
+    fontFamily: "Inter",
+    fontSize: 12,
+    color: "#9AA1AA",
+  },
 });

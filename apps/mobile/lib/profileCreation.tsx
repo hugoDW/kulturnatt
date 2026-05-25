@@ -29,6 +29,7 @@ const initialDraft: ProfileDraft = {
   bio: "",
   profile_image_uri: null,
   location: "",
+  social_media: "",
 };
 
 function isInitialProfileDraft(draft: ProfileDraft) {
@@ -108,6 +109,7 @@ export function ProfileCreationProvider({ children }: { children: React.ReactNod
         art: savedDraft.art ?? false,
         profile_image_uri: savedDraft.profile_image_uri ?? null,
         location: savedDraft.location ?? "",
+        social_media: savedDraft.social_media ?? "",
       };
       console.log("[ProfileCreation] loaded profile:", {
         username: normalized.username,

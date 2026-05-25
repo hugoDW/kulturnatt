@@ -31,6 +31,7 @@ class User:
         bio: str = "",
         profile_image_uri: str | None = None,
         location: str = "",
+        social_media: str = "",
     ):
         self.user_id = user_id
         self.username = username
@@ -58,6 +59,7 @@ class User:
         self.bio = bio
         self.profile_image_uri = profile_image_uri
         self.location = location
+        self.social_media = social_media
 
     @property
     def age(self) -> int:
@@ -96,6 +98,7 @@ def user_to_dict(user: User) -> dict:
         "bio": user.bio,
         "profile_image_uri": user.profile_image_uri,
         "location": user.location,
+        "social_media": user.social_media,
     }
 
 
@@ -128,4 +131,5 @@ def user_from_dict(data: dict) -> User:
         bio=data.get("bio", ""),
         profile_image_uri=data.get("profile_image_uri"),
         location=data.get("location", ""),
+        social_media=data.get("social_media", ""),
     )

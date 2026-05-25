@@ -31,3 +31,12 @@ export function tagName(value: string): string {
   if (typeof value !== "string") return "";
   return decodeTag(value).name;
 }
+
+// Stable identity for a selectable item. A search can return several distinct
+// records that share a display name (e.g. two different artists, or a song that
+// exists on multiple albums), so the name alone is not a safe selection key.
+// We pair the (normalized) name with the image — the only other field we
+// persist — so selecting one record no longer highlights its namesakes.
+export function tagKey(name: string, image?: string | null): string {
+  return `${name.trim().toLowerCase()}::${image ?? ""}`;
+}
