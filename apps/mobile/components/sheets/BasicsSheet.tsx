@@ -26,7 +26,8 @@ export default function BasicsSheet({ visible, onClose }: Props) {
   const [username, setUsername] = useState(draft.username);
   const [gender, setGender] = useState(draft.gender);
   const [location, setLocation] = useState(draft.location);
-  const [socialMedia, setSocialMedia] = useState(draft.social_media ?? "");
+  const [instagram, setInstagram] = useState(draft.instagram ?? "");
+  const [facebook, setFacebook] = useState(draft.facebook ?? "");
   const [date, setDate] = useState<Date | null>(
     draft.dob ? new Date(draft.dob) : null,
   );
@@ -37,7 +38,8 @@ export default function BasicsSheet({ visible, onClose }: Props) {
       setUsername(draft.username);
       setGender(draft.gender);
       setLocation(draft.location);
-      setSocialMedia(draft.social_media ?? "");
+      setInstagram(draft.instagram ?? "");
+      setFacebook(draft.facebook ?? "");
       setDate(draft.dob ? new Date(draft.dob) : null);
     }
   }, [
@@ -45,7 +47,8 @@ export default function BasicsSheet({ visible, onClose }: Props) {
     draft.username,
     draft.gender,
     draft.location,
-    draft.social_media,
+    draft.instagram,
+    draft.facebook,
     draft.dob,
   ]);
 
@@ -54,7 +57,8 @@ export default function BasicsSheet({ visible, onClose }: Props) {
       username: username.trim().toLowerCase(),
       gender,
       location: location.trim(),
-      social_media: socialMedia.trim(),
+      instagram: instagram.trim(),
+      facebook: facebook.trim(),
       dob: date ? date.toISOString().slice(0, 10) : "",
     });
     onClose();
@@ -123,9 +127,22 @@ export default function BasicsSheet({ visible, onClose }: Props) {
           autoCapitalize="none"
           autoCorrect={false}
           maxLength={120}
-          value={socialMedia}
-          onChangeText={setSocialMedia}
+          value={instagram}
+          onChangeText={setInstagram}
           placeholder="e.g. @yourhandle"
+        />
+
+        <Text style={styles.label}>Facebook link</Text>
+        <TextInput
+          style={styles.input}
+          autoCapitalize="none"
+          autoCorrect={false}
+          inputMode="url"
+          keyboardType="url"
+          maxLength={120}
+          value={facebook}
+          onChangeText={setFacebook}
+          placeholder="e.g. facebook.com/your.name"
         />
         <Text style={styles.hint}>
           Only people you match with can see this.

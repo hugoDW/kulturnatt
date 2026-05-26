@@ -148,7 +148,7 @@ export default function ProfileWizard() {
               maxLength={24}
               value={username}
               onChangeText={setUsername}
-              placeholder="e.g. arcticehcho"
+              placeholder="e.g RockMusicLover92"
             />
 
             <Text style={styles.label}>Date of birth</Text>

@@ -40,19 +40,31 @@ export default function CreateAccountScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
-
-  async function handleCreateAccount() {
+  function getValidatedCredentials() {
     const normalizedEmail = email.trim().toLowerCase();
-
 
     if (!normalizedEmail || !password || !confirmPassword) {
       Alert.alert("Missing fields", "Enter email, password, and confirm password.");
-      return;
+      return null;
     }
 
 
     if (password !== confirmPassword) {
       Alert.alert("Password mismatch", "Password and confirm password must match.");
+      return null;
+    }
+
+    return {
+      email: normalizedEmail,
+      password,
+    };
+  }
+
+
+  async function handleCreateAccount() {
+    const credentials = getValidatedCredentials();
+
+    if (!credentials) {
       return;
     }
 
@@ -62,8 +74,8 @@ export default function CreateAccountScreen() {
 
     try {
       const { data, error } = await supabase.auth.signUp({
-        email: normalizedEmail,
-        password,
+        email: credentials.email,
+        password: credentials.password,
         options: {
           emailRedirectTo: EMAIL_VERIFY_REDIRECT_URL,
         },
@@ -89,6 +101,39 @@ export default function CreateAccountScreen() {
           ? error.message
           : "Something went wrong while signing up.";
 
+
+      Alert.alert("Registration failed", message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCreateAccountTest() {
+    const credentials = getValidatedCredentials();
+
+    if (!credentials) {
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: credentials.email,
+        password: credentials.password,
+      });
+
+      if (error) {
+        Alert.alert("Registration failed", error.message);
+        return;
+      }
+
+      navigation.navigate("Welcome");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while signing up.";
 
       Alert.alert("Registration failed", message);
     } finally {
@@ -175,6 +220,17 @@ export default function CreateAccountScreen() {
                 <Text style={styles.registerButtonText}>Register</Text>
               )}
             </TouchableOpacity>
+
+            <TouchableOpacity
+              disabled={loading}
+              onPress={handleCreateAccountTest}
+              style={[
+                styles.registerTestButton,
+                loading && styles.registerButtonDisabled,
+              ]}
+            >
+              <Text style={styles.registerTestButtonText}>Register-test</Text>
+            </TouchableOpacity>
           </View>
         </LinearGradient>
       </KeyboardAvoidingView>
@@ -258,6 +314,25 @@ const styles = StyleSheet.create({
 
   registerButtonText: {
     color: "#FFFFFF",
+    fontFamily: "Inter",
+    fontSize: 14,
+    fontWeight: "800",
+  },
+
+
+  registerTestButton: {
+    alignItems: "center",
+    borderColor: "#202124",
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    marginTop: 14,
+    minHeight: 44,
+  },
+
+
+  registerTestButtonText: {
+    color: "#202124",
     fontFamily: "Inter",
     fontSize: 14,
     fontWeight: "800",

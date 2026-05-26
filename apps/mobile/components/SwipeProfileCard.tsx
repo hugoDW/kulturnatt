@@ -14,7 +14,11 @@ import type { MatchedProfile, RankedProfile } from "../apiservices/swipeService"
 import { getSelectedInterests } from "../lib/interestOptions";
 import { selectionChipStyles } from "../lib/selectionChipStyles";
 import { decodeAll } from "../lib/profileTags";
-import { parseInstagram } from "../lib/socialMedia";
+import {
+  getLegacySocialMediaInputs,
+  parseFacebook,
+  parseInstagram,
+} from "../lib/socialMedia";
 
 const MAX_ITEMS = 3;
 
@@ -116,11 +120,19 @@ export default function SwipeProfileCard({
 }) {
   const age = useMemo(() => getAge(profile.dob), [profile.dob]);
   const badge = useMemo(() => genderIcon(profile.gender), [profile.gender]);
-  // Backend only sends social_media for matched profiles, so this is
+  // Backend only sends social links for matched profiles, so this is
   // automatically hidden for people you haven't matched with.
-  const instagram = useMemo(
-    () => parseInstagram(profile.social_media),
+  const legacySocialMedia = useMemo(
+    () => getLegacySocialMediaInputs(profile.social_media),
     [profile.social_media],
+  );
+  const instagram = useMemo(
+    () => parseInstagram(profile.instagram || legacySocialMedia.instagram),
+    [legacySocialMedia.instagram, profile.instagram],
+  );
+  const facebook = useMemo(
+    () => parseFacebook(profile.facebook || legacySocialMedia.facebook),
+    [legacySocialMedia.facebook, profile.facebook],
   );
   const interests = useMemo(() => getSelectedInterests(profile), [profile]);
 
@@ -140,12 +152,13 @@ export default function SwipeProfileCard({
     () => decodeAll(profile.artists).filter((item) => item.name.trim()),
     [profile.artists],
   );
-  const mediaItems = useMemo(
-    () => [
-      ...decodeAll(profile.movies),
-      ...decodeAll(profile.shows),
-    ].filter((item) => item.name.trim()),
-    [profile.movies, profile.shows],
+  const movieItems = useMemo(
+    () => decodeAll(profile.movies).filter((item) => item.name.trim()),
+    [profile.movies],
+  );
+  const seriesItems = useMemo(
+    () => decodeAll(profile.shows).filter((item) => item.name.trim()),
+    [profile.shows],
   );
 
   return (
@@ -166,12 +179,20 @@ export default function SwipeProfileCard({
           ) : null}
           {instagram ? (
             <TouchableOpacity
-              style={styles.instagramRow}
+              style={styles.socialMediaRow}
               onPress={() => Linking.openURL(instagram.url)}
             >
               <Ionicons name="logo-instagram" size={15} color="#6C5CE7" />
               <Text style={styles.instagramText}>{instagram.handle}</Text>
             </TouchableOpacity>
+          ) : null}
+          {facebook ? (
+            <View style={styles.socialMediaRow}>
+              <Ionicons name="logo-facebook" size={15} color="#1877F2" />
+              <Text selectable style={styles.facebookText} numberOfLines={1}>
+                {facebook.label}
+              </Text>
+            </View>
           ) : null}
         </View>
 
@@ -244,9 +265,15 @@ export default function SwipeProfileCard({
         </ReadOnlySection>
       ) : null}
 
-      {mediaItems.length > 0 ? (
-        <ReadOnlySection title="Movies & Series" icon="film-outline">
-          <MediaRow items={mediaItems} shape="poster" />
+      {movieItems.length > 0 ? (
+        <ReadOnlySection title="Movies" icon="film-outline">
+          <MediaRow items={movieItems} shape="poster" />
+        </ReadOnlySection>
+      ) : null}
+
+      {seriesItems.length > 0 ? (
+        <ReadOnlySection title="Series" icon="tv-outline">
+          <MediaRow items={seriesItems} shape="poster" />
         </ReadOnlySection>
       ) : null}
     </View>
@@ -303,7 +330,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#7F8C8D",
   },
-  instagramRow: {
+  socialMediaRow: {
     marginTop: 6,
     flexDirection: "row",
     alignItems: "center",
@@ -314,6 +341,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#6C5CE7",
+  },
+  facebookText: {
+    flexShrink: 1,
+    fontFamily: "Inter",
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1877F2",
   },
   avatar: {
     width: 72,

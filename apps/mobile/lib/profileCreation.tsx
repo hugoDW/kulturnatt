@@ -5,6 +5,7 @@ import {
   saveProfileSetup,
   updateProfile,
 } from "../apiservices/profileService";
+import { getLegacySocialMediaInputs } from "./socialMedia";
 
 type ProfileDraft = ProfileSetupPayload;
 
@@ -29,6 +30,8 @@ const initialDraft: ProfileDraft = {
   bio: "",
   profile_image_uri: null,
   location: "",
+  instagram: "",
+  facebook: "",
   social_media: "",
 };
 
@@ -88,6 +91,7 @@ export function ProfileCreationProvider({ children }: { children: React.ReactNod
     const savedDraft = await getProfileSetup();
 
     if (savedDraft) {
+      const legacySocialMedia = getLegacySocialMediaInputs(savedDraft.social_media);
       // Defensive: backend may return null for unset array fields
       const normalized: ProfileDraft = {
         ...initialDraft,
@@ -109,6 +113,8 @@ export function ProfileCreationProvider({ children }: { children: React.ReactNod
         art: savedDraft.art ?? false,
         profile_image_uri: savedDraft.profile_image_uri ?? null,
         location: savedDraft.location ?? "",
+        instagram: savedDraft.instagram ?? legacySocialMedia.instagram,
+        facebook: savedDraft.facebook ?? legacySocialMedia.facebook,
         social_media: savedDraft.social_media ?? "",
       };
       console.log("[ProfileCreation] loaded profile:", {

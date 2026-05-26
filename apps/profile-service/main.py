@@ -95,6 +95,8 @@ class ProfileSetupRequest(BaseModel):
     bio: str = ""
     profile_image_uri: str | None = None
     location: str = ""
+    instagram: str = ""
+    facebook: str = ""
     social_media: str = ""
 
 
@@ -131,6 +133,14 @@ def swipe_profile_response(user: User, score: int) -> dict:
     }
 
 
+def private_social_response(user: User) -> dict:
+    return {
+        "instagram": user.instagram,
+        "facebook": user.facebook,
+        "social_media": user.social_media,
+    }
+
+
 def apply_profile_setup_request(user: User, request: ProfileSetupRequest) -> User:
     user.username = request.username
     user.dob = date.fromisoformat(request.dob)
@@ -152,6 +162,8 @@ def apply_profile_setup_request(user: User, request: ProfileSetupRequest) -> Use
     user.bio = request.bio
     user.profile_image_uri = request.profile_image_uri
     user.location = request.location
+    user.instagram = request.instagram
+    user.facebook = request.facebook
     user.social_media = request.social_media
     return user
 
@@ -162,7 +174,7 @@ def profile_me(user_id: uuid.UUID = Depends(get_current_user)):
     if user is None:
         raise HTTPException(status_code=404, detail="Profile not found")
     # Own profile — include social_media so the user can view/edit it.
-    return {**profile_setup_response(user), "social_media": user.social_media}
+    return {**profile_setup_response(user), **private_social_response(user)}
 
 
 @app.post("/profile/setup")
@@ -198,6 +210,8 @@ def profile_setup(
         bio=request.bio,
         profile_image_uri=request.profile_image_uri,
         location=request.location,
+        instagram=request.instagram,
+        facebook=request.facebook,
         social_media=request.social_media,
     )
     try:
@@ -229,6 +243,8 @@ class UpdateProfileRequest(BaseModel):
     bio: str = ""
     profile_image_uri: str | None = None
     location: str = ""
+    instagram: str = ""
+    facebook: str = ""
     social_media: str = ""
 
 
@@ -260,6 +276,8 @@ def profile_update(
     user.bio = request.bio
     user.profile_image_uri = request.profile_image_uri
     user.location = request.location
+    user.instagram = request.instagram
+    user.facebook = request.facebook
     user.social_media = request.social_media
     try:
         update_profile(user)
@@ -308,8 +326,7 @@ def profile_matches(user_id: uuid.UUID = Depends(get_current_user)):
         matches.append({
             **profile_setup_response(other),
             "user_id": str(other.user_id),
-            # social_media is only shared with matched users.
-            "social_media": other.social_media,
+            **private_social_response(other),
         })
     return {"matches": matches}
 

@@ -16,6 +16,7 @@ import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import BackButton from "../components/backButton";
 import NavBar from "../components/NavBar";
 import SwipeProfileCard from "../components/SwipeProfileCard";
 import { getMatches, type MatchedProfile } from "../apiservices/swipeService";
@@ -166,14 +167,8 @@ export default function MatchesScreen() {
         {selectedProfile ? (
           <>
             <View style={[styles.overlayHeader, { paddingTop: insets.top + 8 }]}>
-              <TouchableOpacity
-                accessibilityLabel="Back to matches"
-                activeOpacity={0.7}
-                onPress={closeProfile}
-                style={styles.backButton}
-              >
-                <Ionicons name="chevron-back" size={26} color="#25364A" />
-              </TouchableOpacity>
+              <BackButton onPress={closeProfile} />
+              <View style={styles.backButton} />
               <Text style={styles.overlayTitle}>{selectedProfile.username}</Text>
               <View style={styles.backButton} />
             </View>

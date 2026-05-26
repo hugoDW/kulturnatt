@@ -48,6 +48,7 @@ type SlotValue = { category: Mode; value: string } | null;
 type Props = {
   visible: boolean;
   onClose: () => void;
+  lockedMode?: Mode;
   slotValues?: SlotValue[];
   slotIndex?: number | null;
   maxItems?: number;
@@ -80,6 +81,7 @@ function itemFromSlot(slot: SlotValue): Item | null {
 export default function MoviesAndSeriesSheet({
   visible,
   onClose,
+  lockedMode,
   slotValues,
   slotIndex,
   maxItems = 3,
@@ -107,7 +109,7 @@ export default function MoviesAndSeriesSheet({
 
   useEffect(() => {
     if (visible) {
-      setMode("movie");
+      setMode(lockedMode ?? "movie");
       setMovies(decodeAll(draft.movies));
       setShows(decodeAll(draft.shows));
       if (isSingleSlot) {
@@ -116,7 +118,7 @@ export default function MoviesAndSeriesSheet({
             ? null
             : itemFromSlot(slotValues?.[selectedSlotIndex] ?? null);
         setSlotSelected(nextSelected);
-        if (nextSelected) {
+        if (nextSelected && !lockedMode) {
           setMode(nextSelected.category);
         }
       }
@@ -125,7 +127,7 @@ export default function MoviesAndSeriesSheet({
       setResults([]);
       setError(null);
     }
-  }, [isSingleSlot, selectedSlotIndex, slotValues, visible]);
+  }, [isSingleSlot, lockedMode, selectedSlotIndex, slotValues, visible]);
 
   useEffect(() => {
     setQuery("");
@@ -240,7 +242,7 @@ export default function MoviesAndSeriesSheet({
 
       onSlotDone?.(
         selectedSlotIndex,
-        slotSelected?.category ?? mode,
+        lockedMode ?? slotSelected?.category ?? mode,
         slotSelected ? encodeTag(slotSelected.name, slotSelected.imageUrl) : null,
       );
       return;
@@ -256,37 +258,39 @@ export default function MoviesAndSeriesSheet({
   return (
     <BottomSheet
       visible={visible}
-      title="Movies & Series"
+      title={lockedMode === "movie" ? "Movies" : lockedMode === "tv" ? "Series" : "Movies & Series"}
       onClose={onClose}
       onDone={handleDone}
       height="90%"
     >
       <View style={styles.body}>
-        <View style={styles.tabRow}>
-          <TouchableOpacity
-            style={[styles.tab, mode === "movie" && styles.tabActive]}
-            onPress={() => setMode("movie")}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                mode === "movie" && styles.tabTextActive,
-              ]}
+        {!lockedMode ? (
+          <View style={styles.tabRow}>
+            <TouchableOpacity
+              style={[styles.tab, mode === "movie" && styles.tabActive]}
+              onPress={() => setMode("movie")}
             >
-              Movies
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.tab, mode === "tv" && styles.tabActive]}
-            onPress={() => setMode("tv")}
-          >
-            <Text
-              style={[styles.tabText, mode === "tv" && styles.tabTextActive]}
+              <Text
+                style={[
+                  styles.tabText,
+                  mode === "movie" && styles.tabTextActive,
+                ]}
+              >
+                Movies
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.tab, mode === "tv" && styles.tabActive]}
+              onPress={() => setMode("tv")}
             >
-              Series
-            </Text>
-          </TouchableOpacity>
-        </View>
+              <Text
+                style={[styles.tabText, mode === "tv" && styles.tabTextActive]}
+              >
+                Series
+              </Text>
+            </TouchableOpacity>
+          </View>
+        ) : null}
 
         <View style={styles.searchRow}>
           <TextInput

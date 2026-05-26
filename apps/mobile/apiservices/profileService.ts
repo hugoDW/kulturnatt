@@ -23,6 +23,8 @@ export type ProfileSetupPayload = {
   bio: string;
   profile_image_uri: string | null;
   location: string;
+  instagram?: string;
+  facebook?: string;
   // Optional: omitted by /profile/swipes, present only on your own profile
   // (/profile/me) and on matched profiles (/profile/matches).
   social_media?: string;

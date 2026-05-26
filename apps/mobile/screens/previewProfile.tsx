@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import type { RootStackParamList } from "../App";
+import BackButton from "../components/backButton";
 import NavBar from "../components/NavBar";
 import ActorsSheet from "../components/sheets/ActorsSheet";
 import AboutMeSheet from "../components/sheets/AboutMeSheet";
@@ -35,7 +36,8 @@ import { useProfileCreation } from "../lib/profileCreation";
 import { getSelectedInterests } from "../lib/interestOptions";
 import { selectionChipStyles } from "../lib/selectionChipStyles";
 import { decodeAll, decodeTag, encodeTag } from "../lib/profileTags";
-import { parseInstagram } from "../lib/socialMedia";
+import { parseFacebook, parseInstagram } from "../lib/socialMedia";
+import { supabase } from "../lib/supabase";
 
 type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -51,7 +53,8 @@ type SheetName =
   | "songs"
   | "albums"
   | "artists"
-  | "moviesAndSeries"
+  | "movies"
+  | "series"
   | "actors"
   | "directors"
   | "matching";
@@ -152,12 +155,14 @@ export default function PreviewProfileScreen() {
     saveDraft,
     loadSavedDraft,
     discardChanges,
+    resetDraft,
     hasUnsavedChanges,
   } = useProfileCreation();
   const [activeSheet, setActiveSheet] = useState<SheetName>(null);
   const [selectedSlotIndex, setSelectedSlotIndex] =
     useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [headerInteractive, setHeaderInteractive] = useState(true);
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -219,8 +224,12 @@ export default function PreviewProfileScreen() {
   }, [draft.gender]);
 
   const instagram = useMemo(
-    () => parseInstagram(draft.social_media),
-    [draft.social_media],
+    () => parseInstagram(draft.instagram),
+    [draft.instagram],
+  );
+  const facebook = useMemo(
+    () => parseFacebook(draft.facebook),
+    [draft.facebook],
   );
 
   const eventCards = useMemo(
@@ -267,32 +276,45 @@ export default function PreviewProfileScreen() {
     () => encodeCardSlots(artistSlots),
     [artistSlots],
   );
-  const moviesAndSeriesCards = useMemo<ProfileCardItem[]>(
-    () => [
-      ...decodeAll(draft.movies)
-        .filter((item) => item.name.trim())
-        .map((item) => ({ ...item, category: "movie" as const })),
-      ...decodeAll(draft.shows)
-        .filter((item) => item.name.trim())
-        .map((item) => ({ ...item, category: "tv" as const })),
-    ],
-    [draft.movies, draft.shows],
+  const movieCards = useMemo<ProfileCardItem[]>(
+    () => decodeAll(draft.movies).filter((item) => item.name.trim()),
+    [draft.movies],
   );
-  const [mediaSlots, setMediaSlots] = useCardSlots(
-    moviesAndSeriesCards,
+  const [movieSlots, setMovieSlots] = useCardSlots(
+    movieCards,
     PROFILE_PREVIEW_SLOT_COUNT,
   );
-  const mediaSlotValues = useMemo(
+  const movieSlotValues = useMemo(
     () =>
-      mediaSlots.map((slot) =>
+      movieSlots.map((slot) =>
         slot
           ? {
-              category: slot.category ?? "movie",
+              category: "movie" as const,
               value: encodeTag(slot.name, slot.image),
             }
           : null,
       ),
-    [mediaSlots],
+    [movieSlots],
+  );
+  const seriesCards = useMemo<ProfileCardItem[]>(
+    () => decodeAll(draft.shows).filter((item) => item.name.trim()),
+    [draft.shows],
+  );
+  const [seriesSlots, setSeriesSlots] = useCardSlots(
+    seriesCards,
+    PROFILE_PREVIEW_SLOT_COUNT,
+  );
+  const seriesSlotValues = useMemo(
+    () =>
+      seriesSlots.map((slot) =>
+        slot
+          ? {
+              category: "tv" as const,
+              value: encodeTag(slot.name, slot.image),
+            }
+          : null,
+      ),
+    [seriesSlots],
   );
   const directorCards = useMemo(
     () => decodeAll(draft.directors).filter((item) => item.name.trim()),
@@ -340,6 +362,29 @@ export default function PreviewProfileScreen() {
     }
   }
 
+  async function handleLogOut() {
+    setLoggingOut(true);
+
+    try {
+      const { error } = await supabase.auth.signOut();
+
+      if (error) {
+        Alert.alert("Log out failed", error.message);
+        return;
+      }
+
+      resetDraft();
+      navigation.reset({ index: 0, routes: [{ name: "Start" }] });
+    } catch (error) {
+      Alert.alert(
+        "Log out failed",
+        error instanceof Error ? error.message : "Could not log out right now.",
+      );
+    } finally {
+      setLoggingOut(false);
+    }
+  }
+
   function openProfileSlot(sheet: NonNullable<SheetName>, index: number) {
     setSelectedSlotIndex(index);
     setActiveSheet(sheet);
@@ -379,22 +424,16 @@ export default function PreviewProfileScreen() {
     updateDraft({ artists: encodeCompactSlots(nextSlots) });
   }
 
-  function handleMediaSlotDone(
-    slotIndex: number,
-    category: MediaCategory,
-    nextValue: string | null,
-  ) {
-    const nextSlots = replaceSlot(mediaSlots, slotIndex, nextValue, category);
-    setMediaSlots(nextSlots);
-    const compactSlots = compactCardSlots(nextSlots);
-    updateDraft({
-      movies: compactSlots
-        .filter((slot) => slot.category === "movie")
-        .map((slot) => encodeTag(slot.name, slot.image)),
-      shows: compactSlots
-        .filter((slot) => slot.category === "tv")
-        .map((slot) => encodeTag(slot.name, slot.image)),
-    });
+  function handleMovieSlotDone(slotIndex: number, nextValue: string | null) {
+    const nextSlots = replaceSlot(movieSlots, slotIndex, nextValue, "movie");
+    setMovieSlots(nextSlots);
+    updateDraft({ movies: encodeCompactSlots(nextSlots) });
+  }
+
+  function handleSeriesSlotDone(slotIndex: number, nextValue: string | null) {
+    const nextSlots = replaceSlot(seriesSlots, slotIndex, nextValue, "tv");
+    setSeriesSlots(nextSlots);
+    updateDraft({ shows: encodeCompactSlots(nextSlots) });
   }
 
   function handleDirectorSlotDone(slotIndex: number, nextValue: string | null) {
@@ -444,9 +483,21 @@ export default function PreviewProfileScreen() {
                 <Text style={styles.meta}>{draft.location}</Text>
               ) : null}
               {instagram ? (
-                <View style={styles.instagramRow}>
+                <View style={styles.socialMediaRow}>
                   <Ionicons name="logo-instagram" size={15} color="#6C5CE7" />
                   <Text style={styles.instagramText}>{instagram.handle}</Text>
+                </View>
+              ) : null}
+              {facebook ? (
+                <View style={styles.socialMediaRow}>
+                  <Ionicons name="logo-facebook" size={15} color="#1877F2" />
+                  <Text
+                    selectable
+                    style={styles.facebookText}
+                    numberOfLines={1}
+                  >
+                    {facebook.label}
+                  </Text>
                 </View>
               ) : null}
               {!draft.gender && (
@@ -570,18 +621,30 @@ export default function PreviewProfileScreen() {
           </Section>
 
           <Section
-            title="Movies & Series"
+            title="Movies"
             icon="film-outline"
             empty={false}
             emptyText=""
           >
             <ProfileSlotRow
-              slots={mediaSlots}
+              slots={movieSlots}
               shape="poster"
               maxItems={PROFILE_PREVIEW_SLOT_COUNT}
-              onSlotPress={(index) =>
-                openProfileSlot("moviesAndSeries", index)
-              }
+              onSlotPress={(index) => openProfileSlot("movies", index)}
+            />
+          </Section>
+
+          <Section
+            title="Series"
+            icon="tv-outline"
+            empty={false}
+            emptyText=""
+          >
+            <ProfileSlotRow
+              slots={seriesSlots}
+              shape="poster"
+              maxItems={PROFILE_PREVIEW_SLOT_COUNT}
+              onSlotPress={(index) => openProfileSlot("series", index)}
             />
           </Section>
 
@@ -612,6 +675,22 @@ export default function PreviewProfileScreen() {
               onSlotPress={(index) => openProfileSlot("directors", index)}
             />
           </Section>
+
+          <TouchableOpacity
+            activeOpacity={0.78}
+            disabled={loggingOut}
+            onPress={handleLogOut}
+            style={[styles.logOutButton, loggingOut && styles.actionButtonDisabled]}
+          >
+            {loggingOut ? (
+              <ActivityIndicator color="#B42318" />
+            ) : (
+              <>
+                <Ionicons name="log-out-outline" size={18} color="#B42318" />
+                <Text style={styles.logOutButtonText}>Log out</Text>
+              </>
+            )}
+          </TouchableOpacity>
         </View>
       </Animated.ScrollView>
 
@@ -626,6 +705,7 @@ export default function PreviewProfileScreen() {
           },
         ]}
       >
+        <BackButton onPress={() => navigation.navigate("EventPage")} />
         <Text style={styles.headerTitle}>Profile Preview</Text>
         <TouchableOpacity
           accessibilityLabel="Edit matching preferences"
@@ -722,13 +802,26 @@ export default function PreviewProfileScreen() {
         onSlotDone={handleArtistSlotDone}
       />
       <MoviesAndSeriesSheet
-        visible={activeSheet === "moviesAndSeries"}
+        visible={activeSheet === "movies"}
+        lockedMode="movie"
         onClose={closeActiveSheet}
-        slotValues={mediaSlotValues}
+        slotValues={movieSlotValues}
         slotIndex={selectedSlotIndex}
         maxItems={PROFILE_PREVIEW_SLOT_COUNT}
-        onSlotDone={(slotIndex, category, nextValue) => {
-          handleMediaSlotDone(slotIndex, category, nextValue);
+        onSlotDone={(slotIndex, _category, nextValue) => {
+          handleMovieSlotDone(slotIndex, nextValue);
+          closeActiveSheet();
+        }}
+      />
+      <MoviesAndSeriesSheet
+        visible={activeSheet === "series"}
+        lockedMode="tv"
+        onClose={closeActiveSheet}
+        slotValues={seriesSlotValues}
+        slotIndex={selectedSlotIndex}
+        maxItems={PROFILE_PREVIEW_SLOT_COUNT}
+        onSlotDone={(slotIndex, _category, nextValue) => {
+          handleSeriesSlotDone(slotIndex, nextValue);
           closeActiveSheet();
         }}
       />
@@ -950,7 +1043,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#7F8C8D",
   },
-  instagramRow: {
+  socialMediaRow: {
     marginTop: 6,
     flexDirection: "row",
     alignItems: "center",
@@ -961,6 +1054,13 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700",
     color: "#6C5CE7",
+  },
+  facebookText: {
+    flexShrink: 1,
+    fontFamily: "Inter",
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1877F2",
   },
   avatarTap: {},
   avatar: {
@@ -1095,6 +1195,25 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontFamily: "Inter",
     fontSize: 16,
+    fontWeight: "900",
+  },
+  logOutButton: {
+    minHeight: 48,
+    marginTop: 18,
+    marginBottom: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FDA29B",
+    backgroundColor: "#FFF5F5",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  logOutButtonText: {
+    color: "#B42318",
+    fontFamily: "Inter",
+    fontSize: 15,
     fontWeight: "900",
   },
 });

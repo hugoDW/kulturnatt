@@ -21,7 +21,7 @@ def _execute(query, action: str):
         raise RuntimeError(f"Database {action} failed: {error}") from error
 
 
-def row_to_user(row: dict) -> User:
+def row_to_user(row: dict, social_media_row: dict | None = None) -> User:
     return User(
         user_id=uuid.UUID(row["id_profile"]),
         username=row["username"],
@@ -49,13 +49,21 @@ def row_to_user(row: dict) -> User:
         bio=row.get("bio") or "",
         profile_image_uri=row.get("profile_image_uri"),
         location=row.get("location") or "",
+        instagram=(social_media_row or {}).get("instagram") or "",
+        facebook=(social_media_row or {}).get("facebook") or "",
         social_media=row.get("social_media") or "",
     )
 
 
 def get_all_users() -> list[User]:
     response = supabase.table("profile").select("*").execute()
-    return [row_to_user(row) for row in response.data]
+    social_media_by_profile_id = get_social_media_by_profile_ids(
+        [row["id_profile"] for row in response.data],
+    )
+    return [
+        row_to_user(row, social_media_by_profile_id.get(row["id_profile"]))
+        for row in response.data
+    ]
 
 
 # hämtar en specifik användare via id, returnerar None om hen inte finns
@@ -63,7 +71,45 @@ def get_user(user_id: uuid.UUID) -> User | None:
     response = supabase.table("profile").select("*").eq("id_profile", str(user_id)).execute()
     if not response.data:
         return None
-    return row_to_user(response.data[0])
+    social_media = get_social_media(user_id)
+    return row_to_user(response.data[0], social_media)
+
+
+def get_social_media_by_profile_ids(profile_ids: list[str]) -> dict[str, dict]:
+    if not profile_ids:
+        return {}
+
+    response = (
+        supabase.table("social_media")
+        .select("profile_id,instagram,facebook")
+        .in_("profile_id", profile_ids)
+        .execute()
+    )
+
+    return {row["profile_id"]: row for row in response.data}
+
+
+def get_social_media(user_id: uuid.UUID) -> dict | None:
+    response = (
+        supabase.table("social_media")
+        .select("profile_id,instagram,facebook")
+        .eq("profile_id", str(user_id))
+        .execute()
+    )
+    if not response.data:
+        return None
+    return response.data[0]
+
+
+def upsert_social_media(user: User):
+    _execute(
+        supabase.table("social_media").upsert({
+            "profile_id": str(user.user_id),
+            "instagram": user.instagram,
+            "facebook": user.facebook,
+        }),
+        "social media upsert",
+    )
 
 
 def save_ranked_list(user_id: uuid.UUID, ranked_list: list[dict]):
@@ -98,10 +144,10 @@ def update_profile(user: User):
             "bio": user.bio,
             "profile_image_uri": user.profile_image_uri,
             "location": user.location,
-            "social_media": user.social_media,
         }).eq("id_profile", str(user.user_id)),
         "profile update",
     )
+    upsert_social_media(user)
 
 
 def create_profile(user: User):
@@ -146,10 +192,10 @@ def create_profile(user: User):
             "bio": user.bio,
             "profile_image_uri": user.profile_image_uri,
             "location": user.location,
-            "social_media": user.social_media,
         }),
         "profile insert",
     )
+    upsert_social_media(user)
 
 
 def save_match(
