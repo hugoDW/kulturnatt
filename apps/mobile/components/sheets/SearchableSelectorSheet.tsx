@@ -169,11 +169,16 @@ export default function SearchableSelectorSheet<T>({
 
   function toggle(item: SelectableItem) {
     if (isSingleSlot) {
-      setSlotSelected({
-        name: item.name,
-        image: item.imageUrl ?? null,
-        subtitle: item.subtitle ?? null,
-      });
+      const key = tagKey(item.name, item.imageUrl);
+      setSlotSelected((current) =>
+        current && tagKey(current.name, current.image) === key
+          ? null
+          : {
+              name: item.name,
+              image: item.imageUrl ?? null,
+              subtitle: item.subtitle ?? null,
+            },
+      );
       return;
     }
 
@@ -244,7 +249,14 @@ export default function SearchableSelectorSheet<T>({
         </View>
 
         {isSingleSlot && slotSelected ? (
-          <View style={[styles.resultRow, styles.resultRowSelected, styles.slotSelectedRow]}>
+          <TouchableOpacity
+            style={[
+              styles.resultRow,
+              styles.resultRowSelected,
+              styles.slotSelectedRow,
+            ]}
+            onPress={() => setSlotSelected(null)}
+          >
             {slotSelected.image ? (
               <Image source={{ uri: slotSelected.image }} style={styles.thumb} />
             ) : (
@@ -258,8 +270,14 @@ export default function SearchableSelectorSheet<T>({
                 <Text style={styles.resultSubtitle}>{slotSelected.subtitle}</Text>
               ) : null}
             </View>
-            <Ionicons name="checkmark-circle" size={24} color="#6C5CE7" />
-          </View>
+            <TouchableOpacity
+              accessibilityLabel={`Remove ${slotSelected.name}`}
+              hitSlop={8}
+              onPress={() => setSlotSelected(null)}
+            >
+              <Ionicons name="close-circle" size={24} color="#6C5CE7" />
+            </TouchableOpacity>
+          </TouchableOpacity>
         ) : selectedEntries.length > 0 ? (
           <View style={styles.selectedBlock}>
             <Text style={styles.selectedLabel}>Selected</Text>

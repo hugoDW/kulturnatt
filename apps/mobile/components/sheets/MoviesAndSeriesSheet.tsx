@@ -209,7 +209,13 @@ export default function MoviesAndSeriesSheet({
 
   function toggle(item: Item) {
     if (isSingleSlot) {
-      setSlotSelected(item);
+      const key = slotKey(item.category, item.name, item.imageUrl);
+      setSlotSelected((current) =>
+        current &&
+        slotKey(current.category, current.name, current.imageUrl) === key
+          ? null
+          : item,
+      );
       return;
     }
 
@@ -308,12 +314,13 @@ export default function MoviesAndSeriesSheet({
         </View>
 
         {isSingleSlot && slotSelected ? (
-          <View
+          <TouchableOpacity
             style={[
               styles.resultRow,
               styles.resultRowSelected,
               styles.slotSelectedRow,
             ]}
+            onPress={() => setSlotSelected(null)}
           >
             {slotSelected.imageUrl ? (
               <Image source={{ uri: slotSelected.imageUrl }} style={styles.thumb} />
@@ -330,8 +337,14 @@ export default function MoviesAndSeriesSheet({
                 </Text>
               ) : null}
             </View>
-            <Ionicons name="checkmark-circle" size={24} color="#6C5CE7" />
-          </View>
+            <TouchableOpacity
+              accessibilityLabel={`Remove ${slotSelected.name}`}
+              hitSlop={8}
+              onPress={() => setSlotSelected(null)}
+            >
+              <Ionicons name="close-circle" size={24} color="#6C5CE7" />
+            </TouchableOpacity>
+          </TouchableOpacity>
         ) : !isSingleSlot && selectedList.length > 0 ? (
           <View style={styles.selectedBlock}>
             <Text style={styles.selectedLabel}>
