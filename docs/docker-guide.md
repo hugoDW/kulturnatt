@@ -1,158 +1,95 @@
-# Docker Guide
+# Running the backend with Docker
 
-Hur du startar backend lokalt med Docker.
+How to start the backend locally. For what the three services actually do and how they're
+wired together, see [documentation.md](documentation.md).
 
-## Förutsättningar
+## Before you start
 
-1. **Docker Desktop** installerad och igång (whale-ikonen i menubaren ska vara aktiv).
-   Kontrollera med:
+1. **Docker Desktop** installed and running (the whale icon in the menu bar should be
+   active). Check with:
    ```bash
    docker --version
    docker compose version
    ```
 
-2. **`.env`-fil** i repo-roten med alla nödvändiga variabler.
-   Kopiera mallen och fyll i värdena:
+2. **A `.env` file** in the repo root with the required variables. Copy the template and
+   fill it in:
    ```bash
    cp .env.example .env
    ```
-   Fyll i åtminstone:
-   - `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_JWT_SECRET` — från Supabase project settings → API
-   - `INTERNAL_SECRET` — vad som helst (lång slumpmässig sträng), t.ex. genererad med `openssl rand -hex 32`
+   At a minimum you need `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_JWT_SECRET` (from your
+   Supabase project's API settings) and `INTERNAL_SECRET` (any long random string, e.g.
+   `openssl rand -hex 32`). The full list and what each one is for is in the project
+   README. `.env` is gitignored, so your secrets never get committed.
 
-   `.env` är gitignorerad så dina hemligheter checkas aldrig in.
+## Start everything
 
-## Starta allt
-
-Från repo-roten (`/Users/hugo/pev/kulturnatt/`):
+From the repo root:
 
 ```bash
 docker compose up
 ```
 
-Det är allt.
+That's it. The gateway comes up on `http://localhost` (port 80).
 
-**Behöver man köra `docker compose build` först?** Nej. Första gången du kör `docker compose up` bygger den automatiskt alla bilder som inte finns. Det tar några minuter första gången, sedan cachas det.
+You don't need to run `docker compose build` first. The first `docker compose up` builds
+any missing images automatically. That takes a few minutes once, then it's cached.
 
-**När behöver man bygga om?** När du har ändrat kod i `apps/profile-service/` eller `apps/matching-service/` och vill att containern ska se ändringarna:
+Rebuild when you've changed code in `apps/profile-service/` or `apps/matching-service/`
+and want the container to pick it up:
 
 ```bash
 docker compose up --build
 ```
 
-`--build` tvingar en omjbyggnad innan start.
-
-## Köra i bakgrunden
-
-Om du vill ha terminalen fri:
+## In the background
 
 ```bash
-docker compose up -d
+docker compose up -d            # frees the terminal
+docker compose logs -f          # all services
+docker compose logs -f profile-service   # just one
 ```
 
-Kolla loggar:
+## Stop
 
 ```bash
-docker compose logs -f                  # alla services
-docker compose logs -f profile-service  # bara en
-```
-
-## Stoppa allt
-
-```bash
-# om du körde "up" utan -d: tryck Ctrl+C
-# om du körde "up -d":
+# if you ran "up" without -d: Ctrl+C
+# if you ran "up -d":
 docker compose down
 ```
 
-## Testa att det funkar
+## Check it works
 
-I en annan terminal:
+In another terminal:
 
 ```bash
+curl http://localhost/health
+# ok
+
 curl http://localhost/profile/swipes
+# {"detail":"Not authenticated"}
 ```
 
-Du borde få `{"detail":"Not authenticated"}` — det är rätt. Endpointen kräver en giltig JWT, men svaret bevisar att gateway → profile-service-routingen fungerar.
+The second response is the one you want. The endpoint needs a valid JWT, but getting that
+error back proves the gateway is routing through to profile-service.
 
----
+## Common problems
 
-## De tre containers
+- **"Cannot connect to the Docker daemon"** — Docker Desktop isn't running. Open it.
+- **Port 80 is taken** — something else is on port 80. Change `"80:80"` to `"8080:80"` in
+  `docker-compose.yml` and use `http://localhost:8080`.
+- **Code changes don't show up** — the image is cached. Run `docker compose up --build`.
+- **`.env` isn't loaded** — check the file is named exactly `.env` (not `.env.txt`) and
+  sits next to `docker-compose.yml`.
+- **403 from internal endpoints** — `INTERNAL_SECRET` doesn't match between the services,
+  or isn't set in `.env`.
 
-### gateway (Nginx, port 80)
+## Starting over
 
-Den **enda** containern som syns utåt. Tar emot all trafik från mobilappen och routar vidare till rätt service:
-
-| Path | Skickas till |
-|---|---|
-| `/profile/*` | profile-service:8001 |
-| `/external/*` | profile-service:8001 (externa tredjeparts-API:er, t.ex. Kulturbiljett, TMDB, MusicBrainz, Ticketmaster) |
-| `/swipe` | matching-service:8002 |
-| `/health` | svarar `ok` direkt från gateway, ingen upstream |
-
-Mobilappen pratar bara med en URL — `http://localhost` (lokalt) eller en publik Fly.io-domän (i produktion). Gateway gömmer det faktum att vi har två backends.
-
-Konfig: `apps/gateway/nginx.conf.template` (renderas till `nginx.conf` vid container-start med envsubst, så `${PROFILE_UPSTREAM}` och `${MATCHING_UPSTREAM}` kan sättas via env).
-
-### profile-service (FastAPI, port 8001)
-
-Äger all användardata och hela databasen. Alla läs- och skriv-operationer mot Supabase går genom denna service.
-
-**Externa endpoints** (mobilappen kallar via gateway, kräver JWT):
-- `POST /profile/setup` — skapar ny profil
-- `PUT /profile/update` — uppdaterar profil
-- `GET /profile/swipes` — hämtar användarens ranked list
-- `GET /external/events`, `/external/events/{event_id}`, `/external/ticketmaster/events`,
-  `/external/music/...` — proxy mot tredjeparts-API:er (Kulturbiljett, TMDB, MusicBrainz, Ticketmaster) för intresselistor
-
-**Interna endpoints** (bara matching-service kallar dessa, skyddade av `X-Internal-Secret`-header):
-- `GET /internal/users` — hämtar alla användare
-- `GET /internal/users/{user_id}` — hämtar en specifik användare
-- `PUT /internal/users/{user_id}/ranked_list` — sparar ny ranked list
-- `PUT /internal/users/{user_id}/likes` — sparar liked_users
-- `PUT /internal/users/{user_id}/rejects` — sparar rejected_users
-- `POST /internal/match` — sparar match (uppdaterar båda användarna)
-
-Efter varje profil-sparning eller -uppdatering anropar profile-service matching-service på `/internal/recompute/{user_id}` så att ranked list räknas om.
-
-### matching-service (FastAPI, port 8002)
-
-Äger all swipe- och match-logik. Har **ingen egen databasaccess** — all data hämtas och sparas via HTTP-anrop till profile-service.
-
-**Externa endpoints** (kräver JWT):
-- `POST /swipe` — registrerar en like eller reject, kollar om det blev match
-
-**Interna endpoints** (skyddade av `X-Internal-Secret`):
-- `POST /internal/recompute/{user_id}` — räknar om ranked list för en användare
-
-Algoritmerna ligger i `swipeAlgo.py` (filtrering + scoring) och `matchAlgo.py` (mutual like-koll + match-skapande).
-
----
-
-## Säkerhetsmodell
-
-- **Gateway är enda ingången utifrån.** Profile-service (8001) och matching-service (8002) är `expose:`-portar i compose, vilket betyder att de bara nås inifrån docker-nätverket — inte från din host eller internet.
-- **Externa routes kräver JWT** från Supabase. Varje service validerar token själv med `SUPABASE_JWT_SECRET`.
-- **Interna routes kräver `X-Internal-Secret`-header.** Värdet sätts via `INTERNAL_SECRET`-env-variabeln och måste vara samma i båda services.
-
----
-
-## Vanliga problem
-
-- **"Cannot connect to the Docker daemon"** → Docker Desktop är inte igång. Öppna appen.
-- **Port 80 är upptagen** → något annat lyssnar på port 80. Ändra `"80:80"` till `"8080:80"` i `docker-compose.yml` och anropa `http://localhost:8080`.
-- **Ändringar i koden syns inte** → bilden är cachad. Kör `docker compose up --build`.
-- **`.env` laddas inte** → kolla att filen heter exakt `.env` (inte `.env.txt`) och ligger i samma mapp som `docker-compose.yml`.
-- **403 från interna endpoints** → `INTERNAL_SECRET` matchar inte mellan services, eller är inte satt i `.env`.
-
----
-
-## Bygga om från scratch
-
-Om något verkar trasigt och du vill börja om helt:
+If something seems broken and you want a clean slate:
 
 ```bash
-docker compose down -v       # stoppa och radera volymer
-docker compose build --no-cache  # bygg om utan cache
+docker compose down -v            # stop and remove volumes
+docker compose build --no-cache   # rebuild without cache
 docker compose up
 ```

@@ -1,178 +1,191 @@
-# Kulturnatt – Backenddokumentation
+# Kulturnatt backend
 
-## Vad är Kulturnatt?
+This is the reference for how the backend is put together: the services, how they talk
+to each other, what the API looks like, and how the data is stored. For actually running
+it, see [docker-guide.md](docker-guide.md) (local) and [flyio-guide.md](flyio-guide.md)
+(hosting).
 
-Kulturnatt är en mobilapp där användare matchar med andra baserat på gemensamma kulturintressen – filmer, musik, events, konst och litteratur. Tänk Tinder fast för kultur. Användare skapar en profil, sviper på kandidater, och matchar med dem som har liknande smak.
+## What Kulturnatt is
 
----
+A mobile app where people match on shared cultural taste rather than looks: films, music,
+events, art and books. You build a profile, swipe through candidates, and match with the
+ones whose taste lines up with yours.
 
-## Teknisk stack
+## Tech stack
 
-| Del | Teknik |
-|-----|--------|
-| Backend | Python 3.12 + FastAPI, uppdelat i två mikrotjänster |
-| Reverse proxy | Nginx (gateway) |
-| Lokal orkestrering | Docker Compose |
-| Databas + autentisering | Supabase (PostgreSQL + Supabase Auth) |
-| Mobilapp | React Native + Expo (TypeScript) |
-| CI/CD | GitHub Actions (Ruff + pytest) |
+| Part | Technology |
+|------|------------|
+| Backend | Python 3.12 + FastAPI, split into two services |
+| Reverse proxy | Nginx (the gateway) |
+| Local orchestration | Docker Compose |
+| Database and auth | Supabase (PostgreSQL + Supabase Auth) |
+| Mobile app | React Native + Expo (TypeScript) |
+| CI | GitHub Actions (Ruff + pytest) |
 
----
+## Architecture
 
-## Arkitekturöversikt
-
-Backenden är **inte** längre en monolit. Den består av tre containers som körs tillsammans via `docker-compose.yml`:
+The backend is not a monolith. It's three containers that run together via
+`docker-compose.yml`:
 
 ```
                     ┌──────────────────────┐
-                    │   Mobilapp (Expo)    │
+                    │   Mobile app (Expo)  │
                     └──────────┬───────────┘
                                │  HTTPS, Authorization: Bearer <Supabase JWT>
                                ▼
                     ┌──────────────────────┐
-                    │  gateway (nginx :80) │   ← enda containern som syns utåt
+                    │  gateway (nginx :80) │   the only container exposed publicly
                     └──────┬───────────┬───┘
               /profile/*   │           │   /swipe
-                           ▼           ▼
+              /external/*  ▼           ▼
             ┌─────────────────┐   ┌────────────────────┐
             │ profile-service │◀─▶│  matching-service  │
             │     (:8001)     │   │      (:8002)       │
             └────────┬────────┘   └────────────────────┘
                      │ Supabase SDK            ▲
-                     ▼                         │ HTTP (X-Internal-Secret)
+                     ▼                         │ HTTP, X-Internal-Secret
               ┌──────────────┐                 │
               │   Supabase   │◀────────────────┘
-              │ (Postgres +  │   (matching-service har INGEN egen DB-access,
-              │   Auth)      │    all data hämtas/sparas via profile-service)
+              │  Postgres +  │   matching-service has no database access;
+              │     Auth     │   everything goes through profile-service.
               └──────────────┘
 ```
 
-### Centrala designval
+The decisions behind this:
 
-1. **Endast `profile-service` har databasaccess.** All persistens sker här. Detta gör databasen till en privat detalj för en service.
-2. **`matching-service` har ingen DB.** All läsning/skrivning går via HTTP-anrop till profile-services interna routes. Det betyder att matching-logiken aldrig vet vilken databas som används – bara att den kan fråga "ge mig alla användare" via en API.
-3. **Två säkerhetsnivåer.** Externa routes (de mobilappen kallar) skyddas med Supabase JWT. Interna routes (de tjänsterna kallar varandra med) skyddas med en delad hemlighet i headern `X-Internal-Secret`.
-4. **Gatewayen är den enda containern som syns utåt.** Mobilappen pratar bara med en URL. Gatewayen gömmer att backenden är uppdelad.
-
----
+1. **Only profile-service touches the database.** All persistence happens here, which
+   makes the database a private detail of one service.
+2. **matching-service has no database.** Every read and write goes over HTTP to
+   profile-service's internal routes. The matching logic never knows which database is
+   behind it, only that it can ask "give me all the users."
+3. **Two levels of auth.** External routes (the ones the app calls) are protected with a
+   Supabase JWT. Internal routes (the ones the services call each other with) are
+   protected by a shared secret in the `X-Internal-Secret` header.
+4. **The gateway is the only public door.** The app talks to a single URL. The gateway
+   hides the fact that the backend is split in two.
 
 ## profile-service
 
-**Mapp:** `apps/profile-service/`
-**Port:** 8001 (intern), exponeras via gateway på `/profile/*`
-**Ansvar:** äger användardata, profilfält, swipe-historik och relationer (likes/matches/blocks).
+**Folder:** `apps/profile-service/`
+**Port:** 8001 (internal), exposed through the gateway under `/profile/*`
+**Owns:** user data, profile fields, swipe history and relations (likes/matches/blocks).
 
-### Filer
+### Files
 
-| Fil | Vad den gör |
-|-----|-------------|
-| `main.py` | Alla FastAPI-endpoints (publika + interna) |
-| `auth.py` | Verifierar Supabase JWT, plockar ut `user_id` (UUID) |
-| `internal_auth.py` | Verifierar `X-Internal-Secret`-headern på interna routes |
-| `db.py` | Allt Supabase-prat: `create_profile`, `update_profile`, `get_user`, `save_match` osv |
-| `user.py` | `User`-klassen + JSON-serialisering för transport till matching-service |
-| `Dockerfile` | Bygger containern (uvicorn på 8001) |
+| File | What it does |
+|------|--------------|
+| `main.py` | All the FastAPI endpoints, public and internal |
+| `auth.py` | Verifies the Supabase JWT and pulls out the `user_id` (UUID) |
+| `internal_auth.py` | Verifies the `X-Internal-Secret` header on internal routes |
+| `db.py` | Everything Supabase: `create_profile`, `update_profile`, `get_user`, `save_match` and so on |
+| `user.py` | The `User` class and the JSON serialisation used to ship it to matching-service |
+| `Dockerfile` | Builds the container (uvicorn on 8001) |
 
-### Externa endpoints
+### External endpoints
 
-Anropas av mobilappen via gatewayen. Kräver giltig Supabase JWT.
+Called by the app through the gateway. Require a valid Supabase JWT.
 
-| Method | Path | Beskrivning |
-|---|---|---|
-| `POST` | `/profile/setup` | Skapar ny profil. Triggar `recompute` hos matching-service. |
-| `PUT` | `/profile/update` | Uppdaterar profilen. Triggar `recompute`. |
-| `GET` | `/profile/swipes` | Returnerar den inloggades förberäknade ranked list. |
-| `GET` | `/external/events`, `/external/events/{event_id}` | Proxy mot Kulturbiljett. |
-| `GET` | `/external/ticketmaster/events` | Proxy mot Ticketmaster. |
-| `GET` | `/external/music/search`, `/external/music/artists/search`, `/external/music/songs/search`, `/external/music/albums/search` | Proxy mot MusicBrainz / Spotify-metadata. |
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/profile/setup` | Create a new profile. Triggers a `recompute` on matching-service. |
+| `PUT` | `/profile/update` | Update the profile. Triggers a `recompute`. |
+| `GET` | `/profile/swipes` | The signed-in user's precomputed ranked list. |
+| `GET` | `/external/events`, `/external/events/{event_id}` | Proxy to Kulturbiljett. |
+| `GET` | `/external/ticketmaster/events` | Proxy to Ticketmaster. |
+| `GET` | `/external/music/search`, `/external/music/artists/search`, `/external/music/songs/search`, `/external/music/albums/search` | Proxy to MusicBrainz / Spotify metadata. |
 
-### Interna endpoints
+### Internal endpoints
 
-Anropas **bara** av matching-service. Skyddade med `X-Internal-Secret`-headern.
+Called **only** by matching-service. Protected by the `X-Internal-Secret` header.
 
-| Method | Path | Beskrivning |
-|---|---|---|
-| `GET` | `/internal/users` | Alla användare som JSON-list |
-| `GET` | `/internal/users/{user_id}` | En specifik användare |
-| `PUT` | `/internal/users/{user_id}/ranked_list` | Sparar uppdaterad ranked list |
-| `PUT` | `/internal/users/{user_id}/likes` | Sparar `liked_users` |
-| `PUT` | `/internal/users/{user_id}/rejects` | Sparar `rejected_users` |
-| `POST` | `/internal/match` | Sparar match (uppdaterar båda användarna atomärt) |
+| Method | Path | Description |
+|--------|------|-------------|
+| `GET` | `/internal/users` | All users as a JSON list |
+| `GET` | `/internal/users/{user_id}` | One specific user |
+| `PUT` | `/internal/users/{user_id}/ranked_list` | Save an updated ranked list |
+| `PUT` | `/internal/users/{user_id}/likes` | Save `liked_users` |
+| `PUT` | `/internal/users/{user_id}/rejects` | Save `rejected_users` |
+| `POST` | `/internal/match` | Save a match (updates both users together) |
 
-### Triggermekanism
+### The recompute trigger
 
-När `POST /profile/setup` eller `PUT /profile/update` lyckas anropar profile-service `POST /internal/recompute/{user_id}` på matching-service. Misslyckas det (matching-service nere) sväljs felet — profilen är redan sparad, det är viktigast. Användaren får uppdaterade swipes nästa gång algoritmen körs igen.
-
----
+When `POST /profile/setup` or `PUT /profile/update` succeeds, profile-service calls
+`POST /internal/recompute/{user_id}` on matching-service. If that fails (matching-service
+is down) the error is swallowed: the profile is already saved, which is the part that
+matters, and the user gets a fresh ranked list the next time the algorithm runs.
 
 ## matching-service
 
-**Mapp:** `apps/matching-service/`
-**Port:** 8002 (intern), exponeras via gateway på `/swipe`
-**Ansvar:** swipe-logik, matchningslogik, scoring, ranked list-omräkning.
+**Folder:** `apps/matching-service/`
+**Port:** 8002 (internal), exposed through the gateway under `/swipe`
+**Owns:** swipe logic, match logic, scoring, ranked-list recomputation.
 
-### Filer
+### Files
 
-| Fil | Vad den gör |
-|-----|-------------|
-| `main.py` | FastAPI-endpoints |
+| File | What it does |
+|------|--------------|
+| `main.py` | FastAPI endpoints |
 | `services.py` | `perform_swipe`, `perform_match`, `recompute_for_user` |
-| `swipeAlgo.py` | `filter_users` + `scoring_users` (filtrering på kön/ålder/blocks, viktad scoring) |
+| `swipeAlgo.py` | `filter_users` + `scoring_users` (filtering on gender/age/blocks, weighted scoring) |
 | `matchAlgo.py` | `is_mutual_like`, `create_match`, `get_shared_interests` |
-| `profile_client.py` | **HTTP-klient mot profile-service** — ersätter direkt DB-access |
-| `auth.py` / `internal_auth.py` | Identiska kopior av profile-services, samma JWT-flöde |
-| `user.py` | Egen kopia av `User`-klassen (separata containers) |
-| `tests/` | 24 enhetstester (algoritmer + services) |
+| `profile_client.py` | The HTTP client to profile-service, in place of direct database access |
+| `auth.py` / `internal_auth.py` | The same JWT flow as profile-service |
+| `user.py` | Its own copy of the `User` class (separate containers) |
+| `tests/` | Unit tests for the algorithms and services |
 
-### Externa endpoints
+### External endpoints
 
-| Method | Path | Beskrivning |
-|---|---|---|
-| `POST` | `/swipe` | Registrerar like/reject. Vid ömsesidig like → match. |
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/swipe` | Record a like or reject. A mutual like becomes a match. |
 
-### Interna endpoints
+### Internal endpoints
 
-| Method | Path | Beskrivning |
-|---|---|---|
-| `POST` | `/internal/recompute/{user_id}` | Räknar om ranked list för en användare och alla andra som hade hen i sin lista |
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/internal/recompute/{user_id}` | Recompute the ranked list for a user, and for everyone who had them in their own list |
 
-### Scoring-vikter (i `swipeAlgo.py`)
+### Scoring weights
 
-| Kategori | Vikt per gemensamt element |
-|---|---|
+Per shared element, in `swipeAlgo.py`:
+
+| Category | Weight |
+|----------|--------|
 | Events | 80 |
-| Låtar / filmer | 10 |
-| Artister / regissörer | 7 |
+| Songs / movies | 10 |
+| Artists / directors | 7 |
 | Music genre / movie genre | 5 |
 
-Filtrering bort: sig själv, fel kön, ålder utanför `age_range`, blockerade och redan rejectade.
-
----
+Filtered out: yourself, the wrong gender, anyone outside `age_range`, blocked users and
+anyone you've already rejected. The design reasoning behind this lives in
+[swipeAlgo.md](swipeAlgo.md).
 
 ## gateway
 
-**Mapp:** `apps/gateway/`
-**Image:** byggs från egen `Dockerfile` ovanpå `nginx:alpine` — `nginx.conf.template` renderas vid container-start med `envsubst` så `${PROFILE_UPSTREAM}` / `${MATCHING_UPSTREAM}` kan sättas via env-variabler.
+**Folder:** `apps/gateway/`
+Built from its own `Dockerfile` on top of `nginx:alpine`. `nginx.conf.template` is
+rendered at container start with `envsubst`, so `${PROFILE_UPSTREAM}` and
+`${MATCHING_UPSTREAM}` can be set through env vars.
 
 Routing:
 
 ```
-/health     →  200 "ok" (svaras direkt av gateway)
+/health     →  200 "ok" (answered directly by the gateway)
 /profile/   →  profile-service:8001
-/external/  →  profile-service:8001   (proxy mot tredjeparts-API:er)
+/external/  →  profile-service:8001   (proxy to third-party APIs)
 /swipe      →  matching-service:8002
 ```
 
-Inga andra paths exponeras utåt. Authorization-headern proxas vidare så JWT:n når sista servicen.
+Nothing else is exposed. The Authorization header is passed through so the JWT reaches
+the service.
 
----
+## How the services talk to each other
 
-## Inter-service-protokollet
-
-När matching-service behöver data ringer den profile-services interna API. Exempel: `recompute_for_user` behöver hämta alla användare:
+When matching-service needs data it calls profile-service's internal API. For example,
+`recompute_for_user` needs every user:
 
 ```python
-# i matching-service/profile_client.py
+# matching-service/profile_client.py
 def get_all_users() -> list[User]:
     response = requests.get(
         f"{PROFILE_SERVICE_URL}/internal/users",
@@ -181,47 +194,52 @@ def get_all_users() -> list[User]:
     return [user_from_dict(item) for item in response.json()]
 ```
 
-profile-service tar emot anropet i `internal_get_users` och returnerar listan av `User`-objekt serialiserade via `user_to_dict`. Matching-service de­serialiserar tillbaka till `User`-objekt med `user_from_dict`. Algoritmkoden ser inte att data kom över nätverket — den får ett `User`-objekt som vanligt.
+profile-service answers in `internal_get_users` with the list of `User` objects
+serialised through `user_to_dict`. matching-service deserialises them back into `User`
+objects with `user_from_dict`. The algorithm code never sees that the data came over the
+network; it gets a `User` object like always. Writing works the same way: matching-service
+calls `PUT /internal/users/{id}/ranked_list` and profile-service runs `save_ranked_list`
+against Supabase.
 
-Samma mönster för skrivning: matching-service kallar `PUT /internal/users/{id}/ranked_list` — profile-service kör `save_ranked_list(...)` mot Supabase.
+Two auth mechanisms hold this together:
 
-**Två säkerhetsmekanismer:**
+- `auth.py` (Supabase JWT) for calls **from the user**. The `user_id` comes out of the
+  token, never out of the request body.
+- `internal_auth.py` (shared secret) for calls **between the services**. The
+  `X-Internal-Secret` header is matched against the `INTERNAL_SECRET` env var.
 
-- `auth.py` (Supabase JWT) — för anrop *från användaren*. Plockar ut `user_id` ur token. Allt som har med en specifik användare att göra läses ur tokenen, **aldrig** ur request-bodyn.
-- `internal_auth.py` (delad hemlighet) — för anrop *mellan tjänsterna*. Headern `X-Internal-Secret` matchas mot `INTERNAL_SECRET`-env-variabeln.
+## Supabase
 
----
+### Auth
 
-## Supabase-struktur
-
-### Autentisering
-
-Supabase Auth hanterar inlogg och registrering. När en användare loggar in får mobilappen tillbaka en JWT-token. Den token skickas med varje API-anrop till backenden:
+Supabase Auth handles sign-in and registration. When a user logs in the app gets back a
+JWT, which it sends on every request:
 
 ```
 Authorization: Bearer <token>
 ```
 
-`auth.py` verifierar signaturen mot `SUPABASE_JWT_SECRET` och plockar ut UUID:t ur `sub`-claimen. **Aldrig** litar backenden på user-id i request-bodyn.
+`auth.py` verifies the signature against `SUPABASE_JWT_SECRET` and reads the UUID out of
+the `sub` claim. The backend never trusts a user id from the request body.
 
-### Databastabeller
+### Tables
 
-**`auth.users`** – hanteras automatiskt av Supabase Auth
-- `id` (UUID) — användarens unika ID, skapas vid registrering
+**`auth.users`** — managed by Supabase Auth. `id` (UUID) is the user's unique id, created
+at registration.
 
-**`profile`** – hanteras av profile-services kod
-- `id_profile` (UUID, FK → `auth.users.id`) — kopplar profilen till auth-användaren
-- `username` (text)
-- `dob` (date, ISO `YYYY-MM-DD`) — **lagras som födelsedatum, inte ålder**
-- `gender`, `preferred_gender`, `age_range`, `location`
-- `events`, `songs`, `movies`, `shows`, `artists`, `directors`, `actors`, `albums`
-- `music_genre`, `movie_genre`, `art`, `literature`
-- `liked_users`, `rejected_users`, `blocked_users`, `matched_users` — listor med UUIDs
-- `user_ranked_list` — förberäknad lista med sorterade matchkandidater (JSON)
+**`profile`** — managed by profile-service. One row per auth user, keyed by `id_profile`
+(FK to `auth.users.id`). Holds the profile fields (`username`, `dob`, `gender`,
+`preferred_gender`, `age_range`, `location`, the taste lists like `events`/`songs`/
+`movies`/`artists`/etc., `music_genre`, `movie_genre`, `art`, `literature`), the relation
+lists (`liked_users`, `rejected_users`, `blocked_users`, `matched_users`) and
+`user_ranked_list` (the precomputed candidates). Social handles live in a separate
+`social_media` table. The exact column types are in the project README's database section.
 
-### Varför `dob` istället för `age`?
+### Why `dob` instead of `age`
 
-`age` är härledd data som blir gammal. Den enda sanna fakta är födelsedatumet — åldern är en funktion av `today() - dob`. Vi lagrar därför endast `dob` i databasen och exponerar `age` som en `@property` på `User`-klassen som räknar fram värdet vid läsning:
+`age` is derived data that goes stale. The only true fact is the birth date; age is just
+`today() - dob`. So we store only `dob` and expose `age` as a computed property on the
+`User` class:
 
 ```python
 @property
@@ -232,19 +250,18 @@ def age(self) -> int:
     )
 ```
 
-`swipeAlgo.filter_users` läser `user.age` exakt som tidigare — den vet inte att värdet är beräknat. Det gör att åldersintervallet alltid är korrekt, utan något bakgrundsjobb som behöver uppdatera kolumner varje natt.
+`swipeAlgo.filter_users` reads `user.age` exactly as before and never knows the value is
+computed. The age range is always correct, with no nightly job to update columns.
 
----
+## API
 
-## API-specifikation
-
-Alla endpoints kräver giltig Supabase JWT i `Authorization: Bearer <token>`. Utan token returneras `403 Forbidden`.
+Every endpoint needs a valid Supabase JWT in `Authorization: Bearer <token>`. Without
+one you get `403 Forbidden`.
 
 ### `POST /profile/setup`
 
-Skapar profil för den inloggade. Anropas en gång efter registrering.
+Creates the signed-in user's profile. Called once after registration.
 
-**Body:**
 ```json
 {
   "username": "Anna",
@@ -266,20 +283,17 @@ Skapar profil för den inloggade. Anropas en gång efter registrering.
 }
 ```
 
-**Svar:** `{ "status": "ok" }`
+Response: `{ "status": "ok" }`
 
 ### `PUT /profile/update`
 
-Uppdaterar profilen. Triggar automatisk omräkning av ranked lists.
-
-**Body:** samma fält som `/profile/setup` (förutom `user_id` — det kommer från token).
-**Svar:** `{ "status": "ok" }`
+Updates the profile and triggers a ranked-list recompute. Same fields as
+`/profile/setup` (no `user_id`, that comes from the token). Response: `{ "status": "ok" }`
 
 ### `GET /profile/swipes`
 
-Hämtar förberäknad ranked list.
+Returns the precomputed ranked list.
 
-**Svar:**
 ```json
 {
   "user_ranked_list": [
@@ -291,20 +305,18 @@ Hämtar förberäknad ranked list.
 
 ### `POST /swipe`
 
-Registrerar like eller reject. Vid ömsesidig like → match.
+Records a like or reject. A mutual like becomes a match.
 
-**Body:**
 ```json
-{
-  "target_user_id": "uuid",
-  "action": "like"
-}
+{ "target_user_id": "uuid", "action": "like" }
 ```
-`action` är `"like"` eller `"reject"`.
 
-**Svar vid like utan match:** `{ "status": "liked" }`
+`action` is `"like"` or `"reject"`. Responses:
 
-**Svar vid match:**
+- like, no match: `{ "status": "liked" }`
+- reject: `{ "status": "rejected" }`
+- match:
+
 ```json
 {
   "status": "match",
@@ -320,91 +332,50 @@ Registrerar like eller reject. Vid ömsesidig like → match.
 }
 ```
 
-**Svar vid reject:** `{ "status": "rejected" }`
+## Auth flow
 
----
+1. The user registers or logs in through the Supabase JS SDK.
+2. Supabase returns a session with a JWT (`access_token`).
+3. The app stores it and sends `Authorization: Bearer <token>` on every call.
+4. The backend's `auth.py` verifies the signature against `SUPABASE_JWT_SECRET` and reads
+   the UUID from the `sub` claim.
+5. That UUID is used everywhere. The request body is never used to decide who the user is.
 
-## Autentiseringsflöde
+## Third-party APIs
 
-1. Användaren registrerar sig eller loggar in i mobilappen via Supabase JS-SDK.
-2. Supabase returnerar en session med en JWT (`access_token`).
-3. Mobilappen sparar token och skickar med på varje anrop:
-   `Authorization: Bearer <token>`.
-4. Backendens `auth.py` verifierar signaturen mot `SUPABASE_JWT_SECRET` och plockar ut UUID:t ur `sub`-claimen.
-5. UUID:t används i all logik. Request-bodyn används aldrig för att avgöra vem användaren är.
+`apps/profile-service/API/` has helper clients for the external data sources. They're
+wrapped by `apps/profile-service/external_api.py` and exposed under `/external/*` (JWT
+required, so only signed-in users searching for interests can reach them).
 
----
+| File | Source |
+|------|--------|
+| `kulturbiljett.py` | events and ticket data ([reference](kulturbiljett.md)) |
+| `ticketmaster.py` | events from Ticketmaster |
+| `tmdb.py` | films, series, directors |
+| `musicbrainz.py` | artists, songs, music genres |
 
-## Externa tredjeparts-API:er
+matching-service never touches these clients. All external fetching happens in
+profile-service.
 
-`apps/profile-service/API/` innehåller hjälpklienter mot externa datakällor. De wrappas av `apps/profile-service/external_api.py` och exponeras via gateway under `/external/*` (kräver JWT — de är tillgängliga endast för inloggade användare som söker fram intresselistor i mobilappen).
+## Tests and CI
 
-| Fil | Källa |
-|-----|-------|
-| `kulturbiljett.py` | events och biljettdata (`/external/events`, `/external/events/{event_id}`) |
-| `ticketmaster.py` | events från Ticketmaster (`/external/ticketmaster/events`) |
-| `tmdb.py` | filmer, TV-serier, regissörer |
-| `musicbrainz.py` | artister, låtar, musikgenrer (`/external/music/...`) |
+`apps/matching-service/tests/` holds the unit tests:
 
-matching-service rör aldrig de här klienterna — all extern datahämtning sker i profile-service.
+- `test_algorithms.py` — `filter_users`, `scoring_users`, `is_mutual_like`,
+  `create_match`, `get_shared_interests`
+- `test_services.py` — `perform_swipe` (the like/reject/match flows)
 
----
+`.github/workflows/backend-ci.yml` runs on every push and PR to `main`: Ruff lints both
+services, and pytest runs the matching-service suite. The mobile app has its own Jest
+tests under `apps/mobile/__tests__/`.
 
-## Köra lokalt
+## Mobile integration
 
-Från repo-roten:
-
-```bash
-docker compose up
-```
-
-Det startar tre containers (`profile-service`, `matching-service`, `gateway`). Gateway lyssnar på `localhost:80`.
-
-Krävda env-variabler i `.env`:
-
-```
-SUPABASE_URL=
-SUPABASE_KEY=
-SUPABASE_JWT_SECRET=
-INTERNAL_SECRET=<valfri lång slumpsträng, måste matcha mellan tjänsterna>
-```
-
----
-
-## Testning och CI
-
-`apps/matching-service/tests/` innehåller 24 enhetstester:
-- `test_algorithms.py` — `filter_users`, `scoring_users`, `is_mutual_like`, `create_match`, `get_shared_interests`
-- `test_services.py` — `perform_swipe` (like/reject/match-flöden)
-
-Köra lokalt:
-
-```bash
-cd apps/matching-service
-pytest tests/
-```
-
-`.github/workflows/backend-ci.yml` kör vid varje push/PR mot `main`:
-- **Ruff** — linter på båda tjänsterna
-- **pytest** — kör matching-services testsvit
-
-profile-service har ingen testsvit ännu — DB-koden testas indirekt via integrationstester (kommande).
-
----
-
-## Nuvarande mobil-integration
-
-Mobilappen (`apps/mobile/`) har:
-- Supabase-klient i `lib/supabase.ts`
-- Skärmar: `start.tsx`, `create-account.tsx`
-- Auth via `supabase.auth.signUp` (skapar bara auth-användaren — inte profilraden)
-
-**Det som saknas:**
-1. Profile-setup-skärm som anropar `POST /profile/setup` direkt efter registrering. Det är detta anrop som faktiskt skapar raden i `profile`-tabellen.
-2. Swipe-skärm som visar `user_ranked_list` och anropar `POST /swipe`.
-3. Match-skärm som triggas vid `{ "status": "match" }`.
-
-För att skicka anrop med JWT:
+The app (`apps/mobile/`) talks only to the gateway, at the URL in `EXPO_PUBLIC_API_URL`.
+It signs in through the Supabase client in `lib/supabase.ts` and attaches the JWT to
+every backend call. The request helpers live in `apps/mobile/apiservices/`
+(`apiClient.ts`, `profileService.ts`, `swipeService.ts`). Sending an authenticated call
+looks like this:
 
 ```typescript
 const session = await supabase.auth.getSession()
@@ -415,71 +386,64 @@ await fetch(`${API_BASE_URL}/profile/swipes`, {
 })
 ```
 
-`API_BASE_URL` pekar på gatewayens publika adress.
-
----
-
-## Filträd (backend)
+## Backend file tree
 
 ```
 apps/
-├── profile-service/      ← äger databasen
+├── profile-service/      owns the database
 │   ├── main.py
 │   ├── auth.py
 │   ├── internal_auth.py
 │   ├── db.py
 │   ├── user.py
-│   ├── external_api.py    ← wrapper kring de externa klienterna i API/
-│   ├── API/               ← externa tredjeparts-klienter
+│   ├── external_api.py    wraps the clients in API/
+│   ├── API/               third-party clients
 │   │   ├── kulturbiljett.py
 │   │   ├── ticketmaster.py
 │   │   ├── tmdb.py
 │   │   └── musicbrainz.py
+│   ├── migrations/
 │   ├── Dockerfile
 │   ├── fly.toml
-│   ├── requirements.txt
-│   └── README.md
-├── matching-service/     ← ingen DB, äger algoritmerna
+│   └── requirements.txt
+├── matching-service/     no database, owns the algorithms
 │   ├── main.py
 │   ├── services.py
 │   ├── swipeAlgo.py
 │   ├── matchAlgo.py
-│   ├── profile_client.py    ← HTTP-klient mot profile-service
+│   ├── profile_client.py
 │   ├── auth.py
 │   ├── internal_auth.py
 │   ├── user.py
 │   ├── tests/
-│   │   ├── test_algorithms.py
-│   │   └── test_services.py
 │   ├── Dockerfile
 │   ├── fly.toml
-│   ├── requirements.txt
-│   └── README.md
-├── gateway/              ← nginx reverse proxy
+│   └── requirements.txt
+├── gateway/              nginx reverse proxy
 │   ├── nginx.conf.template
 │   ├── Dockerfile
-│   ├── fly.toml
-│   └── README.md
-└── mobile/               ← React Native + Expo
+│   └── fly.toml
+└── mobile/               React Native + Expo
 
-docker-compose.yml        ← startar de tre containrarna lokalt
+docker-compose.yml        starts the three containers locally
 .github/workflows/
-└── backend-ci.yml        ← Ruff + pytest vid varje push
+└── backend-ci.yml        Ruff + pytest
 ```
 
----
+## Notes on the design
 
-## Reflektioner över designen
+What the split into services buys us:
 
-**Vad uppdelningen i mikrotjänster ger oss:**
-- Tydligt ägarskap. Vill du veta hur en match sparas? Det sker i `profile-service/db.py:save_match`. Inget annat ställe rör tabellen.
-- Algoritmerna kan bytas ut utan att röra DB-koden. Tester kan mocka `profile_client` istället för Supabase.
-- Profile-service kan skalas upp/ner separat från matching-service om belastningen ser olika ut.
+- Clear ownership. Want to know how a match is saved? It happens in
+  `profile-service/db.py:save_match` and nowhere else.
+- The algorithms can be swapped without touching database code. Tests mock
+  `profile_client` instead of Supabase.
+- profile-service and matching-service can scale independently if load looks different.
 
-**Vad det kostar:**
-- Inter-service-anrop går över nätverk. `recompute_for_user` gör många anrop när många användare har den uppdaterade i sin ranked list. Optimerbart senare via batch-endpoint eller delad cache.
-- Två kopior av `User`-klassen. Hålls i synk manuellt. En delad lib hade lett till tightare koppling — den lilla duplikationen är medveten.
+What it costs:
 
-**Varför `dob` istället för `age`:**
-- Lagra fakta, härled allt annat. Åldern blir aldrig fel, ingen migrering behövs varje år, ingen risk för dataset-drift mellan en stored age och en faktisk dob.
-- Kostnaden (att räkna `today - dob` vid varje swipe-filter) är försumbar — tre subtraktioner.
+- Inter-service calls go over the network. `recompute_for_user` makes a lot of calls when
+  many users have the updated one in their ranked list. Could be optimised later with a
+  batch endpoint or a shared cache.
+- Two copies of the `User` class, kept in sync by hand. A shared library would have meant
+  tighter coupling between the services; the small duplication is deliberate.
