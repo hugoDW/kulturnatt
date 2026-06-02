@@ -1,26 +1,29 @@
-# Fly.io Guide
+# Hosting on Fly.io
 
-Hur backend hostas på Fly.io och hur du startar/stoppar den.
+How the backend is hosted on Fly.io and how to start, stop and deploy it. For what the
+services do, see [documentation.md](documentation.md).
 
-## Översikt
+## Overview
 
-Backend körs som tre separata Fly-appar i regionen `arn` (Stockholm):
+The backend runs as three Fly apps in the `arn` (Stockholm) region:
 
-| App | Vad den gör | Publik? |
-|---|---|---|
-| `kulturnatt-gateway` | Nginx reverse proxy — enda publika ingången | Ja — `https://kulturnatt-gateway.fly.dev` |
-| `kulturnatt-profile` | FastAPI — användardata, Supabase-access | Nej — bara intern (`kulturnatt-profile.internal:8001`) |
-| `kulturnatt-matching` | FastAPI — swipe/match-logik | Nej — bara intern (`kulturnatt-matching.internal:8002`) |
+| App | What it is | Public? |
+|-----|------------|---------|
+| `kulturnatt-gateway` | Nginx reverse proxy, the only public entry point | Yes — `https://kulturnatt-gateway.fly.dev` |
+| `kulturnatt-profile` | profile-service | No — internal only (`kulturnatt-profile.internal:8001`) |
+| `kulturnatt-matching` | matching-service | No — internal only (`kulturnatt-matching.internal:8002`) |
 
-Service-till-service-kommunikation går över Fly's privata 6PN-nätverk via `.internal`-DNS. State lagras i Supabase — ingen databas körs på Fly.
+The services talk to each other over Fly's private 6PN network via `.internal` DNS. State
+lives in Supabase; no database runs on Fly.
 
-## Förutsättningar
+## Before you start
 
-1. **flyctl** installerad — `curl -L https://fly.io/install.sh | sh`
-2. **Inloggad** — `flyctl auth login`
-3. Tillgång till Fly-orgen där apparna ligger (personal org för `popcorn.wennberg@gmail.com`)
+1. Install flyctl: `curl -L https://fly.io/install.sh | sh`
+2. Log in: `flyctl auth login`
+3. You need access to the Fly org the apps live in (the personal org for
+   `popcorn.wennberg@gmail.com`).
 
-## Starta backend
+## Start the backend
 
 ```bash
 flyctl machine start $(flyctl machines list -a kulturnatt-profile -q) -a kulturnatt-profile
@@ -28,9 +31,10 @@ flyctl machine start $(flyctl machines list -a kulturnatt-matching -q) -a kultur
 flyctl machine start $(flyctl machines list -a kulturnatt-gateway -q) -a kulturnatt-gateway
 ```
 
-Tar ca 5 sekunder per app. När alla är `started` är `https://kulturnatt-gateway.fly.dev` tillgänglig igen.
+About five seconds per app. Once all three are `started`, `https://kulturnatt-gateway.fly.dev`
+is reachable again.
 
-## Stoppa backend
+## Stop the backend
 
 ```bash
 flyctl machine stop $(flyctl machines list -a kulturnatt-profile -q) -a kulturnatt-profile
@@ -38,43 +42,26 @@ flyctl machine stop $(flyctl machines list -a kulturnatt-matching -q) -a kulturn
 flyctl machine stop $(flyctl machines list -a kulturnatt-gateway -q) -a kulturnatt-gateway
 ```
 
-Stoppade maskiner kostar ingenting. All config och image ligger kvar — bara starta igen när du behöver.
+Stopped machines cost nothing. The config and images stay; just start them again when you
+need them.
 
-## Kolla status
+## Status and logs
 
 ```bash
-flyctl status -a kulturnatt-gateway
-flyctl status -a kulturnatt-profile
-flyctl status -a kulturnatt-matching
+flyctl status -a kulturnatt-gateway     # STATE column shows started or stopped
+flyctl logs -a kulturnatt-gateway       # live logs, Ctrl-C to quit
 ```
 
-`STATE`-kolumnen visar `started` eller `stopped`.
-
-## Testa att det funkar
+Quick check that it's up:
 
 ```bash
 curl https://kulturnatt-gateway.fly.dev/health
+# ok
 ```
 
-Ska skriva ut `ok`. Riktiga endpoints kräver Supabase JWT i `Authorization: Bearer <token>`-headern:
+## Deploy
 
-```bash
-curl -H "Authorization: Bearer <jwt>" https://kulturnatt-gateway.fly.dev/profile/swipes
-```
-
-## Live-loggar
-
-```bash
-flyctl logs -a kulturnatt-gateway
-flyctl logs -a kulturnatt-profile
-flyctl logs -a kulturnatt-matching
-```
-
-Ctrl-C för att avsluta.
-
-## Deploya kodändringar
-
-Från relevant service-mapp:
+From the relevant service folder:
 
 ```bash
 cd apps/profile-service && flyctl deploy --remote-only --ha=false
@@ -82,53 +69,60 @@ cd apps/matching-service && flyctl deploy --remote-only --ha=false
 cd apps/gateway && flyctl deploy --remote-only --ha=false
 ```
 
-`--remote-only` bygger imagen på Fly's servrar (kräver inte lokal Docker). `--ha=false` skapar bara en maskin per app (ingen HA-replikering).
+`--remote-only` builds the image on Fly's servers (no local Docker needed). `--ha=false`
+makes one machine per app instead of a high-availability pair.
 
-## Hemligheter (env-variabler)
+## Secrets
 
-Sätts via `flyctl secrets set` — sparas krypterade hos Fly, syns aldrig i git eller image.
+Set with `flyctl secrets set` — stored encrypted on Fly, never in git or the image.
+Setting a secret restarts the machine so the new value takes effect.
 
 ```bash
 flyctl secrets set -a kulturnatt-profile SUPABASE_KEY="..."
 flyctl secrets list -a kulturnatt-profile
 ```
 
-Vid `secrets set` startas maskinen om automatiskt så den nya värdet appliceras.
+Which app needs what (the variable names and meanings are in the README and
+[documentation.md](documentation.md)):
 
-Vilka secrets varje app behöver:
+- **kulturnatt-profile**: `SUPABASE_JWT_SECRET`, `SUPABASE_URL`, `SUPABASE_KEY`,
+  `INTERNAL_SECRET`, `MATCHING_SERVICE_URL=http://kulturnatt-matching.internal:8002`
+- **kulturnatt-matching**: `SUPABASE_JWT_SECRET`, `INTERNAL_SECRET`,
+  `PROFILE_SERVICE_URL=http://kulturnatt-profile.internal:8001`
+- **kulturnatt-gateway**: no secrets. `PROFILE_UPSTREAM` and `MATCHING_UPSTREAM` are plain
+  config and live in `apps/gateway/fly.toml` under `[env]`.
 
-- **kulturnatt-profile**: `SUPABASE_JWT_SECRET`, `SUPABASE_URL`, `SUPABASE_KEY`, `INTERNAL_SECRET`, `MATCHING_SERVICE_URL=http://kulturnatt-matching.internal:8002`
-- **kulturnatt-matching**: `SUPABASE_JWT_SECRET`, `INTERNAL_SECRET`, `PROFILE_SERVICE_URL=http://kulturnatt-profile.internal:8001`
-- **kulturnatt-gateway**: inga secrets — `PROFILE_UPSTREAM` och `MATCHING_UPSTREAM` ligger i `apps/gateway/fly.toml` under `[env]` (inte hemliga värden, så de behöver inte krypteras)
+## Cost
 
-## Kostnader
+- Two backend machines always on (`shared-cpu-1x`, 256MB) ≈ $2/mo each.
+- The gateway auto-stops when idle and wakes on a request ≈ ~$0 at low traffic.
+- So roughly $4/mo in normal use, $0 with everything stopped.
 
-- Två backend-maskiner alltid på (`shared-cpu-1x` 256MB) ≈ **$2/mo** styck
-- Gateway auto-stoppar när idle, vaknar på request ≈ **~$0** vid låg trafik
-- **Totalt ca $4/mo** vid normal användning, **$0** om allt är stoppat
+Worth setting a billing alert at https://fly.io/dashboard/personal/billing → "Usage
+alerts", e.g. $5 as a tripwire.
 
-Sätt en billing alert: https://fly.io/dashboard/personal/billing → "Usage alerts" → t.ex. $5 som tripwire.
+## Files in the repo
 
-## Filer i repot
+- `apps/<service>/Dockerfile` — build instructions
+- `apps/<service>/fly.toml` — Fly config (region, VM size, health checks)
+- `apps/gateway/nginx.conf.template` — nginx config with `${PROFILE_UPSTREAM}` /
+  `${MATCHING_UPSTREAM}`, rendered at container start
 
-- `apps/<service>/Dockerfile` — bygginstruktioner
-- `apps/<service>/fly.toml` — Fly-konfiguration (region, VM-storlek, etc.)
-- `apps/gateway/nginx.conf.template` — nginx-config med `${PROFILE_UPSTREAM}` / `${MATCHING_UPSTREAM}` som rendras vid container-start
+## Troubleshooting
 
-## Felsökning
+- **502 Bad Gateway from `/profile/...` or `/swipe`** — the backend machine is probably
+  stopped. Run `flyctl status` and start it.
+- **`host not found in upstream` in the gateway logs** — `.internal` DNS couldn't find the
+  app. Check the backend app exists and has at least one machine `started`.
+- **`Connection refused`** — uvicorn is listening on the wrong interface. The Dockerfile
+  should bind `--host ::` (IPv6 dual-stack), not `0.0.0.0`. Fly's private network is IPv6.
+- **Health check fails on deploy** — check `flyctl logs -a <app>` right after. Usually a
+  required env var is missing and uvicorn crashes.
 
-**502 Bad Gateway från `/profile/...` eller `/swipe`** — backend-maskinen är förmodligen stoppad. Kör `flyctl status` och starta vid behov.
-
-**`host not found in upstream` i gateway-loggar** — `.internal`-DNS hittade inte appen. Kolla att backend-appen finns och har minst en maskin i `started`.
-
-**`Connection refused`** — uvicorn lyssnar på fel interface. Dockerfilen ska ha `--host ::` (IPv6 dual-stack), inte `0.0.0.0` (Fly's privata nätverk är IPv6).
-
-**Health check failar vid deploy** — kolla med `flyctl logs -a <app>` direkt efter deploy. Vanlig orsak: en obligatorisk env-variabel saknas så uvicorn kraschar.
-
-## Helt ta bort en app
+## Removing an app entirely
 
 ```bash
 flyctl apps destroy kulturnatt-<name>
 ```
 
-Oåterkalleligt. Använd bara om projektet är nedlagt.
+Irreversible. Only for when the project is shut down.
