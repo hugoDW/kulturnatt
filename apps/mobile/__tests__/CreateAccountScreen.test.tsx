@@ -19,6 +19,7 @@ jest.mock("expo-linking", () => ({
 }));
 
 describe("CreateAccountScreen", () => {
+  const compliantPassword = "Kultur123!";
   const navigate = jest.fn();
   const goBack = jest.fn();
 
@@ -38,7 +39,7 @@ describe("CreateAccountScreen", () => {
       getByPlaceholderText("Example: svensvensson@tsm.se"),
       "user@example.com",
     );
-    fireEvent.changeText(getByPlaceholderText("Example: password123"), "secret-1");
+    fireEvent.changeText(getByPlaceholderText("Example: Kultur123!"), "secret-1");
     fireEvent.changeText(getByPlaceholderText("Confirm password"), "secret-2");
     fireEvent.press(getByText("Register"));
 
@@ -47,6 +48,39 @@ describe("CreateAccountScreen", () => {
       "Password and confirm password must match.",
     );
     expect(supabase.auth.signUp).not.toHaveBeenCalled();
+  });
+
+  it("stops registration when password does not meet Supabase requirements", () => {
+    const { getByPlaceholderText, getByText } = render(<CreateAccountScreen />);
+
+    fireEvent.changeText(
+      getByPlaceholderText("Example: svensvensson@tsm.se"),
+      "user@example.com",
+    );
+    fireEvent.changeText(getByPlaceholderText("Example: Kultur123!"), "secret");
+    fireEvent.changeText(getByPlaceholderText("Confirm password"), "secret");
+    fireEvent.press(getByText("Register"));
+
+    expect(Alert.alert).toHaveBeenCalledWith(
+      "Weak password",
+      "Use at least 8 characters with lowercase, uppercase, a number, and a symbol.",
+    );
+    expect(supabase.auth.signUp).not.toHaveBeenCalled();
+  });
+
+  it("toggles visibility for both password fields", () => {
+    const { getByPlaceholderText, getByText } = render(<CreateAccountScreen />);
+
+    const passwordInput = getByPlaceholderText("Example: Kultur123!");
+    const confirmPasswordInput = getByPlaceholderText("Confirm password");
+
+    expect(passwordInput.props.secureTextEntry).toBe(true);
+    expect(confirmPasswordInput.props.secureTextEntry).toBe(true);
+
+    fireEvent.press(getByText("Show password"));
+
+    expect(passwordInput.props.secureTextEntry).toBe(false);
+    expect(confirmPasswordInput.props.secureTextEntry).toBe(false);
   });
 
   it("submits signup and tells the user to verify email when no session is returned", async () => {
@@ -61,14 +95,17 @@ describe("CreateAccountScreen", () => {
       getByPlaceholderText("Example: svensvensson@tsm.se"),
       "  USER@EXAMPLE.COM  ",
     );
-    fireEvent.changeText(getByPlaceholderText("Example: password123"), "secret");
-    fireEvent.changeText(getByPlaceholderText("Confirm password"), "secret");
+    fireEvent.changeText(
+      getByPlaceholderText("Example: Kultur123!"),
+      compliantPassword,
+    );
+    fireEvent.changeText(getByPlaceholderText("Confirm password"), compliantPassword);
     fireEvent.press(getByText("Register"));
 
     await waitFor(() => {
       expect(supabase.auth.signUp).toHaveBeenCalledWith({
         email: "user@example.com",
-        password: "secret",
+        password: compliantPassword,
         options: {
           emailRedirectTo: expect.any(String),
         },
@@ -80,28 +117,4 @@ describe("CreateAccountScreen", () => {
     });
   });
 
-  it("submits test signup and navigates to welcome without waiting for email verification", async () => {
-    (supabase.auth.signUp as jest.Mock).mockResolvedValue({
-      data: { session: null },
-      error: null,
-    });
-
-    const { getByPlaceholderText, getByText } = render(<CreateAccountScreen />);
-
-    fireEvent.changeText(
-      getByPlaceholderText("Example: svensvensson@tsm.se"),
-      "  USER@EXAMPLE.COM  ",
-    );
-    fireEvent.changeText(getByPlaceholderText("Example: password123"), "secret");
-    fireEvent.changeText(getByPlaceholderText("Confirm password"), "secret");
-    fireEvent.press(getByText("Register-test"));
-
-    await waitFor(() => {
-      expect(supabase.auth.signUp).toHaveBeenCalledWith({
-        email: "user@example.com",
-        password: "secret",
-      });
-      expect(navigate).toHaveBeenCalledWith("Welcome");
-    });
-  });
 });

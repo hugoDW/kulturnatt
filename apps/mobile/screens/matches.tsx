@@ -191,7 +191,7 @@ export default function MatchesScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#ECF2FF" },
+  screen: { flex: 1, backgroundColor: "#bfd4ff" },
   header: {
     paddingHorizontal: 22,
     paddingBottom: 16,

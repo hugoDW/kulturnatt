@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
@@ -80,10 +79,7 @@ export default function ForgotPasswordScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.keyboardView}
     >
-      <LinearGradient
-        colors={["#ECF2FF", "#ECF2FF", "#ECF2FF"]}
-        style={styles.container}
-      >
+      <View style={styles.container}>
         <BackButton onPress={() => navigation.goBack()} />
 
         <View style={styles.logoSection}>
@@ -119,7 +115,7 @@ export default function ForgotPasswordScreen() {
             )}
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -132,6 +128,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
+    backgroundColor: "#bfd4ff",
   },
 
   logoSection: {

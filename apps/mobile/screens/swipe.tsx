@@ -217,7 +217,7 @@ export default function SwipeScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#ECF2FF" },
+  screen: { flex: 1, backgroundColor: "#bfd4ff" },
   centerState: {
     flex: 1,
     alignItems: "center",

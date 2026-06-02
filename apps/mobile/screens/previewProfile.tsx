@@ -18,7 +18,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 
 import type { RootStackParamList } from "../App";
-import BackButton from "../components/backButton";
 import NavBar from "../components/NavBar";
 import ActorsSheet from "../components/sheets/ActorsSheet";
 import AboutMeSheet from "../components/sheets/AboutMeSheet";
@@ -705,7 +704,7 @@ export default function PreviewProfileScreen() {
           },
         ]}
       >
-        <BackButton onPress={() => navigation.navigate("EventPage")} />
+       
         <Text style={styles.headerTitle}>Profile Preview</Text>
         <TouchableOpacity
           accessibilityLabel="Edit matching preferences"
@@ -953,7 +952,7 @@ function ProfileSlotRow({
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: "#ECF2FF" },
+  screen: { flex: 1, backgroundColor: "#bfd4ff" },
   header: {
     position: "absolute",
     top: 0,
@@ -963,7 +962,7 @@ const styles = StyleSheet.create({
     minHeight: HEADER_BODY_HEIGHT,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#ECF2FF",
+    backgroundColor: "#bfd4ff",
   },
   headerTitle: {
     fontFamily: "Inter",
@@ -976,7 +975,7 @@ const styles = StyleSheet.create({
     right: 20,
     width: 36,
     height: 36,
-    marginTop: -12,
+    marginTop: -5,
     alignItems: "center",
     justifyContent: "center",
   },

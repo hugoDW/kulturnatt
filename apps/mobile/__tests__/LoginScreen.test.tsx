@@ -53,7 +53,7 @@ describe("LoginScreen", () => {
       getByPlaceholderText("Example: svensvensson@tsm.se"),
       "  USER@EXAMPLE.COM  ",
     );
-    fireEvent.changeText(getByPlaceholderText("Example: password123"), "secret");
+    fireEvent.changeText(getByPlaceholderText("Example: Kultur123!"), "secret");
     fireEvent.press(getByText("Log in"));
 
     await waitFor(() => {

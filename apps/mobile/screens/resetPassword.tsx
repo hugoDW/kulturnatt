@@ -10,12 +10,15 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
 
 import BackButton from "../components/backButton";
+import {
+  isPasswordCompliant,
+  PASSWORD_REQUIREMENTS_MESSAGE,
+} from "../lib/passwordRequirements";
 import { supabase } from "../lib/supabase";
 
 type NavigationProp = NativeStackNavigationProp<
@@ -38,6 +41,11 @@ export default function ResetPasswordScreen() {
 
     if (password !== confirmPassword) {
       Alert.alert("Password mismatch", "Both password fields must match.");
+      return;
+    }
+
+    if (!isPasswordCompliant(password)) {
+      Alert.alert("Weak password", PASSWORD_REQUIREMENTS_MESSAGE);
       return;
     }
 
@@ -72,10 +80,7 @@ export default function ResetPasswordScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.keyboardView}
     >
-      <LinearGradient
-        colors={["#ECF2FF", "#ECF2FF", "#ECF2FF"]}
-        style={styles.container}
-      >
+      <View style={styles.container}>
         <BackButton onPress={() => navigation.goBack()} />
 
         <View style={styles.logoSection}>
@@ -89,12 +94,15 @@ export default function ResetPasswordScreen() {
             autoComplete="password-new"
             editable={!loading}
             onChangeText={setPassword}
-            placeholder="Example: password123"
+            placeholder="Example: Kultur123!"
             secureTextEntry
-            style={styles.input}
+            style={styles.passwordInput}
             textContentType="newPassword"
             value={password}
           />
+          <Text style={styles.passwordRequirements}>
+            {PASSWORD_REQUIREMENTS_MESSAGE}
+          </Text>
 
           <Text style={styles.label}>Confirm password</Text>
           <TextInput
@@ -122,7 +130,7 @@ export default function ResetPasswordScreen() {
             )}
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -135,6 +143,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
+    backgroundColor: "#ECF2FF",
   },
 
   logoSection: {
@@ -177,6 +186,30 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 6,
     elevation: 7,
+  },
+
+  passwordInput: {
+    width: "100%",
+    backgroundColor: "#F7F2F8",
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    color: "#000",
+
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 7,
+  },
+
+  passwordRequirements: {
+    color: "#555",
+    fontFamily: "Inter",
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 24,
   },
 
   updateButton: {

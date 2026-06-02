@@ -10,8 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
@@ -19,6 +17,10 @@ import type { RootStackParamList } from "../App";
 
 import BackButton from "../components/backButton";
 import { getAuthRedirectUrl, VERIFY_EMAIL_PATH } from "../lib/authRedirects";
+import {
+  isPasswordCompliant,
+  PASSWORD_REQUIREMENTS_MESSAGE,
+} from "../lib/passwordRequirements";
 import { supabase } from "../lib/supabase";
 
 
@@ -38,6 +40,7 @@ export default function CreateAccountScreen() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
   function getValidatedCredentials() {
@@ -51,6 +54,11 @@ export default function CreateAccountScreen() {
 
     if (password !== confirmPassword) {
       Alert.alert("Password mismatch", "Password and confirm password must match.");
+      return null;
+    }
+
+    if (!isPasswordCompliant(password)) {
+      Alert.alert("Weak password", PASSWORD_REQUIREMENTS_MESSAGE);
       return null;
     }
 
@@ -108,50 +116,13 @@ export default function CreateAccountScreen() {
     }
   }
 
-  async function handleCreateAccountTest() {
-    const credentials = getValidatedCredentials();
-
-    if (!credentials) {
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const { error } = await supabase.auth.signUp({
-        email: credentials.email,
-        password: credentials.password,
-      });
-
-      if (error) {
-        Alert.alert("Registration failed", error.message);
-        return;
-      }
-
-      navigation.navigate("Welcome");
-    } catch (error) {
-      const message =
-        error instanceof Error
-          ? error.message
-          : "Something went wrong while signing up.";
-
-      Alert.alert("Registration failed", message);
-    } finally {
-      setLoading(false);
-    }
-  }
-
-
   return (
    
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.keyboardView}
       >
-        <LinearGradient
-          colors={["#ECF2FF", "#ECF2FF", "#ECF2FF"]}
-          style={styles.container}
-        >
+        <View style={styles.container}>
           <BackButton onPress={() => navigation.goBack()} />
 
 
@@ -183,12 +154,15 @@ export default function CreateAccountScreen() {
               autoComplete="password-new"
               editable={!loading}
               onChangeText={setPassword}
-              placeholder="Example: password123"
-              secureTextEntry
-              style={styles.input}
+              placeholder="Example: Kultur123!"
+              secureTextEntry={!showPassword}
+              style={styles.passwordInput}
               textContentType="newPassword"
               value={password}
             />
+            <Text style={styles.passwordRequirements}>
+              {PASSWORD_REQUIREMENTS_MESSAGE}
+            </Text>
 
 
             <Text>Confirm password</Text>
@@ -199,11 +173,31 @@ export default function CreateAccountScreen() {
               onChangeText={setConfirmPassword}
               onSubmitEditing={handleCreateAccount}
               placeholder="Confirm password"
-              secureTextEntry
+              secureTextEntry={!showPassword}
               style={styles.input}
               textContentType="newPassword"
               value={confirmPassword}
             />
+
+            <TouchableOpacity
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: showPassword, disabled: loading }}
+              disabled={loading}
+              onPress={() => setShowPassword((current) => !current)}
+              style={styles.showPasswordRow}
+            >
+              <View
+                style={[
+                  styles.showPasswordBox,
+                  showPassword && styles.showPasswordBoxChecked,
+                ]}
+              >
+                {showPassword ? (
+                  <Text style={styles.showPasswordCheck}>✓</Text>
+                ) : null}
+              </View>
+              <Text style={styles.showPasswordText}>Show password</Text>
+            </TouchableOpacity>
 
 
             <TouchableOpacity
@@ -221,18 +215,8 @@ export default function CreateAccountScreen() {
               )}
             </TouchableOpacity>
 
-            <TouchableOpacity
-              disabled={loading}
-              onPress={handleCreateAccountTest}
-              style={[
-                styles.registerTestButton,
-                loading && styles.registerButtonDisabled,
-              ]}
-            >
-              <Text style={styles.registerTestButtonText}>Register-test</Text>
-            </TouchableOpacity>
           </View>
-        </LinearGradient>
+        </View>
       </KeyboardAvoidingView>
    
   );
@@ -251,6 +235,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
+    backgroundColor: "#bfd4ff",
   },
 
 
@@ -292,6 +277,75 @@ const styles = StyleSheet.create({
   },
 
 
+  passwordInput: {
+    width: "100%",
+    backgroundColor: "#F7F2F8",
+    paddingVertical: 12,
+    borderRadius: 8,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+
+
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 7,
+  },
+
+
+  passwordRequirements: {
+    color: "#555",
+    fontFamily: "Inter",
+    fontSize: 12,
+    lineHeight: 16,
+    marginBottom: 28,
+  },
+
+
+  showPasswordRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    marginBottom: 28,
+    marginTop: -34,
+  },
+
+
+  showPasswordBox: {
+    alignItems: "center",
+    backgroundColor: "#F7F2F8",
+    borderColor: "#202124",
+    borderRadius: 3,
+    borderWidth: 1,
+    height: 18,
+    justifyContent: "center",
+    marginRight: 8,
+    width: 18,
+  },
+
+
+  showPasswordBoxChecked: {
+    backgroundColor: "#202124",
+  },
+
+
+  showPasswordCheck: {
+    color: "#FFFFFF",
+    fontFamily: "Inter",
+    fontSize: 12,
+    fontWeight: "800",
+    lineHeight: 14,
+  },
+
+
+  showPasswordText: {
+    color: "#202124",
+    fontFamily: "Inter",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+
+
   registerButton: {
     alignItems: "center",
     backgroundColor: "#202124",
@@ -319,23 +373,5 @@ const styles = StyleSheet.create({
     fontWeight: "800",
   },
 
-
-  registerTestButton: {
-    alignItems: "center",
-    borderColor: "#202124",
-    borderRadius: 8,
-    borderWidth: 1,
-    justifyContent: "center",
-    marginTop: 14,
-    minHeight: 44,
-  },
-
-
-  registerTestButtonText: {
-    color: "#202124",
-    fontFamily: "Inter",
-    fontSize: 14,
-    fontWeight: "800",
-  },
 });
 

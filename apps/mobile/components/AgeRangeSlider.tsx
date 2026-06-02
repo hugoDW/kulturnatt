@@ -4,6 +4,7 @@ import {
   LayoutChangeEvent,
   PanResponder,
   PanResponderGestureState,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -35,6 +36,21 @@ export function clampMaxAgeRange(
   return [currentMin, Math.max(currentMin, nextMax)];
 }
 
+export function getNextAgeRangeForTrackPress(
+  current: [number, number],
+  nextValue: number,
+): [number, number] {
+  const [currentMin, currentMax] = current;
+  const minDistance = Math.abs(nextValue - currentMin);
+  const maxDistance = Math.abs(nextValue - currentMax);
+
+  if (minDistance <= maxDistance) {
+    return clampMinAgeRange(current, nextValue);
+  }
+
+  return clampMaxAgeRange(current, nextValue);
+}
+
 export default function AgeRangeSlider({ min, max, value, onChange }: Props) {
   const [width, setWidth] = useState(0);
   const widthRef = useRef(0);
@@ -60,6 +76,18 @@ export default function AgeRangeSlider({ min, max, value, onChange }: Props) {
     if (trackWidth <= 0) return 0;
     const ratio = (amount - min) / (max - min);
     return ratio * trackWidth;
+  }
+
+  function handleTrackPress(event: GestureResponderEvent) {
+    if (widthRef.current <= THUMB_SIZE) return;
+
+    const pressedPosition = event.nativeEvent.locationX - THUMB_SIZE / 2;
+    const nextValue = positionToValue(pressedPosition);
+    const nextRange = getNextAgeRangeForTrackPress(valueRef.current, nextValue);
+
+    if (nextRange[0] !== valueRef.current[0] || nextRange[1] !== valueRef.current[1]) {
+      onChange(nextRange);
+    }
   }
 
   const minResponder = useRef(
@@ -116,7 +144,12 @@ export default function AgeRangeSlider({ min, max, value, onChange }: Props) {
         <Text style={styles.valueText}>{value[1]}</Text>
       </View>
 
-      <View style={styles.trackArea} onLayout={handleLayout}>
+      <Pressable
+        accessibilityRole="adjustable"
+        onLayout={handleLayout}
+        onPress={handleTrackPress}
+        style={styles.trackArea}
+      >
         <View style={styles.track} />
         {width > 0 && (
           <>
@@ -141,7 +174,7 @@ export default function AgeRangeSlider({ min, max, value, onChange }: Props) {
             />
           </>
         )}
-      </View>
+      </Pressable>
 
       <View style={styles.boundsRow}>
         <Text style={styles.boundsText}>{min}</Text>

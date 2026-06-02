@@ -10,7 +10,6 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { LinearGradient } from "expo-linear-gradient";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
@@ -85,10 +84,7 @@ export default function LoginScreen() {
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       style={styles.keyboardView}
     >
-      <LinearGradient
-        colors={["#ECF2FF", "#ECF2FF", "#ECF2FF"]}
-        style={styles.container}
-      >
+      <View style={styles.container}>
         <BackButton onPress={() => navigation.goBack()} />
 
 
@@ -121,7 +117,7 @@ export default function LoginScreen() {
             editable={!loading}
             onChangeText={setPassword}
             onSubmitEditing={handleLogin}
-            placeholder="Example: password123"
+            placeholder="Example: Tsm1234!"
             secureTextEntry
             style={styles.input}
             textContentType="password"
@@ -149,7 +145,7 @@ export default function LoginScreen() {
             )}
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -164,6 +160,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: "center",
+    backgroundColor: "#bfd4ff",
   },
 
 
@@ -221,7 +218,7 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     fontWeight: "700",
     color: "#111",
-    marginTop: -20,
+    marginTop: -40,
     marginBottom: 34,
   },
 

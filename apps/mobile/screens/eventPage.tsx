@@ -471,7 +471,7 @@ function parseEventTime(value?: string | null) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#ECF2FF",
+    backgroundColor: "#bfd4ff",
     alignItems: "center",
   },
 

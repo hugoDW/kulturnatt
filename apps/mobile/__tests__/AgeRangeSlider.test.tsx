@@ -4,6 +4,7 @@ import { render } from "@testing-library/react-native";
 import AgeRangeSlider, {
   clampMaxAgeRange,
   clampMinAgeRange,
+  getNextAgeRangeForTrackPress,
 } from "../components/AgeRangeSlider";
 
 describe("AgeRangeSlider", () => {
@@ -26,5 +27,15 @@ describe("AgeRangeSlider", () => {
   it("does not let the maximum value move below the minimum value", () => {
     expect(clampMaxAgeRange([25, 40], 20)).toEqual([25, 25]);
     expect(clampMaxAgeRange([25, 40], 35)).toEqual([25, 35]);
+  });
+
+  it("moves the closest range handle when the track is pressed", () => {
+    expect(getNextAgeRangeForTrackPress([25, 40], 28)).toEqual([28, 40]);
+    expect(getNextAgeRangeForTrackPress([25, 40], 37)).toEqual([25, 37]);
+  });
+
+  it("keeps tapped range values ordered", () => {
+    expect(getNextAgeRangeForTrackPress([25, 40], 50)).toEqual([25, 50]);
+    expect(getNextAgeRangeForTrackPress([25, 40], 18)).toEqual([18, 40]);
   });
 });
