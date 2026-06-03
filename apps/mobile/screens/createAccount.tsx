@@ -134,6 +134,7 @@ export default function CreateAccountScreen() {
           <View style={styles.inputSection}>
             <Text>Email</Text>
             <TextInput
+              accessibilityLabel="Email"
               autoCapitalize="none"
               autoComplete="email"
               autoCorrect={false}
@@ -143,6 +144,7 @@ export default function CreateAccountScreen() {
               onChangeText={setEmail}
               placeholder="Example: svensvensson@tsm.se"
               style={styles.input}
+              testID="create-account-email-input"
               textContentType="emailAddress"
               value={email}
             />
@@ -150,6 +152,7 @@ export default function CreateAccountScreen() {
 
             <Text>Password</Text>
             <TextInput
+              accessibilityLabel="Password"
               autoCapitalize="none"
               autoComplete="password-new"
               editable={!loading}
@@ -157,6 +160,7 @@ export default function CreateAccountScreen() {
               placeholder="Example: Kultur123!"
               secureTextEntry={!showPassword}
               style={styles.passwordInput}
+              testID="create-account-password-input"
               textContentType="newPassword"
               value={password}
             />
@@ -167,6 +171,7 @@ export default function CreateAccountScreen() {
 
             <Text>Confirm password</Text>
             <TextInput
+              accessibilityLabel="Confirm password"
               autoCapitalize="none"
               autoComplete="password-new"
               editable={!loading}
@@ -175,6 +180,7 @@ export default function CreateAccountScreen() {
               placeholder="Confirm password"
               secureTextEntry={!showPassword}
               style={styles.input}
+              testID="create-account-confirm-password-input"
               textContentType="newPassword"
               value={confirmPassword}
             />

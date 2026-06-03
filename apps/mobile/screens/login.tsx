@@ -96,6 +96,7 @@ export default function LoginScreen() {
         <View style={styles.inputSection}>
           <Text style={styles.label}>Email</Text>
           <TextInput
+            accessibilityLabel="Email"
             autoCapitalize="none"
             autoComplete="email"
             autoCorrect={false}
@@ -105,6 +106,7 @@ export default function LoginScreen() {
             onChangeText={setEmail}
             placeholder="Example: svensvensson@tsm.se"
             style={styles.input}
+            testID="login-email-input"
             textContentType="emailAddress"
             value={email}
           />
@@ -112,6 +114,7 @@ export default function LoginScreen() {
 
           <Text style={styles.label}>Password</Text>
           <TextInput
+            accessibilityLabel="Password"
             autoCapitalize="none"
             autoComplete="password"
             editable={!loading}
@@ -120,6 +123,7 @@ export default function LoginScreen() {
             placeholder="Example: Tsm1234!"
             secureTextEntry
             style={styles.input}
+            testID="login-password-input"
             textContentType="password"
             value={password}
           />

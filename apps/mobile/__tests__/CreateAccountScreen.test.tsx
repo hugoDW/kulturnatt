@@ -33,14 +33,17 @@ describe("CreateAccountScreen", () => {
   });
 
   it("stops registration when passwords do not match", () => {
-    const { getByPlaceholderText, getByText } = render(<CreateAccountScreen />);
+    const { getByTestId, getByText } = render(<CreateAccountScreen />);
 
     fireEvent.changeText(
-      getByPlaceholderText("Example: svensvensson@tsm.se"),
+      getByTestId("create-account-email-input"),
       "user@example.com",
     );
-    fireEvent.changeText(getByPlaceholderText("Example: Kultur123!"), "secret-1");
-    fireEvent.changeText(getByPlaceholderText("Confirm password"), "secret-2");
+    fireEvent.changeText(getByTestId("create-account-password-input"), "secret-1");
+    fireEvent.changeText(
+      getByTestId("create-account-confirm-password-input"),
+      "secret-2",
+    );
     fireEvent.press(getByText("Register"));
 
     expect(Alert.alert).toHaveBeenCalledWith(
@@ -51,14 +54,17 @@ describe("CreateAccountScreen", () => {
   });
 
   it("stops registration when password does not meet Supabase requirements", () => {
-    const { getByPlaceholderText, getByText } = render(<CreateAccountScreen />);
+    const { getByTestId, getByText } = render(<CreateAccountScreen />);
 
     fireEvent.changeText(
-      getByPlaceholderText("Example: svensvensson@tsm.se"),
+      getByTestId("create-account-email-input"),
       "user@example.com",
     );
-    fireEvent.changeText(getByPlaceholderText("Example: Kultur123!"), "secret");
-    fireEvent.changeText(getByPlaceholderText("Confirm password"), "secret");
+    fireEvent.changeText(getByTestId("create-account-password-input"), "secret");
+    fireEvent.changeText(
+      getByTestId("create-account-confirm-password-input"),
+      "secret",
+    );
     fireEvent.press(getByText("Register"));
 
     expect(Alert.alert).toHaveBeenCalledWith(
@@ -69,10 +75,12 @@ describe("CreateAccountScreen", () => {
   });
 
   it("toggles visibility for both password fields", () => {
-    const { getByPlaceholderText, getByText } = render(<CreateAccountScreen />);
+    const { getByTestId, getByText } = render(<CreateAccountScreen />);
 
-    const passwordInput = getByPlaceholderText("Example: Kultur123!");
-    const confirmPasswordInput = getByPlaceholderText("Confirm password");
+    const passwordInput = getByTestId("create-account-password-input");
+    const confirmPasswordInput = getByTestId(
+      "create-account-confirm-password-input",
+    );
 
     expect(passwordInput.props.secureTextEntry).toBe(true);
     expect(confirmPasswordInput.props.secureTextEntry).toBe(true);
@@ -89,17 +97,20 @@ describe("CreateAccountScreen", () => {
       error: null,
     });
 
-    const { getByPlaceholderText, getByText } = render(<CreateAccountScreen />);
+    const { getByTestId, getByText } = render(<CreateAccountScreen />);
 
     fireEvent.changeText(
-      getByPlaceholderText("Example: svensvensson@tsm.se"),
+      getByTestId("create-account-email-input"),
       "  USER@EXAMPLE.COM  ",
     );
     fireEvent.changeText(
-      getByPlaceholderText("Example: Kultur123!"),
+      getByTestId("create-account-password-input"),
       compliantPassword,
     );
-    fireEvent.changeText(getByPlaceholderText("Confirm password"), compliantPassword);
+    fireEvent.changeText(
+      getByTestId("create-account-confirm-password-input"),
+      compliantPassword,
+    );
     fireEvent.press(getByText("Register"));
 
     await waitFor(() => {

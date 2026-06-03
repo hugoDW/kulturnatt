@@ -134,7 +134,7 @@ describe("EventPageScreen", () => {
     (global.fetch as jest.Mock).mockResolvedValue(okResponse([]));
 
     const EventPageScreen = loadScreen();
-    const { getByPlaceholderText, getByText } = render(<EventPageScreen />);
+    const { getByTestId, getByText } = render(<EventPageScreen />);
 
     await runEventLoadTimer();
     await waitFor(() => expect(global.fetch).toHaveBeenCalledTimes(2));
@@ -153,8 +153,8 @@ describe("EventPageScreen", () => {
       );
     });
 
-    fireEvent.changeText(getByPlaceholderText("Search activities"), "jazz");
-    fireEvent(getByPlaceholderText("Search activities"), "submitEditing");
+    fireEvent.changeText(getByTestId("event-search-input"), "jazz");
+    fireEvent(getByTestId("event-search-input"), "submitEditing");
     await runEventLoadTimer();
 
     await waitFor(() => {

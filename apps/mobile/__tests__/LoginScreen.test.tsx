@@ -47,13 +47,13 @@ describe("LoginScreen", () => {
       error: null,
     });
 
-    const { getByPlaceholderText, getByText } = render(<LoginScreen />);
+    const { getByTestId, getByText } = render(<LoginScreen />);
 
     fireEvent.changeText(
-      getByPlaceholderText("Example: svensvensson@tsm.se"),
+      getByTestId("login-email-input"),
       "  USER@EXAMPLE.COM  ",
     );
-    fireEvent.changeText(getByPlaceholderText("Example: Kultur123!"), "secret");
+    fireEvent.changeText(getByTestId("login-password-input"), "secret");
     fireEvent.press(getByText("Log in"));
 
     await waitFor(() => {

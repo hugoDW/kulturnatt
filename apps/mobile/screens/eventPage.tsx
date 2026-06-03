@@ -272,10 +272,12 @@ export default function EventPageScreen() {
                   value={searchText}
                   onChangeText={setSearchText}
                   onSubmitEditing={submitSearch}
+                  accessibilityLabel="Search activities"
                   placeholder="Search activities"
                   placeholderTextColor="#A8A3BC"
                   returnKeyType="search"
                   style={styles.searchInput}
+                  testID="event-search-input"
                 />
               </View>
 
