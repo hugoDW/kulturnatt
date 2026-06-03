@@ -1,6 +1,6 @@
-# Kulturnatt
+# tsm
 
-Kulturnatt is a matchmaking app built around culture instead of looks. You fill in the
+tsm is a matchmaking app built around culture instead of looks. You fill in the
 films, music, events, books and art you're into, and it pairs you with people whose
 taste overlaps with yours. Think of it as Tinder where the swipe is about what you
 like, not how you look.
