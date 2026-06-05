@@ -14,6 +14,7 @@ login.
 - [How it fits together](#how-it-fits-together)
 - [What's in the repo](#whats-in-the-repo)
 - [What you need](#what-you-need)
+- [Quick start](#quick-start)
 - [Environment variables](#environment-variables)
 - [Setting up the database](#setting-up-the-database)
 - [Running the backend](#running-the-backend)
@@ -100,8 +101,26 @@ gitignored and not part of the repo. The commands below install them.
 For the backend: [Docker Desktop](https://www.docker.com/products/docker-desktop/) with
 Compose v2. Check it's working with `docker compose version`.
 
-For the app: [Node.js](https://nodejs.org/) 20 or newer, plus either an iOS
-simulator, an Android emulator, or the Expo Go app on your phone.
+For the app: [Node.js](https://nodejs.org/) 20 or newer. For full app behavior,
+including Supabase email verification and password-reset redirects, use an Expo
+development build on an Android emulator or iOS simulator. Expo Go is fine for quick
+UI checks, but it is not the recommended path for testing the complete auth flow.
+
+For Android on a PC, install [Android Studio](https://developer.android.com/studio),
+including the Android SDK, platform tools and an Android emulator. The Android SDK is
+not installed with `pip`.
+
+Expo Android development builds also need Java 17. Install
+[Eclipse Temurin JDK 17](https://adoptium.net/temurin/releases/?version=17&package=jdk)
+from Adoptium. On Windows, if it installs to the default folder, set Java for the
+current PowerShell terminal with:
+
+```powershell
+$env:JAVA_HOME="C:\Program Files\Eclipse Adoptium\jdk-17.0.19.10-hotspot"
+$env:Path="$env:JAVA_HOME\bin;$env:Path"
+```
+
+!!In order to register an account, you need to verify your entered email and you will be redirected back to the app by clicking the verification link sent by Supabase. PLEASE NOTE that you need to be signed in to the entered email and open that link on the current device. So if you are using an emulator, you need to sign in with your email on that emulator device. Otherwise the redirect won't work and you will have to log in manually after clicking the verification link.!!
 
 For both: a [Supabase](https://supabase.com/) project. The free tier is plenty. You'll
 take the project URL, the API keys and the JWT secret from there.
@@ -111,18 +130,98 @@ Optional: Python 3.11+ if you want to run the backend tests outside Docker, the
 Ticketmaster, TMDB, Spotify, MusicBrainz) if you want the in-app interest search to
 return real results.
 
+## Quick start
+
+This is the shortest path to run the backend on a PC and the full app in an Android
+emulator.
+
+1. Clone the repo and enter it:
+
+```bash
+git clone <repo-url>
+cd kulturnatt
+```
+
+2. Start the backend from the repo root:
+
+```bash
+docker compose up
+```
+
+
+3. In a second terminal, install the mobile dependencies:
+
+```bash
+cd apps/mobile
+npm install
+```
+
+`npm install` must be run from `apps/mobile`. It installs Expo, React Native, Supabase
+and all other mobile libraries listed in `apps/mobile/package.json`; you do not need
+to install each Expo package manually.
+
+4. Create and install the Android development build:
+
+```bash
+npx expo prebuild
+npx expo run:android
+```
+
+Keep the Android emulator open. The first build can take several minutes.
+
+5. Start Metro for the development build:
+
+```bash
+npm run android:dev
+```
+
+If the development build is already installed on the emulator, future runs usually only
+need:
+
+```bash
+npm run android:dev
+```
+
+Expo Go can be started with `npm start`, but use the development build above for the
+complete signup, email verification, password reset and deep-link redirect flow.
+
+If you use a physical phone, the phone cannot reach your computer through
+`http://localhost`. Set `EXPO_PUBLIC_API_URL` in `.env` to your computer's LAN address,
+for example `http://192.168.1.42`, then stop and restart `npm start`.
+
+Useful checks:
+
+```bash
+curl http://localhost/health
+```
+
+Expected response:
+
+```text
+ok
+```
+
+If port 80 is already used on the machine, change this line in `docker-compose.yml`:
+
+```yaml
+      - "80:80"
+```
+
+to:
+
+```yaml
+      - "8080:80"
+```
+
+Then set `EXPO_PUBLIC_API_URL=http://localhost:8080` in `.env` and use
+`http://localhost:8080/health` for the health check.
+
+
 ## Environment variables
 
 Everything is configured through a single `.env` file in the repo root. Docker Compose
 reads it for the backend, and the Expo dev server picks up the `EXPO_PUBLIC_` keys from
-the same file (via `apps/mobile/scripts/with-root-env.js`). Copy the template and fill
-it in:
-
-```bash
-cp .env.example .env
-```
-
-Nothing is committed, so no credentials ship with the repo. You supply your own.
+the same file.
 
 Backend:
 
@@ -267,11 +366,36 @@ In another terminal, with the backend up and the `EXPO_PUBLIC_` keys in `.env`:
 ```bash
 cd apps/mobile
 npm install      # first time only
+```
+
+Run `npm install` in `apps/mobile`, not only in the repo root. The mobile app has its
+own `package.json`, and that is where the Expo and React Native dependencies are
+declared.
+
+For full functionality, use a development build:
+
+```bash
+npx expo prebuild
+npx expo run:android
+npm run android:dev
+```
+
+On macOS with Xcode installed, the iOS equivalent is:
+
+```bash
+npx expo run:ios
+npm run dev
+```
+
+For quick Expo Go testing only:
+
+```bash
 npm start
 ```
 
-Then press `i` for the iOS simulator, `a` for the Android emulator, or scan the QR code
-with Expo Go on your phone. The npm scripts load the `EXPO_PUBLIC_` variables from the
+Then press `a` for Android, `i` for iOS, or scan the QR code. Expo Go is useful for UI
+checks, but the development build is the recommended way to test the complete auth and
+deep-link redirect flow. The npm scripts load the `EXPO_PUBLIC_` variables from the
 root `.env` for you. See [`docs/react-native-info.md`](docs/react-native-info.md).
 
 If you want some data to look at, `apps/profile-service/scripts/seed_test_users.py`
