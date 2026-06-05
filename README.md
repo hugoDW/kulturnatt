@@ -11,6 +11,7 @@ login.
 
 ## Contents
 
+- [Try the live backend](#try-the-live-backend)
 - [How it fits together](#how-it-fits-together)
 - [What's in the repo](#whats-in-the-repo)
 - [What you need](#what-you-need)
@@ -24,6 +25,56 @@ login.
 - [Deploying to Fly.io](#deploying-to-flyio)
 - [The API](#the-api)
 - [Further reading](#further-reading)
+
+## Try the live backend
+
+The backend is already deployed to Fly.io, so the fastest way to try tsm is to point the
+mobile app at the live gateway instead of standing up Docker and Supabase yourself. You
+still build and install the Expo app on an emulator or device, but you skip the entire
+backend setup.
+
+1. Clone the repo and install the mobile dependencies:
+
+```bash
+git clone <repo-url>
+cd kulturnatt/apps/mobile
+npm install
+```
+
+2. Create a `.env` file in the repo root with three values:
+
+```env
+EXPO_PUBLIC_API_URL=https://kulturnatt-gateway.fly.dev
+EXPO_PUBLIC_SUPABASE_URL=<the project's Supabase URL>
+EXPO_PUBLIC_SUPABASE_KEY=<the project's Supabase anon key>
+```
+
+The Supabase values are the same ones the live backend uses. The anon key is the public
+client key, designed to be shipped with the app, so it's safe to share. Ask the team for
+the two values, or copy them from the Fly.io configuration.
+
+3. Build and install the Expo development build on an Android emulator. This needs
+   Android Studio and Java 17, covered in [What you need](#what-you-need) below.
+
+```bash
+npx expo prebuild
+npx expo run:android
+```
+
+4. Start Metro for the development build:
+
+```bash
+npm run android:dev
+```
+
+On macOS with Xcode installed, swap step 3 for `npx expo run:ios` and step 4 for
+`npm run dev`.
+
+That's it. Sign up in the app, click the verification link in the inbox **on the same
+device** (the redirect won't work otherwise), and you're in.
+
+If you'd rather run the backend yourself, the [Quick start](#quick-start) section below
+walks through the full local setup with Docker and your own Supabase project.
 
 ## How it fits together
 
