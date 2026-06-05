@@ -53,22 +53,30 @@ The Supabase values are the same ones the live backend uses. The anon key is the
 client key, designed to be shipped with the app, so it's safe to share. Ask the team for
 the two values, or copy them from the Fly.io configuration.
 
-3. Build and install the Expo development build on an Android emulator. This needs
-   Android Studio and Java 17, covered in [What you need](#what-you-need) below.
+3. Build and install the Expo development build on your target platform. Prerequisites
+   (Android Studio + Java 17 for Android, Xcode for iOS) are in
+   [What you need](#what-you-need) below.
 
-```bash
-npx expo prebuild
-npx expo run:android
-```
+   Android:
+
+   ```bash
+   npx expo prebuild
+   npx expo run:android
+   ```
+
+   iOS (macOS only):
+
+   ```bash
+   npx expo prebuild
+   npx expo run:ios
+   ```
 
 4. Start Metro for the development build:
 
-```bash
-npm run android:dev
-```
-
-On macOS with Xcode installed, swap step 3 for `npx expo run:ios` and step 4 for
-`npm run dev`.
+   ```bash
+   npm run android:dev   # Android
+   npm run dev           # iOS
+   ```
 
 That's it. Sign up in the app, click the verification link in the inbox **on the same
 device** (the redirect won't work otherwise), and you're in.
