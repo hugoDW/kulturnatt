@@ -4,8 +4,8 @@ services:
   # profile-service: hanterar all användardata och databasen
   profile-service:
     build:
-      context: .
-      dockerfile: ./apps/profile-service/Dockerfile
+      context: ./apps/profile-service
+      dockerfile: Dockerfile
     environment:
       SUPABASE_JWT_SECRET: ${SUPABASE_JWT_SECRET}
       SUPABASE_URL: ${SUPABASE_URL}

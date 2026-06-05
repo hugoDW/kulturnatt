@@ -15,6 +15,7 @@ login.
 - [What's in the repo](#whats-in-the-repo)
 - [What you need](#what-you-need)
 - [Quick start](#quick-start)
+- [Android emulator setup](#android-emulator-setup)
 - [Environment variables](#environment-variables)
 - [Setting up the database](#setting-up-the-database)
 - [Running the backend](#running-the-backend)
@@ -215,6 +216,58 @@ to:
 
 Then set `EXPO_PUBLIC_API_URL=http://localhost:8080` in `.env` and use
 `http://localhost:8080/health` for the health check.
+
+## Android emulator setup
+
+Use this if the Android emulator is not already set up on the PC.
+
+1. Install [Android Studio](https://developer.android.com/studio).
+
+2. Open Android Studio and install these through the setup wizard or SDK Manager:
+
+- Android SDK
+- Android SDK Platform-Tools
+- Android Emulator
+- A recent Android platform, for example API 35 or newer
+
+3. Create a virtual device:
+
+- Open Android Studio.
+- Go to **Tools > Device Manager**.
+- Click **Create device**.
+- Choose a phone profile, for example Pixel.
+- Choose a system image.
+- Finish the wizard.
+- Start the virtual device from Device Manager.
+
+4. Optional: start the emulator from VS Code.
+
+Install the
+[Android iOS Emulator VS Code extension](https://marketplace.visualstudio.com/items?itemName=DiemasMichiels.emulate).
+The extension does not create Android devices for you; create the virtual device in
+Android Studio first.
+
+In VS Code, open settings and search for **Emulator Configuration**. Set the Windows
+emulator path to the Android SDK emulator folder, usually:
+
+```text
+C:\Users\<yourUsername>\AppData\Local\Android\Sdk\emulator
+```
+
+In `settings.json`, that is:
+
+```json
+{
+  "emulator.emulatorPathWindows": "C:\\Users\\<yourUsername>\\AppData\\Local\\Android\\Sdk\\emulator"
+}
+```
+
+Then open the Command Palette and run an emulator command, or click the emulator icon
+added by the extension. iOS simulators only work on macOS with Xcode installed.
+
+Docker installs backend Python packages inside the containers during `docker compose up`.
+You do not need to run `pip install -r requirements.txt` to start the backend with
+Docker.
 
 
 ## Environment variables
