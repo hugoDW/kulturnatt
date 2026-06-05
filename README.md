@@ -121,6 +121,17 @@ $env:JAVA_HOME="C:\Program Files\Eclipse Adoptium\jdk-17.0.19.10-hotspot"
 $env:Path="$env:JAVA_HOME\bin;$env:Path"
 ```
 
+If Expo or Gradle cannot find the Android SDK, set these in the current PowerShell
+terminal too:
+
+```powershell
+$env:ANDROID_HOME="$env:LOCALAPPDATA\Android\Sdk"
+$env:Path="$env:ANDROID_HOME\platform-tools;$env:ANDROID_HOME\emulator;$env:Path"
+```
+
+Most machines with Android Studio already have this configured. Only set these manually
+if the build cannot find Java or the Android SDK.
+
 !!In order to register an account, you need to verify your entered email and you will be redirected back to the app by clicking the verification link sent by Supabase. PLEASE NOTE that you need to be signed in to the entered email and open that link on the current device. So if you are using an emulator, you need to sign in with your email on that emulator device. Otherwise the redirect won't work and you will have to log in manually after clicking the verification link.!!
 
 For both: a [Supabase](https://supabase.com/) project. The free tier is plenty. You'll
@@ -160,6 +171,16 @@ npm install
 `npm install` must be run from `apps/mobile`. It installs Expo, React Native, Supabase
 and all other mobile libraries listed in `apps/mobile/package.json`; you do not need
 to install each Expo package manually.
+
+On some Windows PowerShell setups, `npm` and `npx` are blocked by script execution
+policy. If that happens, use `npm.cmd` and `npx.cmd` instead:
+
+```powershell
+npm.cmd install
+npx.cmd expo prebuild
+npx.cmd expo run:android
+npm.cmd run android:dev
+```
 
 4. Create and install the Android development build:
 

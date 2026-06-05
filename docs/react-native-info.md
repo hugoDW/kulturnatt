@@ -20,6 +20,17 @@ $env:JAVA_HOME="C:\Program Files\Eclipse Adoptium\jdk-17.0.19.10-hotspot"
 $env:Path="$env:JAVA_HOME\bin;$env:Path"
 ```
 
+If Expo or Gradle cannot find the Android SDK, set these in the current PowerShell
+terminal too:
+
+```powershell
+$env:ANDROID_HOME="$env:LOCALAPPDATA\Android\Sdk"
+$env:Path="$env:ANDROID_HOME\platform-tools;$env:ANDROID_HOME\emulator;$env:Path"
+```
+
+Most machines with Android Studio already have this configured. Only set these manually
+if the build cannot find Java or the Android SDK.
+
 Create the emulator in Android Studio before running the app:
 
 1. Open Android Studio.
@@ -62,6 +73,16 @@ npm run android:dev
 
 `npx expo ...` runs the Expo CLI for the project, so a global Expo CLI install is not
 required.
+
+On some Windows PowerShell setups, `npm` and `npx` are blocked by script execution
+policy. If that happens, use `npm.cmd` and `npx.cmd` instead:
+
+```powershell
+npm.cmd install
+npx.cmd expo prebuild
+npx.cmd expo run:android
+npm.cmd run android:dev
+```
 
 After the development build is installed on the emulator, future runs usually only need:
 
