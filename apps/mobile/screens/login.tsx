@@ -12,11 +12,13 @@ import {
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { Ionicons } from "@react-native-vector-icons/ionicons";
 import type { RootStackParamList } from "../App";
 
 
 import BackButton from "../components/backButton";
 import { supabase } from "../lib/supabase";
+import { setStayLoggedInPreference } from "../lib/authPreferences";
 
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Login">;
@@ -28,6 +30,7 @@ export default function LoginScreen() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [stayLoggedIn, setStayLoggedIn] = useState(true);
   const [loading, setLoading] = useState(false);
 
 
@@ -66,6 +69,7 @@ export default function LoginScreen() {
         return;
       }
 
+      await setStayLoggedInPreference(stayLoggedIn);
 
       navigation.navigate("EventPage", { accessToken: token });
    
@@ -134,6 +138,28 @@ export default function LoginScreen() {
             onPress={() => navigation.navigate("ForgotPassword")}
           >
             <Text style={styles.forgotText}>Forgotten your password?</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: stayLoggedIn, disabled: loading }}
+            activeOpacity={0.72}
+            disabled={loading}
+            onPress={() => setStayLoggedIn((current) => !current)}
+            style={styles.stayLoggedInRow}
+            testID="stay-logged-in-toggle"
+          >
+            <View
+              style={[
+                styles.checkbox,
+                stayLoggedIn && styles.checkboxSelected,
+              ]}
+            >
+              {stayLoggedIn ? (
+                <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+              ) : null}
+            </View>
+            <Text style={styles.stayLoggedInText}>Stay logged in</Text>
           </TouchableOpacity>
 
 
@@ -224,6 +250,37 @@ const styles = StyleSheet.create({
     color: "#111",
     marginTop: -40,
     marginBottom: 34,
+  },
+
+  stayLoggedInRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 10,
+    marginTop: -18,
+    marginBottom: 24,
+  },
+
+  checkbox: {
+    width: 22,
+    height: 22,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 2,
+    borderColor: "#2c2c2c",
+    borderRadius: 5,
+    backgroundColor: "#F7F2F8",
+  },
+
+  checkboxSelected: {
+    backgroundColor: "#2c2c2c",
+  },
+
+  stayLoggedInText: {
+    fontFamily: "Inter",
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111",
   },
 
 

@@ -4,6 +4,7 @@ import type { ProfileSetupPayload } from "./profileService";
 export type RankedProfile = ProfileSetupPayload & {
   user_id: string;
   score: number;
+  shared?: SharedInterests | null;
 };
 
 export type SharedInterests = {
@@ -52,6 +53,54 @@ export async function getMatches(): Promise<MatchedProfile[]> {
   );
 
   return json.matches ?? [];
+}
+
+export async function getBlockedProfiles(): Promise<MatchedProfile[]> {
+  const json = await apiGetJson<{ blocked: MatchedProfile[] }>(
+    "/profile/blocked",
+    undefined,
+    "Could not load blocked profiles right now.",
+    "Log in again to view blocked profiles.",
+  );
+
+  return json.blocked ?? [];
+}
+
+async function postProfileRelationship(
+  path: string,
+  targetUserId: string,
+  fallbackMessage: string,
+) {
+  await apiPostJson<{ status: string }>(
+    path,
+    { target_user_id: targetUserId },
+    fallbackMessage,
+    "Log in again to update matches.",
+  );
+}
+
+export async function blockProfile(targetUserId: string): Promise<void> {
+  await postProfileRelationship(
+    "/profile/block",
+    targetUserId,
+    "Could not block this profile right now.",
+  );
+}
+
+export async function unblockProfile(targetUserId: string): Promise<void> {
+  await postProfileRelationship(
+    "/profile/unblock",
+    targetUserId,
+    "Could not unblock this profile right now.",
+  );
+}
+
+export async function unmatchProfile(targetUserId: string): Promise<void> {
+  await postProfileRelationship(
+    "/profile/unmatch",
+    targetUserId,
+    "Could not delete this match right now.",
+  );
 }
 
 export async function resetSwipes(): Promise<void> {

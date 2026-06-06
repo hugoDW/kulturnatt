@@ -483,7 +483,7 @@ export default function PreviewProfileScreen() {
               ) : null}
               {instagram ? (
                 <View style={styles.socialMediaRow}>
-                  <Ionicons name="logo-instagram" size={15} color="#6C5CE7" />
+                  <Ionicons name="logo-instagram" size={15} color="#da45c6" />
                   <Text style={styles.instagramText}>{instagram.handle}</Text>
                 </View>
               ) : null}
@@ -710,7 +710,7 @@ export default function PreviewProfileScreen() {
           accessibilityLabel="Edit matching preferences"
           activeOpacity={0.75}
           onPress={() => setActiveSheet("matching")}
-          style={[styles.editButton, { top: insets.top }]}
+          style={[styles.editButton, { top: insets.top + 5 }]}
         >
           <Ionicons name="options-outline" size={30} color="#25364A" />
         </TouchableOpacity>
@@ -966,8 +966,8 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontFamily: "Inter",
-    fontSize: 18,
-    fontWeight: "800",
+    fontSize: 24,
+    fontWeight: "900",
     color: "#25364A",
   },
   editButton: {
@@ -975,7 +975,7 @@ const styles = StyleSheet.create({
     right: 20,
     width: 36,
     height: 36,
-    marginTop: -5,
+    marginTop: -3,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -1052,7 +1052,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter",
     fontSize: 14,
     fontWeight: "700",
-    color: "#6C5CE7",
+    color: "#da45c6",
   },
   facebookText: {
     flexShrink: 1,

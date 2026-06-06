@@ -9,6 +9,10 @@ jest.mock("../apiservices/swipeService", () => ({
   postSwipe: jest.fn(),
 }));
 
+jest.mock("../apiservices/profileService", () => ({
+  getProfileSetup: jest.fn(async () => null),
+}));
+
 jest.mock("../components/NavBar", () => {
   const React = require("react");
   const { Text } = require("react-native");

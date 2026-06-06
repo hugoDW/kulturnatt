@@ -1,5 +1,6 @@
 import React from "react";
 import { Alert } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import { useNavigation } from "@react-navigation/native";
 
@@ -61,6 +62,37 @@ describe("LoginScreen", () => {
         email: "user@example.com",
         password: "secret",
       });
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        "auth:stay_logged_in",
+        "true",
+      );
+      expect(navigate).toHaveBeenCalledWith("EventPage", {
+        accessToken: "token-123",
+      });
+    });
+  });
+
+  it("saves the stay logged in choice when toggled off", async () => {
+    (supabase.auth.signInWithPassword as jest.Mock).mockResolvedValue({
+      data: {
+        session: { access_token: "token-123" },
+        user: { id: "user-1" },
+      },
+      error: null,
+    });
+
+    const { getByTestId, getByText } = render(<LoginScreen />);
+
+    fireEvent.changeText(getByTestId("login-email-input"), "user@example.com");
+    fireEvent.changeText(getByTestId("login-password-input"), "secret");
+    fireEvent.press(getByTestId("stay-logged-in-toggle"));
+    fireEvent.press(getByText("Log in"));
+
+    await waitFor(() => {
+      expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+        "auth:stay_logged_in",
+        "false",
+      );
       expect(navigate).toHaveBeenCalledWith("EventPage", {
         accessToken: "token-123",
       });

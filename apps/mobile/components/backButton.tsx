@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
     zIndex: 8,
     elevation: 8,
     paddingHorizontal: 1,
-    paddingVertical: 2,
+    paddingVertical: 10,
   },
 
   icon: {

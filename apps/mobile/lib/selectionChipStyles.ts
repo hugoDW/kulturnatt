@@ -25,6 +25,7 @@ export const selectionChipStyles = StyleSheet.create({
   chipSelected: {
     backgroundColor: selectionChipColors.backgroundSelected,
     borderColor: selectionChipColors.borderSelected,
+    opacity: 1,
   },
   chipText: {
     fontFamily: "Inter",

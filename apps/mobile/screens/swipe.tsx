@@ -22,11 +22,16 @@ import {
   type SharedInterests,
   type SwipeAction,
 } from "../apiservices/swipeService";
+import {
+  getProfileSetup,
+  type ProfileSetupPayload,
+} from "../apiservices/profileService";
 
 export default function SwipeScreen() {
   const insets = useSafeAreaInsets();
   const scrollRef = useRef<ScrollView>(null);
   const [profiles, setProfiles] = useState<RankedProfile[]>([]);
+  const [viewerProfile, setViewerProfile] = useState<ProfileSetupPayload | null>(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [swiping, setSwiping] = useState(false);
@@ -43,8 +48,12 @@ export default function SwipeScreen() {
     setLoading(true);
 
     try {
-      const nextProfiles = await getRankedProfiles();
+      const [nextProfiles, nextViewerProfile] = await Promise.all([
+        getRankedProfiles(),
+        getProfileSetup().catch(() => null),
+      ]);
       setProfiles(nextProfiles);
+      setViewerProfile(nextViewerProfile);
       setCurrentIndex(0);
       setError(null);
     } catch (loadError) {
@@ -131,8 +140,8 @@ export default function SwipeScreen() {
           <Ionicons name="people-outline" size={64} color="#6C5CE7" />
           <Text style={styles.title}>No one to discover right now</Text>
           <Text style={styles.subtitle}>
-            Save your profile and run recompute, or check back later for new
-            matches.
+            Update your profile or check back later for new
+            profiles to discover.
           </Text>
           <TouchableOpacity onPress={loadProfiles} style={styles.retryButton}>
             <Text style={styles.retryButtonText}>Refresh</Text>
@@ -163,7 +172,10 @@ export default function SwipeScreen() {
         ]}
         showsVerticalScrollIndicator={false}
       >
-        <SwipeProfileCard profile={currentProfile} />
+        <SwipeProfileCard
+          profile={currentProfile}
+          viewerProfile={viewerProfile}
+        />
       </ScrollView>
 
       <View

@@ -18,6 +18,7 @@ from db import (
     save_match,
     save_ranked_list,
     save_reject,
+    save_relationship_state,
     update_profile,
 )
 from internal_auth import INTERNAL_SECRET, require_internal_secret
@@ -125,11 +126,34 @@ def profile_setup_response(user: User) -> dict:
     }
 
 
-def swipe_profile_response(user: User, score: int) -> dict:
+def shared_list(current: list[str], other: list[str]) -> list[str]:
+    current_values = set(current)
+    return [value for value in other if value in current_values]
+
+
+def shared_interests_response(user: User, other: User) -> dict:
+    return {
+        "events": shared_list(user.events, other.events),
+        "songs": shared_list(user.songs, other.songs),
+        "albums": shared_list(user.albums, other.albums),
+        "movies": shared_list(user.movies, other.movies),
+        "artists": shared_list(user.artists, other.artists),
+        "directors": shared_list(user.directors, other.directors),
+        "actors": shared_list(user.actors, other.actors),
+        "music_genre": shared_list(user.music_genre, other.music_genre),
+        "movie_genre": shared_list(user.movie_genre, other.movie_genre),
+        "shows": shared_list(user.shows, other.shows),
+        "literature": shared_list(user.literature, other.literature),
+        "art": user.art and other.art,
+    }
+
+
+def swipe_profile_response(user: User, score: int, shared: dict | None = None) -> dict:
     return {
         **profile_setup_response(user),
         "user_id": str(user.user_id),
         "score": score,
+        "shared": shared,
     }
 
 
@@ -248,6 +272,10 @@ class UpdateProfileRequest(BaseModel):
     social_media: str = ""
 
 
+class ProfileRelationshipRequest(BaseModel):
+    target_user_id: uuid.UUID
+
+
 @app.put("/profile/update")
 def profile_update(
     request: UpdateProfileRequest,
@@ -287,6 +315,40 @@ def profile_update(
     return {"status": "ok"}
 
 
+def public_matched_profile_response(user: User) -> dict:
+    return {
+        **profile_setup_response(user),
+        "user_id": str(user.user_id),
+        **private_social_response(user),
+    }
+
+
+def public_blocked_profile_response(user: User) -> dict:
+    return {
+        **profile_setup_response(user),
+        "user_id": str(user.user_id),
+    }
+
+
+def remove_uuid(values: list[uuid.UUID], target_id: uuid.UUID) -> list[uuid.UUID]:
+    return [value for value in values if value != target_id]
+
+
+def get_relationship_users(user_id: uuid.UUID, target_user_id: uuid.UUID):
+    if user_id == target_user_id:
+        raise HTTPException(status_code=400, detail="Choose another profile.")
+
+    user = get_user(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    target = get_user(target_user_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail="Matched profile not found")
+
+    return user, target
+
+
 @app.post("/profile/reset_swipes")
 def profile_reset_swipes(user_id: uuid.UUID = Depends(get_current_user)):
     user = get_user(user_id)
@@ -311,6 +373,89 @@ def profile_reset_swipes(user_id: uuid.UUID = Depends(get_current_user)):
     return {"status": "ok"}
 
 
+@app.get("/profile/blocked")
+def profile_blocked(user_id: uuid.UUID = Depends(get_current_user)):
+    user = get_user(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    profiles_by_id = {str(other.user_id): other for other in get_all_users()}
+    blocked = []
+    for blocked_id in user.blocked_users:
+        other = profiles_by_id.get(str(blocked_id))
+        if other is None:
+            continue
+        blocked.append(public_blocked_profile_response(other))
+    return {"blocked": blocked}
+
+
+@app.post("/profile/block")
+def profile_block(
+    request: ProfileRelationshipRequest,
+    user_id: uuid.UUID = Depends(get_current_user),
+):
+    user, target = get_relationship_users(user_id, request.target_user_id)
+    next_blocked = user.blocked_users + (
+        [target.user_id] if target.user_id not in user.blocked_users else []
+    )
+
+    save_relationship_state(
+        user.user_id,
+        next_blocked,
+        remove_uuid(user.liked_users, target.user_id),
+        remove_uuid(user.matched_users, target.user_id),
+        target.user_id,
+        target.blocked_users,
+        remove_uuid(target.liked_users, user.user_id),
+        remove_uuid(target.matched_users, user.user_id),
+    )
+    trigger_recompute(user.user_id)
+    trigger_recompute(target.user_id)
+    return {"status": "ok"}
+
+
+@app.post("/profile/unblock")
+def profile_unblock(
+    request: ProfileRelationshipRequest,
+    user_id: uuid.UUID = Depends(get_current_user),
+):
+    user, target = get_relationship_users(user_id, request.target_user_id)
+    save_relationship_state(
+        user.user_id,
+        remove_uuid(user.blocked_users, target.user_id),
+        user.liked_users,
+        user.matched_users,
+        target.user_id,
+        target.blocked_users,
+        target.liked_users,
+        target.matched_users,
+    )
+    trigger_recompute(user.user_id)
+    trigger_recompute(target.user_id)
+    return {"status": "ok"}
+
+
+@app.post("/profile/unmatch")
+def profile_unmatch(
+    request: ProfileRelationshipRequest,
+    user_id: uuid.UUID = Depends(get_current_user),
+):
+    user, target = get_relationship_users(user_id, request.target_user_id)
+    save_relationship_state(
+        user.user_id,
+        user.blocked_users,
+        remove_uuid(user.liked_users, target.user_id),
+        remove_uuid(user.matched_users, target.user_id),
+        target.user_id,
+        target.blocked_users,
+        remove_uuid(target.liked_users, user.user_id),
+        remove_uuid(target.matched_users, user.user_id),
+    )
+    trigger_recompute(user.user_id)
+    trigger_recompute(target.user_id)
+    return {"status": "ok"}
+
+
 @app.get("/profile/matches")
 def profile_matches(user_id: uuid.UUID = Depends(get_current_user)):
     user = get_user(user_id)
@@ -323,11 +468,7 @@ def profile_matches(user_id: uuid.UUID = Depends(get_current_user)):
         other = profiles_by_id.get(str(matched_id))
         if other is None:
             continue
-        matches.append({
-            **profile_setup_response(other),
-            "user_id": str(other.user_id),
-            **private_social_response(other),
-        })
+        matches.append(public_matched_profile_response(other))
     return {"matches": matches}
 
 
@@ -342,6 +483,7 @@ def profile_swipes(user_id: uuid.UUID = Depends(get_current_user)):
         *{str(other_id) for other_id in user.liked_users},
         *{str(other_id) for other_id in user.rejected_users},
         *{str(other_id) for other_id in user.matched_users},
+        *{str(other_id) for other_id in user.blocked_users},
     }
     enriched = []
 
@@ -353,7 +495,11 @@ def profile_swipes(user_id: uuid.UUID = Depends(get_current_user)):
         if other is None:
             continue
         enriched.append(
-            swipe_profile_response(other, entry.get("score", 0)),
+            swipe_profile_response(
+                other,
+                entry.get("score", 0),
+                shared_interests_response(user, other),
+            ),
         )
 
     return {"user_ranked_list": enriched}

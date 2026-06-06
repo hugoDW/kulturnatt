@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -6,12 +6,40 @@ import MaskedView from "@react-native-masked-view/masked-view";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "../App";
+import { getStayLoggedInPreference } from "../lib/authPreferences";
+import { supabase } from "../lib/supabase";
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, "Start">;
 
 export default function StartScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NavigationProp>();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    (async () => {
+      const stayLoggedIn = await getStayLoggedInPreference();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (cancelled || !session?.access_token) {
+        return;
+      }
+
+      if (!stayLoggedIn) {
+        await supabase.auth.signOut();
+        return;
+      }
+
+      navigation.reset({ index: 0, routes: [{ name: "Welcome" }] });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [navigation]);
 
   return (
     <LinearGradient

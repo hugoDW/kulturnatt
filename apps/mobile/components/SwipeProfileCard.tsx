@@ -10,7 +10,12 @@ import {
 } from "react-native";
 import { Ionicons } from "@react-native-vector-icons/ionicons";
 
-import type { MatchedProfile, RankedProfile } from "../apiservices/swipeService";
+import type {
+  MatchedProfile,
+  RankedProfile,
+  SharedInterests,
+} from "../apiservices/swipeService";
+import type { ProfileSetupPayload } from "../apiservices/profileService";
 import { getSelectedInterests } from "../lib/interestOptions";
 import { selectionChipStyles } from "../lib/selectionChipStyles";
 import { decodeAll } from "../lib/profileTags";
@@ -57,6 +62,60 @@ function genderIcon(gender: string) {
   }
 }
 
+function normalizedKey(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function decodedNameSet(values: string[] | undefined) {
+  return new Set(
+    decodeAll(values ?? [])
+      .map((item) => normalizedKey(item.name))
+      .filter(Boolean),
+  );
+}
+
+function labelSet(values: string[] | undefined) {
+  return new Set((values ?? []).map(normalizedKey).filter(Boolean));
+}
+
+function sharedList(current: string[] | undefined, other: string[] | undefined) {
+  const currentValues = new Set(current ?? []);
+  return (other ?? []).filter((value) => currentValues.has(value));
+}
+
+function buildSharedInterests(
+  viewerProfile: ProfileSetupPayload | null | undefined,
+  profile: RankedProfile | MatchedProfile,
+): SharedInterests | null {
+  if (!viewerProfile) return null;
+
+  return {
+    events: sharedList(viewerProfile.events, profile.events),
+    songs: sharedList(viewerProfile.songs, profile.songs),
+    albums: sharedList(viewerProfile.albums, profile.albums),
+    movies: sharedList(viewerProfile.movies, profile.movies),
+    artists: sharedList(viewerProfile.artists, profile.artists),
+    directors: sharedList(viewerProfile.directors, profile.directors),
+    actors: sharedList(viewerProfile.actors, profile.actors),
+    music_genre: sharedList(viewerProfile.music_genre, profile.music_genre),
+    movie_genre: sharedList(viewerProfile.movie_genre, profile.movie_genre),
+    shows: sharedList(viewerProfile.shows, profile.shows),
+    literature: sharedList(viewerProfile.literature, profile.literature),
+    art: viewerProfile.art && profile.art,
+  };
+}
+
+function getProfileSharedInterests(
+  profile: RankedProfile | MatchedProfile,
+  viewerProfile?: ProfileSetupPayload | null,
+): SharedInterests | null {
+  if ("shared" in profile && profile.shared) {
+    return profile.shared;
+  }
+
+  return buildSharedInterests(viewerProfile, profile);
+}
+
 function ReadOnlySection({
   title,
   icon,
@@ -80,9 +139,11 @@ function ReadOnlySection({
 function MediaRow({
   items,
   shape,
+  sharedNames,
 }: {
   items: CardItem[];
   shape: "square" | "poster";
+  sharedNames?: Set<string>;
 }) {
   const visibleItems = items.slice(0, MAX_ITEMS);
   if (visibleItems.length === 0) return null;
@@ -95,28 +156,46 @@ function MediaRow({
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.cardRow}
     >
-      {visibleItems.map((item) => (
-        <View key={item.name} style={styles.card}>
-          {item.image ? (
-            <Image source={{ uri: item.image }} style={shapeStyle} />
-          ) : (
-            <View style={[shapeStyle, styles.cardFallback]}>
-              <Ionicons name="image-outline" size={24} color="#6C5CE7" />
-            </View>
-          )}
-          <Text style={styles.cardName} numberOfLines={2}>
-            {item.name}
-          </Text>
-        </View>
-      ))}
+      {visibleItems.map((item) => {
+        const isShared = sharedNames?.has(normalizedKey(item.name)) ?? false;
+
+        return (
+          <View key={item.name} style={styles.card}>
+            {item.image ? (
+              <Image
+                source={{ uri: item.image }}
+                style={[shapeStyle, isShared && styles.sharedMedia]}
+              />
+            ) : (
+              <View
+                style={[
+                  shapeStyle,
+                  styles.cardFallback,
+                  isShared && styles.sharedMedia,
+                ]}
+              >
+                <Ionicons name="image-outline" size={24} color="#6C5CE7" />
+              </View>
+            )}
+            <Text
+              style={[styles.cardName, isShared && styles.sharedCardName]}
+              numberOfLines={2}
+            >
+              {item.name}
+            </Text>
+          </View>
+        );
+      })}
     </ScrollView>
   );
 }
 
 export default function SwipeProfileCard({
   profile,
+  viewerProfile,
 }: {
   profile: RankedProfile | MatchedProfile;
+  viewerProfile?: ProfileSetupPayload | null;
 }) {
   const age = useMemo(() => getAge(profile.dob), [profile.dob]);
   const badge = useMemo(() => genderIcon(profile.gender), [profile.gender]);
@@ -135,6 +214,27 @@ export default function SwipeProfileCard({
     [legacySocialMedia.facebook, profile.facebook],
   );
   const interests = useMemo(() => getSelectedInterests(profile), [profile]);
+  const shared = useMemo(
+    () => getProfileSharedInterests(profile, viewerProfile),
+    [profile, viewerProfile],
+  );
+  const sharedSets = useMemo(
+    () => ({
+      events: decodedNameSet(shared?.events),
+      songs: decodedNameSet(shared?.songs),
+      albums: decodedNameSet(shared?.albums),
+      artists: decodedNameSet(shared?.artists),
+      directors: decodedNameSet(shared?.directors),
+      actors: decodedNameSet(shared?.actors),
+      movies: decodedNameSet(shared?.movies),
+      shows: decodedNameSet(shared?.shows),
+      musicGenre: labelSet(shared?.music_genre),
+      movieGenre: labelSet(shared?.movie_genre),
+      literature: labelSet(shared?.literature),
+      art: shared?.art ?? false,
+    }),
+    [shared],
+  );
 
   const eventItems = useMemo(
     () => decodeAll(profile.events).filter((item) => item.name.trim()),
@@ -160,6 +260,14 @@ export default function SwipeProfileCard({
     () => decodeAll(profile.shows).filter((item) => item.name.trim()),
     [profile.shows],
   );
+  const directorItems = useMemo(
+    () => decodeAll(profile.directors).filter((item) => item.name.trim()),
+    [profile.directors],
+  );
+  const actorItems = useMemo(
+    () => decodeAll(profile.actors).filter((item) => item.name.trim()),
+    [profile.actors],
+  );
 
   return (
     <View style={styles.profileCard}>
@@ -182,7 +290,7 @@ export default function SwipeProfileCard({
               style={styles.socialMediaRow}
               onPress={() => Linking.openURL(instagram.url)}
             >
-              <Ionicons name="logo-instagram" size={15} color="#6C5CE7" />
+              <Ionicons name="logo-instagram" size={15} color="#da45c6" />
               <Text style={styles.instagramText}>{instagram.handle}</Text>
             </TouchableOpacity>
           ) : null}
@@ -217,63 +325,122 @@ export default function SwipeProfileCard({
       {interests.length > 0 ? (
         <ReadOnlySection title="Interests" icon="heart-outline">
           <View style={selectionChipStyles.wrap}>
-            {interests.map((interest) => (
-              <View
-                key={interest.id}
-                style={[
-                  styles.interestChip,
-                  selectionChipStyles.chip,
-                  selectionChipStyles.chipSelected,
-                ]}
-              >
-                <Text
+            {interests.map((interest) => {
+              const isShared =
+                interest.id.startsWith("music-")
+                  ? sharedSets.musicGenre.has(normalizedKey(interest.label))
+                  : interest.id.startsWith("film-")
+                    ? sharedSets.movieGenre.has(normalizedKey(interest.label))
+                    : interest.id.startsWith("literature-")
+                      ? sharedSets.literature.has(normalizedKey(interest.label))
+                      : interest.id === "art" && sharedSets.art;
+
+              return (
+                <View
+                  key={interest.id}
                   style={[
-                    selectionChipStyles.chipText,
-                    selectionChipStyles.chipTextSelected,
+                    styles.interestChip,
+                    selectionChipStyles.chip,
+                    isShared && selectionChipStyles.chipSelected,
                   ]}
                 >
-                  {interest.label}
-                </Text>
-                <Ionicons name={interest.icon} size={14} color="#6C5CE7" />
-              </View>
-            ))}
+                  <Text
+                    style={[
+                      selectionChipStyles.chipText,
+                      isShared && selectionChipStyles.chipTextSelected,
+                    ]}
+                  >
+                    {interest.label}
+                  </Text>
+                  <Ionicons
+                    name={interest.icon}
+                    size={14}
+                    color="#6C5CE7"
+                  />
+                </View>
+              );
+            })}
           </View>
         </ReadOnlySection>
       ) : null}
 
       {eventItems.length > 0 ? (
         <ReadOnlySection title="Events" icon="calendar-outline">
-          <MediaRow items={eventItems} shape="poster" />
+          <MediaRow
+            items={eventItems}
+            shape="poster"
+            sharedNames={sharedSets.events}
+          />
         </ReadOnlySection>
       ) : null}
 
       {songItems.length > 0 ? (
         <ReadOnlySection title="Songs" icon="musical-note-outline">
-          <MediaRow items={songItems} shape="square" />
+          <MediaRow
+            items={songItems}
+            shape="square"
+            sharedNames={sharedSets.songs}
+          />
         </ReadOnlySection>
       ) : null}
 
       {albumItems.length > 0 ? (
         <ReadOnlySection title="Albums" icon="disc-outline">
-          <MediaRow items={albumItems} shape="square" />
+          <MediaRow
+            items={albumItems}
+            shape="square"
+            sharedNames={sharedSets.albums}
+          />
         </ReadOnlySection>
       ) : null}
 
       {artistItems.length > 0 ? (
         <ReadOnlySection title="Artists" icon="mic-outline">
-          <MediaRow items={artistItems} shape="square" />
+          <MediaRow
+            items={artistItems}
+            shape="square"
+            sharedNames={sharedSets.artists}
+          />
+        </ReadOnlySection>
+      ) : null}
+
+      {directorItems.length > 0 ? (
+        <ReadOnlySection title="Directors" icon="videocam-outline">
+          <MediaRow
+            items={directorItems}
+            shape="square"
+            sharedNames={sharedSets.directors}
+          />
+        </ReadOnlySection>
+      ) : null}
+
+      {actorItems.length > 0 ? (
+        <ReadOnlySection title="Actors" icon="people-outline">
+          <MediaRow
+            items={actorItems}
+            shape="square"
+            sharedNames={sharedSets.actors}
+          />
         </ReadOnlySection>
       ) : null}
 
       {movieItems.length > 0 ? (
         <ReadOnlySection title="Movies" icon="film-outline">
-          <MediaRow items={movieItems} shape="poster" />
+          <MediaRow
+            items={movieItems}
+            shape="poster"
+            sharedNames={sharedSets.movies}
+          />
         </ReadOnlySection>
       ) : null}
 
       {seriesItems.length > 0 ? (
         <ReadOnlySection title="Series" icon="tv-outline">
-          <MediaRow items={seriesItems} shape="poster" />
+          <MediaRow
+            items={seriesItems}
+            shape="poster"
+            sharedNames={sharedSets.shows}
+          />
         </ReadOnlySection>
       ) : null}
     </View>
@@ -340,7 +507,7 @@ const styles = StyleSheet.create({
     fontFamily: "Inter",
     fontSize: 14,
     fontWeight: "700",
-    color: "#6C5CE7",
+    color: "#da45c6",
   },
   facebookText: {
     flexShrink: 1,
@@ -413,11 +580,22 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  sharedMedia: {
+    borderWidth: 3,
+    borderColor: "#6C5CE7",
+    opacity: 0.9,
+    backgroundColor: "#F2EEFF",
+  },
   cardName: {
     marginTop: 6,
     fontFamily: "Inter",
     fontSize: 12,
     lineHeight: 16,
     color: "#33475B",
+  },
+  sharedCardName: {
+    fontWeight: "800",
+    color: "#6C5CE7",
+    opacity: 1,
   },
 });
