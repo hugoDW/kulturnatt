@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
   Image,
   Linking,
@@ -145,7 +145,22 @@ function MediaRow({
   shape: "square" | "poster";
   sharedNames?: Set<string>;
 }) {
-  const visibleItems = items.slice(0, MAX_ITEMS);
+  const sortedItems = sharedNames
+    ? items
+        .map((item, index) => ({ item, index }))
+        .sort((left, right) => {
+          const leftShared = sharedNames.has(normalizedKey(left.item.name));
+          const rightShared = sharedNames.has(normalizedKey(right.item.name));
+
+          if (leftShared === rightShared) {
+            return left.index - right.index;
+          }
+
+          return leftShared ? -1 : 1;
+        })
+        .map((entry) => entry.item)
+    : items;
+  const visibleItems = sortedItems.slice(0, MAX_ITEMS);
   if (visibleItems.length === 0) return null;
 
   const shapeStyle = shape === "poster" ? styles.cardPoster : styles.cardSquare;
@@ -268,6 +283,34 @@ export default function SwipeProfileCard({
     () => decodeAll(profile.actors).filter((item) => item.name.trim()),
     [profile.actors],
   );
+  const isSharedInterest = useCallback(
+    (interest: (typeof interests)[number]) =>
+      interest.id.startsWith("music-")
+        ? sharedSets.musicGenre.has(normalizedKey(interest.label))
+        : interest.id.startsWith("film-")
+          ? sharedSets.movieGenre.has(normalizedKey(interest.label))
+          : interest.id.startsWith("literature-")
+            ? sharedSets.literature.has(normalizedKey(interest.label))
+            : interest.id === "art" && sharedSets.art,
+    [sharedSets],
+  );
+  const sortedInterests = useMemo(
+    () =>
+      interests
+        .map((interest, index) => ({ interest, index }))
+        .sort((left, right) => {
+          const leftShared = isSharedInterest(left.interest);
+          const rightShared = isSharedInterest(right.interest);
+
+          if (leftShared === rightShared) {
+            return left.index - right.index;
+          }
+
+          return leftShared ? -1 : 1;
+        })
+        .map((entry) => entry.interest),
+    [interests, isSharedInterest],
+  );
 
   return (
     <View style={styles.profileCard}>
@@ -325,15 +368,8 @@ export default function SwipeProfileCard({
       {interests.length > 0 ? (
         <ReadOnlySection title="Interests" icon="heart-outline">
           <View style={selectionChipStyles.wrap}>
-            {interests.map((interest) => {
-              const isShared =
-                interest.id.startsWith("music-")
-                  ? sharedSets.musicGenre.has(normalizedKey(interest.label))
-                  : interest.id.startsWith("film-")
-                    ? sharedSets.movieGenre.has(normalizedKey(interest.label))
-                    : interest.id.startsWith("literature-")
-                      ? sharedSets.literature.has(normalizedKey(interest.label))
-                      : interest.id === "art" && sharedSets.art;
+            {sortedInterests.map((interest) => {
+              const isShared = isSharedInterest(interest);
 
               return (
                 <View
