@@ -162,6 +162,9 @@ export default function MatchesScreen() {
                 setMatches((current) =>
                   current.filter((entry) => entry.user_id !== target.user_id),
                 );
+                setBlockedProfiles((current) =>
+                  current.filter((entry) => entry.user_id !== target.user_id),
+                );
                 setBlockedProfiles((current) => {
                   if (current.some((entry) => entry.user_id === target.user_id)) {
                     return current;
@@ -208,15 +211,26 @@ export default function MatchesScreen() {
   }
 
   function handleUnblock(target: MatchedProfile) {
-    runRelationshipAction(
-      target,
-      () => unblockProfile(target.user_id),
-      () => {
-        setBlockedProfiles((current) =>
-          current.filter((entry) => entry.user_id !== target.user_id),
-        );
-      },
-      "Could not unblock profile",
+    Alert.alert(
+      "Unblock user?",
+      "Unblocking this user means they can appear in your Discover again, continue?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Unblock",
+          onPress: () =>
+            runRelationshipAction(
+              target,
+              () => unblockProfile(target.user_id),
+              () => {
+                setBlockedProfiles((current) =>
+                  current.filter((entry) => entry.user_id !== target.user_id),
+                );
+              },
+              "Could not unblock profile",
+            ),
+        },
+      ],
     );
   }
 
@@ -627,15 +641,11 @@ const styles = StyleSheet.create({
     zIndex: 3,
   },
   blockedHeader: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     paddingHorizontal: 14,
-    paddingBottom: 16,
+    paddingBottom: 24,
   },
   headerBalanceSpacer: {
     width: 40,
